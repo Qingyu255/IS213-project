@@ -1,24 +1,60 @@
-# Compiled class file
+# Java-related files
 *.class
-
-# Log file
-*.log
-
-# BlueJ files
-*.ctxt
-
-# Mobile Tools for Java (J2ME)
-.mtj.tmp/
-
-# Package Files #
 *.jar
 *.war
-*.nar
 *.ear
-*.zip
-*.tar.gz
-*.rar
 
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
+# Log files
+*.log
+
+# Compiled class files
+/target/
+/out/
+
+# Maven-specific files
+*.mvn/
+.mvn/wrapper/maven-wrapper.jar
+!.mvn/wrapper/maven-wrapper.properties
+
+# IntelliJ IDEA-specific files
+.idea/
+*.iml
+*.iws
+.idea_modules/
+
+# VS Code-specific files
+.vscode/
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*.bak
+
+# Spring Boot devtools (if used)
+.spring-boot-devtools.properties
+
+# Sensitive configuration files
+.env
+.env.local
+*.properties
+application.yml
+application-*.yml
+application.properties
+application-*.properties
+
+# Logs and temporary files
+logs/
+*.pid
 hs_err_pid*
-replay_pid*
+
+# Node and frontend build outputs (if integrated with frontend frameworks)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python related
+venv/
+__pycache__/
