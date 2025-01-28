@@ -1,23 +1,37 @@
 services:
+  frontend:
+    build:
+      context: ./frontend/client
+    container_name: frontend-client
+    ports:
+      - "3000:3000" # Expose the Next.js frontend on localhost:3000
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - ./frontend/client:/app # Mount source code for hot reloading
+      - /app/node_modules # Preserve container node_modules
+    networks:
+      - default
+
   example-spring-service:
-    build: 
+    build:
       context: ./services/exampleSpringService
     container_name: example-spring-service
     ports:
-      - "8080:8080"         # Expose the Spring service on localhost:8080; change port accordingly for your service
+      - "8080:8080" # Expose the Spring service on localhost:8080; change port accordingly for your service
     networks:
       - default
 
   example-flask-service:
-    build: 
+    build:
       context: ./services/exampleFlaskService
     container_name: example-flask-service
     ports:
-      - "5000:5000"         # Expose the Flask service on localhost:5000; change port accodingly for your service
+      - "5000:5000" # Expose the Flask service on localhost:5000; change port accodingly for your service
     depends_on:
-      - example-spring-service      # Ensure the example-spring-service is up before flask tries to connect
+      - example-spring-service # Ensure the example-spring-service is up before flask tries to connect
     volumes:
-      - ./services/exampleFlaskService:/app  # Mount only the Flask service directory
+      - ./services/exampleFlaskService:/app # Mount only the Flask service directory
     networks:
       - default
 
