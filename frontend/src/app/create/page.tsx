@@ -1,19 +1,38 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import Image from "next/image"
-import { Calendar, Clock, ChevronDown, Users, Pencil, Ticket, UserCheck } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Textarea } from "@/components/ui/textarea"
+import { useState } from "react";
+import Image from "next/image";
+import {
+  Calendar,
+  Clock,
+  ChevronDown,
+  Users,
+  Pencil,
+  Ticket,
+  UserCheck,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Textarea } from "@/components/ui/textarea";
 
 export default function CreateEventPage() {
-  const [isUnlimited, setIsUnlimited] = useState(true)
-  const [requireApproval, setRequireApproval] = useState(false)
+  // const [isUnlimited, setIsUnlimited] = useState(true)
+  const isUnlimited = false; // TODO: do up logic
+  const [requireApproval, setRequireApproval] = useState(false);
 
   return (
     <div className="min-h-screen ">
@@ -77,7 +96,11 @@ export default function CreateEventPage() {
                   Start Date
                 </Label>
                 <div className="relative">
-                  <Input id="start-date" type="date" className="bg-white/5  pl-10" />
+                  <Input
+                    id="start-date"
+                    type="date"
+                    className="bg-white/5  pl-10"
+                  />
                   <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 /50" />
                 </div>
               </div>
@@ -86,7 +109,11 @@ export default function CreateEventPage() {
                   Start Time
                 </Label>
                 <div className="relative">
-                  <Input id="start-time" type="time" className="bg-white/5   pl-10" />
+                  <Input
+                    id="start-time"
+                    type="time"
+                    className="bg-white/5   pl-10"
+                  />
                   <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 /50" />
                 </div>
               </div>
@@ -98,7 +125,11 @@ export default function CreateEventPage() {
                   End Date
                 </Label>
                 <div className="relative">
-                  <Input id="end-date" type="date" className="bg-white/5   pl-10" />
+                  <Input
+                    id="end-date"
+                    type="date"
+                    className="bg-white/5   pl-10"
+                  />
                   <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 /50" />
                 </div>
               </div>
@@ -107,7 +138,11 @@ export default function CreateEventPage() {
                   End Time
                 </Label>
                 <div className="relative">
-                  <Input id="end-time" type="time" className="bg-white/5   pl-10" />
+                  <Input
+                    id="end-time"
+                    type="time"
+                    className="bg-white/5   pl-10"
+                  />
                   <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 /50" />
                 </div>
               </div>
@@ -127,7 +162,9 @@ export default function CreateEventPage() {
                 <div className="grid gap-4 p-4">
                   <div className="space-y-2">
                     <h4 className="font-medium leading-none">Timezone</h4>
-                    <p className="text-sm /70">Set the timezone for your event.</p>
+                    <p className="text-sm /70">
+                      Set the timezone for your event.
+                    </p>
                   </div>
                   <Select defaultValue="utc">
                     <SelectTrigger className="w-full bg-white/5  ">
@@ -165,7 +202,11 @@ export default function CreateEventPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="/70">Free</span>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 /70 hover:">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 /70 hover:"
+                    >
                       <Pencil className="h-4 w-4" />
                     </Button>
                   </div>
@@ -176,7 +217,10 @@ export default function CreateEventPage() {
                     <UserCheck className="h-5 w-5 /70" />
                     <span>Require Approval</span>
                   </div>
-                  <Switch checked={requireApproval} onCheckedChange={setRequireApproval} />
+                  <Switch
+                    checked={requireApproval}
+                    onCheckedChange={setRequireApproval}
+                  />
                 </div>
 
                 <div className="flex items-center justify-between">
@@ -186,7 +230,11 @@ export default function CreateEventPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="/70">Unlimited</span>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 /70 hover:">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 /70 hover:"
+                    >
                       <Pencil className="h-4 w-4" />
                     </Button>
                   </div>
@@ -212,5 +260,5 @@ export default function CreateEventPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

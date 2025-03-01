@@ -36,10 +36,10 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-            <main>
-              <Navbar />
-              {children}
-            </main>
+          <main>
+            <Navbar />
+            {children}
+          </main>
         </ThemeProvider>
       </body>
     </html>

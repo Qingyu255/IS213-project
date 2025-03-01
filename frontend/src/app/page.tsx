@@ -18,6 +18,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { siteName } from "@/constants/common";
+import { Routes } from "@/constants/routes";
 
 export default function EventPlatformPage() {
   return (
@@ -59,15 +60,19 @@ export default function EventPlatformPage() {
               your own with powerful tools designed for the modern creator.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600  border-0 h-12 px-8 text-lg">
-                Find Events
-              </Button>
-              <Button
-                variant="outline"
-                className="border-white/20 h-12 px-8 text-lg"
-              >
-                Create an Event
-              </Button>
+              <Link href={Routes.BrowseEvents}>
+                <Button className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600  border-0 h-12 px-8 text-lg">
+                  Find Events
+                </Button>
+              </Link>
+              <Link href={Routes.CreateEvent}>
+                <Button
+                  variant="outline"
+                  className="border-white/20 h-12 px-8 text-lg"
+                >
+                  Create an Event
+                </Button>
+              </Link>
             </div>
           </div>
 
@@ -101,15 +106,17 @@ export default function EventPlatformPage() {
               </h2>
             </div>
             <div className="flex gap-4">
-              <Button
+              {/* <Button
                 variant="outline"
                 className="border-white/20 hover:bg-white/10"
               >
                 All Categories
-              </Button>
-              <Button variant="ghost" className="/70 hover: hover:bg-white/10">
-                View All <ChevronRight className="ml-2 h-4 w-4" />
-              </Button>
+              </Button> */}
+              <Link href={Routes.BrowseEvents}>
+                <Button variant="outline">
+                  View All <ChevronRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
             </div>
           </div>
 
@@ -214,8 +221,8 @@ export default function EventPlatformPage() {
               </h2>
               <p className="/70 text-lg mb-8">
                 Our powerful yet simple tools make it easy to create, manage,
-                and promote your events. From registration to analytics, we've
-                got you covered.
+                and promote your events. From registration to analytics,
+                we&apos;ve got you covered.
               </p>
 
               <div className="space-y-6">
@@ -285,7 +292,7 @@ export default function EventPlatformPage() {
               How {siteName} Works
             </h2>
             <p className="/70 text-lg">
-              Whether you're attending or creating, our platform makes the
+              Whether you&apos;re attending or creating, our platform makes the
               entire process seamless and enjoyable.
             </p>
           </div>
@@ -439,7 +446,7 @@ export default function EventPlatformPage() {
                     <p className="/70">{testimonial.role}</p>
                   </div>
                 </div>
-                <p className="/90 italic">"{testimonial.comment}"</p>
+                <p className="/90 italic">{`"${testimonial.comment}"`}</p>
                 <div className="mt-4 flex">
                   {[...Array(5)].map((_, i) => (
                     <Star
@@ -465,8 +472,8 @@ export default function EventPlatformPage() {
               Choose the Perfect Plan
             </h2>
             <p className="/70 text-lg">
-              Whether you're hosting a small workshop or a large festival, we
-              have the right plan for you.
+              Whether you&apos;re hosting a small workshop or a large festival,
+              we have the right plan for you.
             </p>
           </div>
 
@@ -587,7 +594,7 @@ export default function EventPlatformPage() {
             </h2>
             <p className="/70 text-lg mb-8 max-w-2xl mx-auto">
               Join thousands of event creators and attendees on the platform
-              that's redefining the event experience.
+              that&apos;s redefining the event experience.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600  border-0 px-8 py-6 text-lg">
