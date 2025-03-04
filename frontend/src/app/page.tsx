@@ -18,7 +18,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { siteName } from "@/constants/common";
-import { Routes } from "@/constants/routes";
+import { Route } from "@/constants/routes";
 
 export default function EventPlatformPage() {
   return (
@@ -60,12 +60,12 @@ export default function EventPlatformPage() {
               your own with powerful tools designed for the modern creator.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href={Routes.BrowseEvents}>
+              <Link href={Route.BrowseEvents}>
                 <Button className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600  border-0 h-12 px-8 text-lg">
                   Find Events
                 </Button>
               </Link>
-              <Link href={Routes.CreateEvent}>
+              <Link href={Route.CreateEvent}>
                 <Button
                   variant="outline"
                   className="border-white/20 h-12 px-8 text-lg"
@@ -112,7 +112,7 @@ export default function EventPlatformPage() {
               >
                 All Categories
               </Button> */}
-              <Link href={Routes.BrowseEvents}>
+              <Link href={Route.BrowseEvents}>
                 <Button variant="outline">
                   View All <ChevronRight className="ml-2 h-4 w-4" />
                 </Button>
