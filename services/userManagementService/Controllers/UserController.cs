@@ -68,7 +68,7 @@ public class UserController : ControllerBase // Inherit controller base
     [AllowAnonymous] // This is a public endpoint and will be excluded from the JWT token validation
     public async Task<IActionResult> CreateUser([FromBody] CreateUserDto createUserDto)
     {
-        // And check if user already exists
+        // Check if user with username already exists
         var user = await _userRepository.GetUserByUsernameAsync(createUserDto.Username);
         _logger.LogInformation(user?.ToString());
         if (user != null)
@@ -78,6 +78,20 @@ public class UserController : ControllerBase // Inherit controller base
                     error = string.Format(ErrorMessages.UserExists, createUserDto.Username)
                 }
             );
+        }
+
+        // And check if user with email already exists
+        if (user == null)
+        {
+            user = await _userRepository.GetUserByEmailAsync(createUserDto.Email);
+            if (user != null)
+            {
+                return BadRequest(new
+                    {
+                        error = string.Format(ErrorMessages.UserEmailExists, createUserDto.Email)
+                    }
+                );
+            }
         }
 
         var newUser = new User
@@ -177,7 +191,7 @@ public class UserController : ControllerBase // Inherit controller base
     }
 
     [HttpDelete("delete/{userId}")]
-    [Authorize(Policy = Policies.AdminsOnly)]
+    // [Authorize(Policy = Policies.AdminsOnly)]
     public async Task<IActionResult> DeleteUser([FromRoute] string userId)
     {
         var user = await _userRepository.GetUserByIdAsync(userId);
@@ -232,4 +246,5 @@ public class UserController : ControllerBase // Inherit controller base
 public static class ErrorMessages
 {
     public const string UserExists = "User with username {0} already exists!";
+    public const string UserEmailExists = "User with email {0} already exists!";
 }

@@ -9,6 +9,7 @@ public interface IUserRepository
     Task<IEnumerable<User>> GetAllUsersAsync();
     Task<User?> GetUserByIdAsync(string id);
     Task<User?> GetUserByUsernameAsync(string username);
+    Task<User?> GetUserByEmailAsync(string username);
     Task CreateUserAsync(User user);
     Task UpdateUserAsync(User user);
     Task DeleteUserAsync(string id);
@@ -36,6 +37,11 @@ public class UserRepository : IUserRepository
     public async Task<User?> GetUserByUsernameAsync(string username)
     {
         return await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
+    }
+    
+    public async Task<User?> GetUserByEmailAsync(string email)
+    {
+        return await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
     }
 
     public async Task CreateUserAsync(User user)

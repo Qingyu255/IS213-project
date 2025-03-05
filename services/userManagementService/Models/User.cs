@@ -23,4 +23,6 @@ public class User
 
     [Column("updated_at")]
     public DateTime UpdatedAt { get; set; }
+  
+    public ICollection<UserInterest> UserInterests { get; set; } = new List<UserInterest>();
 }

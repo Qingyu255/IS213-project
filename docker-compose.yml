@@ -6,7 +6,11 @@ services:
     ports:
       - "3000:3000" # Expose the Next.js frontend on localhost:3000
     environment:
-      - NODE_ENV=development
+      NODE_ENV: "development"
+      NEXT_PUBLIC_USER_POOL_ID: ${AWS_COGNITO_USER_POOL_ID}
+      NEXT_PUBLIC_USER_POOL_CLIENT_ID: ${AWS_COGNITO_APP_CLIENT_ID}
+      NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${GOOGLE_MAPS_API_KEY}
+      NEXT_PUBLIC_USER_MANAGEMENT_SERVICE_API_BASE_URL: ${USER_MANAGEMENT_SERVICE_API_BASE_URL}
     volumes:
       - ./frontend:/app # Mount source code for hot reloading
     networks:

@@ -96,7 +96,8 @@ builder.Services.AddScoped<CognitoService>(sp =>
     var cognitoClient = sp.GetRequiredService<IAmazonCognitoIdentityProvider>();
     var configuration = sp.GetRequiredService<IConfiguration>();
     var userPoolId = configuration["AWS_COGNITO_USER_POOL_ID"];
-    return new CognitoService(cognitoClient, userPoolId);
+    var clientId = configuration["AWS_COGNITO_APP_CLIENT_ID"];
+    return new CognitoService(cognitoClient, userPoolId, clientId);
 });
 
 // Repositories

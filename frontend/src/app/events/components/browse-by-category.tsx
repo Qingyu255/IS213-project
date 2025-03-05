@@ -1,18 +1,8 @@
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
-import { Music, Briefcase, Code, Palette, Trophy } from "lucide-react";
-
-const categoryIcons = {
-  Music: Music,
-  Business: Briefcase,
-  Technology: Code,
-  Art: Palette,
-  Sports: Trophy,
-};
+import { interestCategories, interestCategoryIcons } from "@/constants/common";
 
 export function BrowseByCategory() {
-  // fetch categories here
-  const categories = ["Music", "Sports", "Technology", "Art", "Business"];
 
   return (
     <div>
@@ -20,8 +10,8 @@ export function BrowseByCategory() {
         Browse by Category
       </h2>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-        {categories.map((category) => {
-          const Icon = categoryIcons[category as keyof typeof categoryIcons];
+        {interestCategories.map((category) => {
+          const Icon = interestCategoryIcons[category];
           return (
             <Link href={`/events?category=${category}`} key={category}>
               <Card className="hover:shadow-md transition-shadow duration-300">

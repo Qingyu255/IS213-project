@@ -8,50 +8,35 @@ public class CognitoService
 {
     private readonly IAmazonCognitoIdentityProvider _cognitoClient;
     private readonly string _userPoolId;
+    private readonly string _clientId;
 
-    public CognitoService(IAmazonCognitoIdentityProvider cognitoClient, string userPoolId)
+    public CognitoService(IAmazonCognitoIdentityProvider cognitoClient, string userPoolId, string clientId)
     {
         _cognitoClient = cognitoClient;
         _userPoolId = userPoolId;
+        _clientId = clientId;
     }
 
     /// <summary>
-    /// Creates user with attributes: email, firstname, lastname, role
+    /// Creates user with attributes: username and password (password only stored in aws cognito not our service)
     /// </summary>
     /// <param name="createUserDto"></param>
     /// <returns></returns>
-    public async Task<AdminCreateUserResponse> CreateUserAsync(CreateUserDto createUserDto)
+    public async Task<SignUpResponse> CreateUserAsync(CreateUserDto createUserDto)
     {
-        // // Check if role is specified; throw an error if not.
-        // if (string.IsNullOrEmpty(createUserDto.Role))
-        // {
-        //     throw new Exception("Role must be specified in the CreateUserDto");
-        // }
-
-        // Create the user in Cognito
-        var request = new AdminCreateUserRequest
+        // Create the user in Cognito with a temporary password
+        var request = new SignUpRequest
         {
-            UserPoolId = _userPoolId,
+            ClientId = _clientId,
             Username = createUserDto.Username,
+            Password = createUserDto.Password, 
             UserAttributes = new List<AttributeType>
             {
                 new AttributeType { Name = "email", Value = createUserDto.Email},
             },
-            
-            DesiredDeliveryMediums = new List<string>{"EMAIL"},
         };
 
-        return await _cognitoClient.AdminCreateUserAsync(request);
-
-        // // Add the user to the specified group in cognito
-        // var addGroupRequest = new AdminAddUserToGroupRequest
-        // {
-        //     UserPoolId = _userPoolId,
-        //     Username = createUserDto.Username,
-        //     GroupName = createUserDto.Role
-        // };
-        //
-        // return await _cognitoClient.AdminAddUserToGroupAsync(addGroupRequest);
+        return await _cognitoClient.SignUpAsync(request);
     }
 
     public async Task<AdminDeleteUserResponse> DeleteUserAsync(string username)
@@ -66,12 +51,13 @@ public class CognitoService
     }
 
     /// <summary>
-    /// This method updates a user's email, firstname, lastname
+    /// This method updates a user's email
     /// </summary>
     /// <param name="updateUserDto"></param>
     /// <returns></returns>
     public async Task<AdminUpdateUserAttributesResponse> UpdateUserAsync(string username, UpdateUserDto updateUserDto)
     {
+        // TODO: allow update username?
         var request = new AdminUpdateUserAttributesRequest()
         {
             UserPoolId = _userPoolId,

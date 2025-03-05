@@ -1,5 +1,5 @@
 "use client";
-import { AtSign, Key, AlertCircle } from "lucide-react";
+import { AtSign, Key } from "lucide-react";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useFormState, useFormStatus } from "react-dom";
@@ -7,6 +7,7 @@ import { handleSignIn } from "@/lib/cognitoActions";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ErrorMessageCallout } from "@/components/error-message-callout";
 
 export default function LoginForm() {
   const [errorMessage, dispatch] = useFormState(handleSignIn, undefined);
@@ -56,6 +57,9 @@ export default function LoginForm() {
           </div>
         </div>
         <LoginButton />
+        {errorMessage && (
+          <ErrorMessageCallout errorMessage={errorMessage} />
+        )}
         <div className="flex justify-center">
           <Link
             href="/auth/signup"
@@ -63,20 +67,6 @@ export default function LoginForm() {
           >
             {"Don't have an account? "} Sign up.
           </Link>
-        </div>
-        <div className="flex h-8 items-end space-x-1">
-          <div
-            className="flex h-8 items-end space-x-1"
-            aria-live="polite"
-            aria-atomic="true"
-          >
-            {errorMessage && (
-              <>
-                <AlertCircle className="h-5 w-5 text-red-500" />
-                <p className="text-sm text-red-500">{errorMessage}</p>
-              </>
-            )}
-          </div>
         </div>
       </div>
     </form>
@@ -87,7 +77,7 @@ function LoginButton() {
   const { pending } = useFormStatus();
 
   return (
-    <Button className="mt-4 w-full" aria-disabled={pending}>
+    <Button className="my-4 w-full" aria-disabled={pending}>
       Log in <ArrowRight className="ml-auto h-5 w-5 text-gray-50" />
     </Button>
   );

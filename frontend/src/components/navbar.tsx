@@ -45,13 +45,7 @@ export default function Navbar() {
             </Link>
           </nav>
           <div className="flex items-center gap-4 ml-0">
-            <Link href={Route.SignUp}>
-              {/* <Button
-                variant="ghost"
-                className="hover:bg-white/10 transition-colors duration-200"
-              >
-                Sign In
-              </Button> */}
+            <Link href={Route.Login}>
               <Button className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 border-0 transition-colors duration-200">
                 Sign In
               </Button>
