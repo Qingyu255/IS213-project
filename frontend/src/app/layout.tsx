@@ -4,6 +4,8 @@ import "./globals.css";
 import { ThemeProvider } from "next-themes";
 import { siteName } from "@/constants/common";
 import Navbar from "@/components/navbar";
+import ConfigureAmplifyClientSide from "./amplify-cognito-config";
+import { Toaster } from "@/components/ui/sonner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -37,9 +39,11 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <main>
+            <ConfigureAmplifyClientSide />
             <Navbar />
             {children}
           </main>
+          <Toaster />
         </ThemeProvider>
       </body>
     </html>

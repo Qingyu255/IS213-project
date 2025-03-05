@@ -1,0 +1,50 @@
+﻿{
+  "$schema": "http://json.schemastore.org/launchsettings.json",
+  "iisSettings": {
+    "windowsAuthentication": false,
+    "anonymousAuthentication": true,
+    "iisExpress": {
+      "applicationUrl": "http://localhost:57167",
+      "sslPort": 44352
+    }
+  },
+  "profiles": {
+    "http": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": true,
+      "launchUrl": "swagger",
+      "applicationUrl": "http://localhost:8080",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "",
+        "AWS_COGNITO_REGION": "",
+        "AWS_COGNITO_USER_POOL_ID": "",
+        "AWS_COGNITO_APP_CLIENT_ID": ""
+      }
+    },
+    "https": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": true,
+      "launchUrl": "swagger",
+      "applicationUrl": "https://localhost:7242;http://localhost:5029",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "",
+        "AWS_COGNITO_REGION": "",
+        "AWS_COGNITO_USER_POOL_ID": "",
+        "AWS_COGNITO_APP_CLIENT_ID": ""
+      }
+    },
+    "IIS Express": {
+      "commandName": "IISExpress",
+      "launchBrowser": true,
+      "launchUrl": "swagger",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "",
+        "AWS_COGNITO_REGION": "",
+        "AWS_COGNITO_USER_POOL_ID": "",
+        "AWS_COGNITO_APP_CLIENT_ID": ""
+      }
+    }
+  }
+}
