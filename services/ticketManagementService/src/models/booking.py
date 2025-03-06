@@ -1,8 +1,7 @@
 from sqlalchemy import Column, String, UUID, DateTime, func
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
-Base = declarative_base()
+from .base import Base
 
 class Booking(Base):
     __tablename__ = "bookings"
@@ -15,4 +14,4 @@ class Booking(Base):
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
     # Relationship with tickets
-    tickets = relationship("Ticket", backref="booking", cascade="all, delete-orphan") 
+    tickets = relationship("Ticket", back_populates="booking", cascade="all, delete-orphan", lazy="selectin") 
