@@ -1,13 +1,14 @@
 "use client"
-import { getSession } from "next-auth/react"
+import { fetchAuthSession } from "aws-amplify/auth";
 
 export const getBearerToken = async (): Promise<string> => {
-    const session = await getSession();
-    let token = "Bearer ";
-    if (session && session.accessToken) {
-        token += session.accessToken;
-    } else {
-        console.error("Error in retrieving accessToken.")
-    }
-    return token;
-}
+  const session = await fetchAuthSession();
+  let token = "";
+  if (session && session.tokens && session.tokens.accessToken) {
+    token = `Bearer ${session.tokens.accessToken}`;
+    console.log("Token:  " + token);
+  } else {
+    console.error("Error in retrieving access token.");
+  }
+  return token;
+};

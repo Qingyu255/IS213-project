@@ -7,7 +7,7 @@ import { ErrorMessageCallout } from "@/components/error-message-callout";
 import { interestCategories } from "@/constants/common";
 import { toast } from "sonner";
 import { Route } from "@/constants/routes";
-import { BackendRoutes } from "@/constants/backend-routes";
+import { BACKEND_ROUTES } from "@/constants/backend-routes";
 
 export default function IndicateInterestsPage() {
   const router = useRouter();
@@ -31,7 +31,7 @@ export default function IndicateInterestsPage() {
       setError("");
       setLoading(true);
 
-      const res = await fetch(`${BackendRoutes.userManagementServiceUrl}/api/userinterests/user/${userId}`, {
+      const res = await fetch(`${BACKEND_ROUTES.userManagementServiceUrl}/api/userinterests/user/${userId}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

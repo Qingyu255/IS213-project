@@ -1,30 +1,26 @@
+import { useEffect, useState } from "react";
 import {
   fetchAuthSession,
   fetchUserAttributes,
   getCurrentUser,
 } from "aws-amplify/auth";
-import { useEffect, useState } from "react";
+import { User } from "@/types/user";
 
-export default function useAuthUser() {
-  const [user, setUser] = useState<Record<string, any>>();
+export default function useAuthUser(): User | undefined {
+  const [user, setUser] = useState<User | undefined>(undefined);
 
   useEffect(() => {
     async function getUser() {
       const session = await fetchAuthSession();
       if (!session.tokens) {
+        console.log("Unauthenticated user");
         return;
       }
-      const user = {
-        ...(await getCurrentUser()),
-        ...(await fetchUserAttributes()),
-        isAdmin: false,
-      };
-      const groups = session.tokens.accessToken.payload["cognito:groups"];
-      // @ts-ignore
-      user.isAdmin = Boolean(groups && groups.includes("Admins"));
-      setUser(user);
+      console.log(`User is authenticated. Token: Bearer ${session.tokens.accessToken}`);
+      const currentUser = await getCurrentUser();
+      const attributes = await fetchUserAttributes();
+      setUser({ ...currentUser, ...attributes, isLoggedIn: true });
     }
-
     getUser();
   }, []);
 

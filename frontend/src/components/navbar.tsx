@@ -1,3 +1,4 @@
+"use client"
 import { Route } from "@/constants/routes";
 import { Menu } from "lucide-react";
 import Link from "next/link";
@@ -12,8 +13,13 @@ import {
   DropdownMenuSeparator,
 } from "./ui/dropdown-menu";
 import Logo from "./logo";
+import useAuthUser from "@/app/hooks/use-auth-user";
+import { handleSignOut } from "@/lib/cognitoActions";
+
 
 export default function Navbar() {
+  const user = useAuthUser();
+  // const isLoggedIn = false;
   return (
     <div className="relative z-10 border-b bg-transparent">
       <div className="container mx-auto px-4 py-4 flex items-center justify-between">
@@ -45,23 +51,35 @@ export default function Navbar() {
             </Link>
           </nav>
           <div className="flex items-center gap-4 ml-0">
-            <Link href={Route.Login}>
-              <Button className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 border-0 transition-colors duration-200">
-                Sign In
+            {user && user.isLoggedIn ? (
+              <Button onClick={handleSignOut} className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 border-0 transition-colors duration-200">
+                Logout
               </Button>
-            </Link>
+            ) : (
+              <Link href={Route.Login}>
+                <Button className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 border-0 transition-colors duration-200">
+                  Sign In
+                </Button>
+              </Link>
+            )}
+            
             <ModeToggle />
           </div>
         </div>
 
         {/* Mobile Navigation: Keep Sign In Visible and Use Dropdown for Others */}
         <div className="flex md:hidden items-center gap-4">
-          <Button
-            variant="ghost"
-            className="hover:bg-white/10 transition-colors duration-200"
-          >
-            Sign In
-          </Button>
+          {user && user.isLoggedIn ? (
+              <Button onClick={handleSignOut} className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 border-0 transition-colors duration-200">
+                Logout
+              </Button>
+            ) : (
+              <Link href={Route.Login}>
+                <Button className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 border-0 transition-colors duration-200">
+                  Sign In
+                </Button>
+              </Link>
+            )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button aria-label="Toggle Menu" className="p-2">

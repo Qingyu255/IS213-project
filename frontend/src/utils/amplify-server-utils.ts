@@ -1,4 +1,6 @@
+"use server";
 import { authConfig } from "@/app/amplify-cognito-config";
+import { User } from "@/types/user";
 import { NextServer, createServerRunner } from "@aws-amplify/adapter-nextjs";
 import { fetchAuthSession, getCurrentUser } from "aws-amplify/auth/server";
 
@@ -11,23 +13,29 @@ export const { runWithAmplifyServerContext } = createServerRunner({
 export async function authenticatedUser(context: NextServer.Context) {
   return await runWithAmplifyServerContext({
     nextServerContext: context,
-    operation: async (contextSpec) => {
+    operation: async (contextSpec): Promise<User> => {
       try {
-        const session = await fetchAuthSession(contextSpec);
-        if (!session.tokens) {
-          return;
-        }
-        const user = {
-          ...(await getCurrentUser(contextSpec)),
-          isAdmin: false,
+        let user: User = {
+          isLoggedIn: true,
         };
-        const groups = session.tokens.accessToken.payload["cognito:groups"];
-        // @ts-ignore
-        user.isAdmin = Boolean(groups && groups.includes("Admins"));
 
+        const session = await fetchAuthSession(contextSpec);
+
+        if (!session.tokens) {
+          user.isLoggedIn = false;
+          return user;
+        }
+        user = {
+          ...user,
+          ...(await getCurrentUser(contextSpec)),
+        };
+        user.isLoggedIn = true;
+        console.log("user: ", user)
+        console.log(`User is authenticated. Bearer Token:\n ${session.tokens.accessToken}`)
         return user;
       } catch (error) {
-        console.log(error);
+        console.error(error);
+        throw error;
       }
     },
   });

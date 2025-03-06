@@ -1,23 +1,27 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { authenticatedUser } from "./utils/amplify-server-utils";
+import { Route } from "./constants/routes";
+import { PROTECTED_ROUTES } from "./constants/protected-routes";
+import { fetchAuthSession } from "aws-amplify/auth";
 
 export async function middleware(request: NextRequest) {
   const response = NextResponse.next();
-  const user = await authenticatedUser({ request, response });
+  
+  // const user = await authenticatedUser({ request, response });
+  const session = await fetchAuthSession();
+  const token = session.tokens?.accessToken;
+  console.log(`User authenticated Token: ${token}`)
+  
+  const currentRoute = request.nextUrl.pathname;
+  const isProtectedRoute = PROTECTED_ROUTES.some(route =>
+    currentRoute.startsWith(route)
+  );
 
-  const isOnDashboard = request.nextUrl.pathname.startsWith("/dashboard");
-  const isOnAdminArea =
-    request.nextUrl.pathname.startsWith("/dashboard/admins");
-
-  if (isOnDashboard) {
-    if (!user)
-      return NextResponse.redirect(new URL("/auth/login", request.nextUrl));
-    if (isOnAdminArea && !user.isAdmin)
-      return NextResponse.redirect(new URL("/dashboard", request.nextUrl));
-    return response;
-  } else if (user) {
-    return NextResponse.redirect(new URL("/dashboard", request.nextUrl));
+  if (isProtectedRoute && !token) {
+    console.log(`Unauthenticated user trying to access protected route ${currentRoute}'. Redirecting to login page.`)
+    return NextResponse.redirect(new URL(Route.Login, request.nextUrl));
   }
+  
+  return response;
 }
 
 export const config = {

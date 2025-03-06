@@ -27,7 +27,7 @@ export default function ConfirmSignUpForm({ userName } : { userName: string; }) 
       await confirmSignUp({ username: userName, confirmationCode: code });
 
       toast("User Confirmed Successfully", {
-        description: `${formData.get("username") as string} confirmed successfully!`,
+        description: `User ${userName} confirmed successfully!`,
       });
       router.push(`${Route.Login}`);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

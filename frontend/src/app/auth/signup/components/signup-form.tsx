@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
-import { BackendRoutes } from "@/constants/backend-routes";
+import { BACKEND_ROUTES } from "@/constants/backend-routes";
 import { Spinner } from "@/components/ui/spinner";
 import { getErrorString } from "@/utils/common";
 import { ErrorMessageCallout } from "@/components/error-message-callout";
@@ -56,7 +56,7 @@ export default function SignUpForm() {
 
     try {
       // Replace with your actual API endpoint if different
-      const res = await fetch(`${BackendRoutes.userManagementServiceUrl}/api/users/create`, {
+      const res = await fetch(`${BACKEND_ROUTES.userManagementServiceUrl}/api/users/create`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -72,7 +72,7 @@ export default function SignUpForm() {
       }
 
       toast("User Created Successfully", {
-        description: `${formData.get("username") as string} created successfully!`,
+        description: `User ${username} created successfully!`,
       });
       router.push(`${Route.ConfirmSignUp}/${username}`);
 
