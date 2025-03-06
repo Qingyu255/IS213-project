@@ -37,7 +37,7 @@ export async function handleSignOut() {
     console.log(getErrorMessage(error));
   }
   console.debug("User logged out")
-  redirect(Route.Login);
+  redirect(Route.BrowseEvents);
 }
 
 export function getErrorMessage(error: unknown): string {
@@ -53,4 +53,3 @@ export function getErrorMessage(error: unknown): string {
   return "An error occurred";
 }
 export { confirmSignUp };
-

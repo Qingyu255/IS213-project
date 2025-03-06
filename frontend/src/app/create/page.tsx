@@ -1,6 +1,5 @@
 "use client";
-
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import {
   Calendar,
@@ -28,11 +27,41 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
+import { fetchAuthSession } from "aws-amplify/auth";
+import { useRouter } from "next/navigation";
+import { Route } from "@/constants/routes";
+import { Spinner } from "@/components/ui/spinner";
 
 export default function CreateEventPage() {
+  // Client-side route protection
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function checkSession() {
+      const session = await fetchAuthSession();
+      const token = session.tokens?.accessToken;
+      if (!token) {
+        // Not logged in; redirect to login
+        router.replace(Route.Login);
+      } else {
+        setIsLoading(false);
+      }
+    }
+    checkSession();
+  }, []);
+
   // const [isUnlimited, setIsUnlimited] = useState(true)
   const isUnlimited = false; // TODO: do up logic
   const [requireApproval, setRequireApproval] = useState(false);
+
+  if (isLoading) {
+    return (
+      <>
+        <Spinner className="bg-black dark:bg-white"/>
+      </>
+    );
+  }
 
   return (
     <div className="min-h-screen ">
