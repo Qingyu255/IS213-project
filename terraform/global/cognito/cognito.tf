@@ -4,11 +4,12 @@ resource "aws_cognito_user_pool" "cognito" {
   
   alias_attributes = ["email"]
 
-  # schema {
-  #   name                = "firstname"
-  #   attribute_data_type = "String"
-  #   mutable             = true
-  # }
+  # Note that this custom id represents the UMS generated userId 
+  schema {
+    name                = "id"
+    attribute_data_type = "String"
+    mutable             = false
+  }
 
   # schema {
   #   name                = "lastname"
@@ -28,10 +29,10 @@ resource "aws_cognito_user_pool" "cognito" {
     Environment = var.environment
   }
 
-  # lifecycle {
-  #   # This tells Terraform to ignore any differences in the schema block.
-  #   ignore_changes = [schema]
-  # }
+  lifecycle {
+    # This tells Terraform to ignore any differences in the schema block.
+    ignore_changes = [schema]
+  }
 }
 
 resource "aws_cognito_user_pool_client" "client" {

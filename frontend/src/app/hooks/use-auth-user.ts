@@ -9,7 +9,7 @@ import {
 } from "aws-amplify/auth";
 import { User } from "@/types/user";
 
-export default function useAuthUser(): User | undefined {
+export default function useAuthUser(): { user: User | undefined; getUserId: () => string | undefined } {
   // TODO: Expose loading state
   const [user, setUser] = useState<User | undefined>(undefined);
 
@@ -52,5 +52,12 @@ export default function useAuthUser(): User | undefined {
     };
   }, []);
 
-  return user;
+  const getUserId = (): string | undefined => {
+    return user ? (user["custom:id"] as string | undefined) : undefined;
+  }
+
+  return {
+    user,
+    getUserId
+  };
 }

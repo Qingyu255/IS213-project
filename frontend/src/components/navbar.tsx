@@ -15,19 +15,20 @@ import {
 import Logo from "./logo";
 import useAuthUser from "@/app/hooks/use-auth-user";
 import { handleSignOut } from "@/lib/cognitoActions";
+import { Avatar, AvatarFallback } from "./ui/avatar";
 
 
 export default function Navbar() {
-  const user = useAuthUser();
+  const { user, getUserId } = useAuthUser();
+  console.log(user);
   // const isLoggedIn = false;
   return (
     <div className="relative z-10 border-b bg-transparent">
-      <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+      <div className="container mx-auto py-4 flex items-center justify-between">
         {/* Logo Section */}
         <Link href={"/"}>
           <Logo />
         </Link>
-
         {/* Desktop Navigation & Action Buttons */}
         <div className="hidden md:flex items-center gap-3">
           <nav className="flex items-center space-x-6">
@@ -56,8 +57,14 @@ export default function Navbar() {
                 </Button>
               </Link>
             )}
-            
             <ModeToggle />
+            {user && user.isLoggedIn && (
+              <Link href={`${Route.UserProfile}/${getUserId()}`}>
+                <Avatar className="w-12 h-12">
+                  <AvatarFallback>{user?.username?.slice(0, 3)}</AvatarFallback>
+                </Avatar>
+              </Link>
+            )}
           </div>
         </div>
 
@@ -88,6 +95,15 @@ export default function Navbar() {
                 <Link href={Route.CreateEvent}>Create Event</Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
+              <DropdownMenuItem>
+                {user && user.isLoggedIn && (
+                  <Link href={`${Route.UserProfile}/${getUserId()}`}>
+                    <Avatar className="w-12 h-12">
+                      <AvatarFallback>{user?.username?.slice(0, 3)}</AvatarFallback>
+                    </Avatar>
+                  </Link>
+                )}
+              </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <div className="w-full flex justify-end mt-3">
                   <ModeToggle />

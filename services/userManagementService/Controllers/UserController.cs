@@ -24,37 +24,18 @@ public class UserController : ControllerBase // Inherit controller base
         _logger = logger;
     }
 
-    // [HttpGet("getall")]
-    // [Authorize(Policy = Policies.AdminsOnly)]
-    // public async Task<IActionResult> GetAllUsers()
-    // {
-    //     var users = await _userRepository.GetAllUsersAsync();
-    //
-    //     if (!User.IsInRole("rootadmin")) // only rootadmin can see all users; other roles cannot see rootadmin
-    //     {
-    //         users = users.Where(u => u.Role != "rootadmin").ToList();
-    //     }
-    //
-    //     return Ok(users);
-    // }
-
     [HttpGet("{userId}")]
     [Authorize]
     public async Task<IActionResult> GetUserById([FromRoute] string userId)
     {
-        // TODO: If not an admin, ensure that the user is only querying their own data.
-        // if (!isAdmin)
-        // {
-        //     var currentUserId = User.FindFirst("sub")?.Value;
-        //     if (currentUserId != userId)
-        //     {
-        //         return Forbid();
-        //     }
-        // }
-
-        var user = await _userRepository.GetUserByIdAsync(userId); // use .ToList() due to deferred execution
+        var user = await _userRepository.GetUserByIdAsync(userId);
         if (user != null)
         {
+            if (!IsCurrentUser(user.Username))
+            {
+                return Forbid();
+            }
+
             return Ok(user);
         };
 
@@ -94,17 +75,20 @@ public class UserController : ControllerBase // Inherit controller base
             }
         }
 
+        string userUuid = Guid.NewGuid().ToString();
         var newUser = new User
         {
-            Id = Guid.NewGuid().ToString(),
+            Id = userUuid,
             Username = createUserDto.Username,
             Email = createUserDto.Email,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
         };
 
         // Step 1: Create user in Cognito
         try
         {
-            await _cognitoService.CreateUserAsync(createUserDto);
+            await _cognitoService.CreateUserAsync(userUuid, createUserDto);
             _logger.LogInformation($"Successfully created user of username={newUser.Username} in cognito service");
         }
         catch (Exception e)
@@ -143,13 +127,18 @@ public class UserController : ControllerBase // Inherit controller base
     }
 
     [HttpPut("update/{userId}")]
-    [Authorize(Policy = Policies.AdminsOnly)]
+    [Authorize]
     public async Task<IActionResult> UpdateUser(string userId, [FromBody] UpdateUserDto updateUserDto)
     {
         var user = await _userRepository.GetUserByIdAsync(userId);
         // Check if user exists and prevent update if the user to be updated is a rootadmin
         if (user != null)
         {
+            if (!IsCurrentUser(user.Username))
+            {
+                return Forbid();
+            }
+
             // Step 1: Update user details in Cognito
             try
             {
@@ -191,18 +180,16 @@ public class UserController : ControllerBase // Inherit controller base
     }
 
     [HttpDelete("delete/{userId}")]
-    // [Authorize(Policy = Policies.AdminsOnly)]
     public async Task<IActionResult> DeleteUser([FromRoute] string userId)
     {
         var user = await _userRepository.GetUserByIdAsync(userId);
         // First check if user exists
         if (user != null)
         {
-            // // Forbid deletion if the user to be deleted is a rootadmin
-            // if (user.Role.ToLower() == Roles.RootAdmin)
-            // {
-            //     return Forbid(ErrorMessages.RootAdminDeletion);
-            // }
+            if (!IsCurrentUser(user.Username))
+            {
+                return Forbid();
+            }
 
             _logger.LogInformation("User making request has 'AdminsOnly' access and is authorised to delete users."); // should make this such that only user themselves can delete their own acc
             // Deletion authorised, delete user record in db
@@ -240,6 +227,12 @@ public class UserController : ControllerBase // Inherit controller base
         {
             message = $"User with ID {userId} not found."
         });
+    }
+
+    private bool IsCurrentUser(string requestedUserUsername)
+    {
+        var currentUserUsername = User.FindFirst("username")?.Value;
+        return currentUserUsername == requestedUserUsername;
     }
 }
 

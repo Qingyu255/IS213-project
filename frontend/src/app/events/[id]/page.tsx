@@ -5,11 +5,10 @@ import Image from "next/image";
 import { Calendar, Clock, MapPin, Users, Globe, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { EventMap } from "./components/event-map";
 import { EventDetails } from "@/types/event";
-import { BACKEND_ROUTES } from "@/constants/backend-routes";
 import { InterestCategory } from "@/enums/InterestCategory";
 
 type EventPageProps = {
@@ -260,17 +259,10 @@ export default function EventPage({ id }: EventPageProps) {
               <h3 className="font-bold mb-4">Organized by</h3>
               <div className="flex items-center gap-4">
                 <Avatar className="w-12 h-12">
-                  <AvatarImage
-                    src={event.organizer.image}
-                    alt={event.organizer.username}
-                  />
-                  <AvatarFallback>{event.organizer.username[0]}</AvatarFallback>
+                  <AvatarFallback>{event.organizer.username.slice(0, 3)}</AvatarFallback>
                 </Avatar>
                 <div>
                   <div className="font-medium">{event.organizer.username}</div>
-                  <div className="text-sm text-muted-foreground">
-                    {event.organizer.description}
-                  </div>
                 </div>
               </div>
             </div>

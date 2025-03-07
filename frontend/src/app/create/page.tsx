@@ -85,7 +85,7 @@ export default function CreateEventPage() {
   }, [router])
 
   // Get authenticated user details
-  const user = useAuthUser();
+  const { user } = useAuthUser();
 
   // -----------------------
   // Handle image file change
@@ -345,6 +345,7 @@ export default function CreateEventPage() {
                         <Select
                           value={startTime.split(":")[0] || "12"}
                           onValueChange={(value) => {
+                            // eslint-disable-next-line @typescript-eslint/no-unused-vars
                             const [_, minutes] = startTime.split(":")
                             setStartTime(`${value}:${minutes || "00"}`)
                           }}
@@ -418,6 +419,7 @@ export default function CreateEventPage() {
                         <Select
                           value={endTime.split(":")[0] || "12"}
                           onValueChange={(value) => {
+                            // eslint-disable-next-line @typescript-eslint/no-unused-vars
                             const [_, minutes] = endTime.split(":")
                             setEndTime(`${value}:${minutes || "00"}`)
                           }}
