@@ -18,7 +18,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { siteName } from "@/constants/common";
-import { Route } from "@/constants/routes";
+import { Route } from "@/enums/routes";
+import Logo from "@/components/logo";
 
 export default function EventPlatformPage() {
   return (
@@ -597,9 +598,9 @@ export default function EventPlatformPage() {
               that&apos;s redefining the event experience.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600  border-0 px-8 py-6 text-lg">
+              <Link href={Route.CreateEvent} className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600  border-0 px-8 py-6 text-lg">
                 Get Started for Free
-              </Button>
+              </Link>
             </div>
           </div>
         </div>
@@ -607,68 +608,11 @@ export default function EventPlatformPage() {
 
       {/* Footer */}
       <footer className="relative z-10 border-t border-white/10 backdrop-blur-sm">
-        <div className="container mx-auto px-4 py-12">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div>
-              <div className="flex items-center gap-2 mb-6">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-500 to-blue-500 flex items-center justify-center">
-                  <Ticket className="w-5 h-5 " />
-                </div>
-                <span className="text-xl font-bold tracking-tight">
-                  {siteName}
-                </span>
-              </div>
-              <p className="/70 mb-6">
-                The all-in-one platform for discovering and creating
-                extraordinary events.
-              </p>
-              <div className="flex space-x-4">
-                {["facebook", "twitter", "instagram", "linkedin"].map(
-                  (social) => (
-                    <a
-                      key={social}
-                      href="#"
-                      className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
-                    >
-                      <span className="sr-only">{social}</span>
-                      <div className="w-5 h-5" />
-                    </a>
-                  )
-                )}
-              </div>
-            </div>
-            <div>
-              <h3 className="font-bold text-lg mb-6">Platform</h3>
-              <ul className="space-y-4">
-                {["Browse Events", "Create Event", "Pricing", "Features"].map(
-                  (item) => (
-                    <li key={item}>
-                      <Link href="#" className="/70 hover: transition-colors">
-                        {item}
-                      </Link>
-                    </li>
-                  )
-                )}
-              </ul>
-            </div>
-            <div>
-              <h3 className="font-bold text-lg mb-6">Resources</h3>
-              <ul className="space-y-4">
-                {["Help Center"].map((item) => (
-                  <li key={item}>
-                    <Link href="#" className="/70 hover: transition-colors">
-                      {item}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-          <div className="border-t border-white/10 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center">
-            <p className="/50 text-sm">
-              © {new Date().getFullYear()} {siteName}. All rights reserved.
-            </p>
-          </div>
+        <div className="p-5 md:p-10">
+          <Logo />
+          <p className="/50 text-sm py-3">
+            © {new Date().getFullYear()} {siteName}. All rights reserved.
+          </p>
         </div>
       </footer>
     </div>

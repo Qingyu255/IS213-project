@@ -4,9 +4,9 @@ import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ErrorMessageCallout } from "@/components/error-message-callout";
-import { interestCategories } from "@/constants/common";
+import { interestCategoryArr } from "@/constants/common";
 import { toast } from "sonner";
-import { Route } from "@/constants/routes";
+import { Route } from "@/enums/routes";
 import { BACKEND_ROUTES } from "@/constants/backend-routes";
 
 export default function IndicateInterestsPage() {
@@ -69,7 +69,7 @@ export default function IndicateInterestsPage() {
       {!loading && (
         <>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 my-4">
-            {interestCategories.map((interest) => (
+            {interestCategoryArr.map((interest) => (
               <label key={interest} className="flex items-center space-x-2">
                 <input
                   type="checkbox"

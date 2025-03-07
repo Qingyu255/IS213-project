@@ -10,6 +10,7 @@ import {
 import { User } from "@/types/user";
 
 export default function useAuthUser(): User | undefined {
+  // TODO: Expose loading state
   const [user, setUser] = useState<User | undefined>(undefined);
 
   async function updateUser() {

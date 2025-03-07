@@ -10,7 +10,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { getErrorString } from "@/utils/common";
 import { ErrorMessageCallout } from "@/components/error-message-callout";
 import { toast } from "sonner";
-import { Route } from "@/constants/routes";
+import { Route } from "@/enums/routes";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 
@@ -43,16 +43,14 @@ export default function SignUpForm() {
       setLoading(false);
       return;
     }
-
-    // Adjust the fields to match your CreateUserDto in C#
+    // Should match your CreateUserDto in C# TODO: Add bto object typing
     const bodyData = {
       username: username,
       email,
-      password, // TODO: allow pass in user defined password
+      password,
     };
 
     try {
-      // Replace with your actual API endpoint if different
       const res = await fetch(
         `${BACKEND_ROUTES.userManagementServiceUrl}/api/users/create`,
         {
@@ -67,7 +65,7 @@ export default function SignUpForm() {
       if (!(res.ok && res.status === 201)) {
         const errorString = await getErrorString(res);
         console.error(
-          "An error occurred while fetching user details:",
+          "An error occurred while fetching user details: ",
           errorString
         );
         setError(errorString);
@@ -174,8 +172,11 @@ export default function SignUpForm() {
             </div>
           </div>
           <Button className="mt-4 w-full">
-            Create account <ArrowRight className="ml-auto h-5 w-5 text-gray-50" />
-            {loading && <Spinner size="sm" className="bg-black dark:bg-white" />}
+            Create account{" "}
+            <ArrowRight className="ml-auto h-5 w-5 text-gray-50" />
+            {loading && (
+              <Spinner size="sm" className="bg-black dark:bg-white" />
+            )}
           </Button>
         </CardContent>
       </Card>

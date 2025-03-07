@@ -1,5 +1,5 @@
 "use client"
-import { Route } from "@/constants/routes";
+import { Route } from "@/enums/routes";
 import { Menu } from "lucide-react";
 import Link from "next/link";
 import React from "react";
@@ -42,12 +42,6 @@ export default function Navbar() {
               className="text-sm font-medium transition-colors duration-200"
             >
               Create Event
-            </Link>
-            <Link
-              href="#"
-              className="text-sm font-medium transition-colors duration-200"
-            >
-              Pricing
             </Link>
           </nav>
           <div className="flex items-center gap-4 ml-0">
@@ -93,15 +87,7 @@ export default function Navbar() {
               <DropdownMenuItem asChild>
                 <Link href={Route.CreateEvent}>Create Event</Link>
               </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="#">Pricing</Link>
-              </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Button className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 border-0 transition-colors duration-200">
-                  Get Started
-                </Button>
-              </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <div className="w-full flex justify-end mt-3">
                   <ModeToggle />

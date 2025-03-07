@@ -1,6 +1,6 @@
 "use client"
 import { ModeToggle } from '@/components/mode-toggle'
-import { Route } from '@/constants/routes';
+import { Route } from '@/enums/routes';
 import { fetchAuthSession } from 'aws-amplify/auth';
 import { redirect, useRouter } from 'next/navigation';
 import React, { useEffect } from 'react'

@@ -1,16 +1,17 @@
+import { InterestCategory } from "@/enums/InterestCategory";
 import { Code, Trophy, Music, Palette, Plane, UtensilsCrossed, FlaskConical, Briefcase } from "lucide-react";
 
 export const siteName = "Mulan";
-
-export const interestCategories = [
-    "Technology",
-    "Sports",
-    "Music",
-    "Art",
-    "Travel",
-    "Food",
-    "Science",
-    "Business",
+  
+export const interestCategoryArr: InterestCategory[] = [
+    InterestCategory.Technology,
+    InterestCategory.Sports,
+    InterestCategory.Music,
+    InterestCategory.Art,
+    InterestCategory.Travel,
+    InterestCategory.Food,
+    InterestCategory.Science,
+    InterestCategory.Business,
 ];
 
 export const interestCategoryIcons: Record<string, React.FC<React.SVGProps<SVGSVGElement>>> = {
@@ -22,4 +23,4 @@ export const interestCategoryIcons: Record<string, React.FC<React.SVGProps<SVGSV
     Food: UtensilsCrossed,
     Science: FlaskConical,
     Business: Briefcase,
-  };
+};

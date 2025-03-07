@@ -7,11 +7,11 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { ErrorMessageCallout } from "@/components/error-message-callout";
 import { toast } from "sonner";
-import { Route } from "@/constants/routes";
+import { Route } from "@/enums/routes";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 
-export default function ConfirmSignUpForm({ userName } : { userName: string; }) {
+export default function ConfirmSignUpForm({ userName }: { userName: string }) {
   const router = useRouter();
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
@@ -30,10 +30,10 @@ export default function ConfirmSignUpForm({ userName } : { userName: string; }) 
       toast("User Confirmed Successfully", {
         description: `User ${userName} confirmed successfully!`,
       });
-      router.push(`${Route.Login}`);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      router.push(Route.Login);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
-      setError(err.message ||  "An error occurred while confirming sign up.");
+      setError(err.message || "An error occurred while confirming sign up.");
     } finally {
       setLoading(false);
     }
@@ -43,7 +43,9 @@ export default function ConfirmSignUpForm({ userName } : { userName: string; }) 
     <form onSubmit={handleSubmit} className="space-y-3">
       <Card className="flex-1 rounded-lgpx-6 pb-4 pt-8">
         <CardContent>
-          <CardTitle className="mb-3 text-2xl">Please verify your account.</CardTitle>
+          <CardTitle className="mb-3 text-2xl">
+            Please verify your account.
+          </CardTitle>
           <div className="w-full">
             <div className="mt-4">
               <div className="mt-4">
@@ -54,7 +56,8 @@ export default function ConfirmSignUpForm({ userName } : { userName: string; }) 
                   Confirmation Code
                 </Label>
                 <p className="mb-3 text-xs text-gray-500">
-                  A code has been sent to your email. Please check your inbox (and spam folder) and enter it below.
+                  A code has been sent to your email. Please check your inbox
+                  (and spam folder) and enter it below.
                 </p>
               </div>
               <div className="relative mb-3">
@@ -71,11 +74,9 @@ export default function ConfirmSignUpForm({ userName } : { userName: string; }) 
               </div>
             </div>
           </div>
-          {error && (
-              <ErrorMessageCallout errorMessage={error} />
-          )}
+          {error && <ErrorMessageCallout errorMessage={error} />}
           <ConfirmButton loading={loading} />
-        </CardContent>    
+        </CardContent>
       </Card>
     </form>
   );
