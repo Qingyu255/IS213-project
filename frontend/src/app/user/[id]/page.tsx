@@ -15,7 +15,7 @@ import { ErrorMessageCallout } from "@/components/error-message-callout";
 import { getErrorString } from "@/utils/common";
 import { toast } from "sonner";
 import { UpdateUserDto } from "@/types/UpdateUserDto";
-import { Route } from "@/enums/routes";
+import { Route } from "@/enums/Route";
 import { Spinner } from "@/components/ui/spinner";
 import { ConfirmationPopover } from "@/components/confirmation-popover";
 
@@ -156,7 +156,11 @@ export default function ViewEditUserPage() {
   };
 
   if (error) {
-    return <div>Error: {error}</div>
+    return (
+      <div className="p-4">
+        <ErrorMessageCallout errorMessage={error} />
+      </div>
+    )
   };
 
   if (!user) {

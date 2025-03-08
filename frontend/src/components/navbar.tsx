@@ -1,5 +1,5 @@
 "use client"
-import { Route } from "@/enums/routes";
+import { Route } from "@/enums/Route";
 import { Menu } from "lucide-react";
 import Link from "next/link";
 import React from "react";
@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
 } from "./ui/dropdown-menu";
 import Logo from "./logo";
-import useAuthUser from "@/app/hooks/use-auth-user";
+import useAuthUser from "@/hooks/use-auth-user";
 import { handleSignOut } from "@/lib/cognitoActions";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 

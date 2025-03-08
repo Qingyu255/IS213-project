@@ -18,7 +18,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { siteName } from "@/constants/common";
-import { Route } from "@/enums/routes";
+import { Route } from "@/enums/Route";
 import Logo from "@/components/logo";
 
 export default function EventPlatformPage() {

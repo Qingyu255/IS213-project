@@ -10,7 +10,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { getErrorString } from "@/utils/common";
 import { ErrorMessageCallout } from "@/components/error-message-callout";
 import { toast } from "sonner";
-import { Route } from "@/enums/routes";
+import { Route } from "@/enums/Route";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 

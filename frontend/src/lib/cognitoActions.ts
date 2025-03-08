@@ -5,7 +5,7 @@ import {
   signOut,
   resendSignUpCode,
 } from "aws-amplify/auth";
-import { Route } from "@/enums/routes";
+import { Route } from "@/enums/Route";
 
 export async function handleSignIn(
   prevState: string | undefined,

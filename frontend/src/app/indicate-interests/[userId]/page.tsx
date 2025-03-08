@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ErrorMessageCallout } from "@/components/error-message-callout";
 import { interestCategoryArr } from "@/constants/common";
 import { toast } from "sonner";
-import { Route } from "@/enums/routes";
+import { Route } from "@/enums/Route";
 import { BACKEND_ROUTES } from "@/constants/backend-routes";
 
 export default function IndicateInterestsPage() {

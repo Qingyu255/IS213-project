@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { ErrorMessageCallout } from "@/components/error-message-callout";
 import { toast } from "sonner";
-import { Route } from "@/enums/routes";
+import { Route } from "@/enums/Route";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 

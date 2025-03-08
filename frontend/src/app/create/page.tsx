@@ -16,14 +16,15 @@ import { Calendar } from "@/components/ui/calendar"
 import { useRouter } from "next/navigation"
 
 import { fetchAuthSession } from "aws-amplify/auth"
-import { Route } from "@/enums/routes"
+import { Route } from "@/enums/Route"
 import { InterestCategory } from "@/enums/InterestCategory"
 import type { EventDetails } from "@/types/event"
 import { toast } from "sonner"
 import { BACKEND_ROUTES } from "@/constants/backend-routes"
 import { getBearerToken } from "@/utils/auth"
 import VenueAutocomplete from "@/components/googlemaps/VenueAutocomplete"
-import useAuthUser from "../hooks/use-auth-user"
+import useAuthUser from "@/hooks/use-auth-user"
+import { ErrorMessageCallout } from "@/components/error-message-callout"
 
 export default function CreateEventPage() {
   const router = useRouter()
@@ -622,7 +623,11 @@ export default function CreateEventPage() {
             </div>
 
             {/* Error Display */}
-            {error && <div className="text-red-500 text-sm mb-2">{error}</div>}
+            {error && (
+              <div className="p-4">
+                <ErrorMessageCallout errorMessage={error} />
+              </div>
+            )}
 
             {/* Submit Button */}
             <Button className="w-full" type="submit" disabled={submitting}>
