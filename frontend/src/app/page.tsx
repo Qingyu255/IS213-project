@@ -260,10 +260,11 @@ export default function EventPlatformPage() {
                   </div>
                 ))}
               </div>
-
-              <Button className="mt-8 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600  border-0">
-                Start Creating <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
+              <Link href={Route.CreateEvent}>
+                <Button className="mt-8 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600  border-0">
+                  Start Creating <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
             </div>
 
             <div className="relative">
@@ -598,7 +599,7 @@ export default function EventPlatformPage() {
               that&apos;s redefining the event experience.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href={Route.CreateEvent} className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600  border-0 px-8 py-6 text-lg">
+              <Link href={Route.CreateEvent} className="rounded-lg bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600  border-0 px-8 py-6 text-lg">
                 Get Started for Free
               </Link>
             </div>

@@ -3,7 +3,7 @@ import { Code, Trophy, Music, Palette, Plane, UtensilsCrossed, FlaskConical, Bri
 
 export const siteName = "Mulan";
   
-export const interestCategoryArr: InterestCategory[] = [
+export const InterestCategoryArr: InterestCategory[] = [
     InterestCategory.Technology,
     InterestCategory.Sports,
     InterestCategory.Music,
@@ -14,7 +14,7 @@ export const interestCategoryArr: InterestCategory[] = [
     InterestCategory.Business,
 ];
 
-export const interestCategoryIcons: Record<string, React.FC<React.SVGProps<SVGSVGElement>>> = {
+export const InterestCategoryIcons: Record<string, React.FC<React.SVGProps<SVGSVGElement>>> = {
     Technology: Code,
     Sports: Trophy,
     Music: Music,

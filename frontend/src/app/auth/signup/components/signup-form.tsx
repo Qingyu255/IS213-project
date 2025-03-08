@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { BACKEND_ROUTES } from "@/constants/backend-routes";
 import { Spinner } from "@/components/ui/spinner";
-import { getErrorString } from "@/utils/common";
+import { getErrorStringFromResponse } from "@/utils/common";
 import { ErrorMessageCallout } from "@/components/error-message-callout";
 import { toast } from "sonner";
 import { Route } from "@/enums/Route";
@@ -63,7 +63,7 @@ export default function SignUpForm() {
       );
 
       if (!(res.ok && res.status === 201)) {
-        const errorString = await getErrorString(res);
+        const errorString = await getErrorStringFromResponse(res);
         console.error(
           "An error occurred while fetching user details: ",
           errorString
