@@ -15,6 +15,7 @@ services:
       NEXT_PUBLIC_USER_MANAGEMENT_SERVICE_API_BASE_URL: ${USER_MANAGEMENT_SERVICE_API_BASE_URL}
     volumes:
       - ./frontend:/app # Mount source code for hot reloading
+      - /app/node_modules # Preserve container node_modules
     networks:
       - default
 
