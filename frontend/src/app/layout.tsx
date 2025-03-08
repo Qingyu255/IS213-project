@@ -7,6 +7,7 @@ import Navbar from "@/components/navbar";
 import ConfigureAmplifyClientSide from "./amplify-cognito-config";
 import { Toaster } from "@/components/ui/sonner";
 import Script from "next/script";
+import InterestCheckWrapper from "@/components/InterestCheckWrapper";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -44,9 +45,11 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <main>
-            <ConfigureAmplifyClientSide />
-            <Navbar />
-            {children}
+            <InterestCheckWrapper>
+              <ConfigureAmplifyClientSide />
+              <Navbar />
+              {children}
+            </InterestCheckWrapper>
           </main>
           <Toaster />
         </ThemeProvider>

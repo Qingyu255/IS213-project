@@ -12,12 +12,14 @@ import { Label } from "@/components/ui/label";
 import { UserDetailsSkeleton } from "../components/user-details-skeleton";
 import { Edit, Save, Trash } from "lucide-react";
 import { ErrorMessageCallout } from "@/components/error-message-callout";
-import { getErrorString } from "@/utils/common";
+import { getErrorStringFromResponse } from "@/utils/common";
 import { toast } from "sonner";
 import { UpdateUserDto } from "@/types/UpdateUserDto";
 import { Route } from "@/enums/Route";
 import { Spinner } from "@/components/ui/spinner";
 import { ConfirmationPopover } from "@/components/confirmation-popover";
+import Link from "next/link";
+import { Separator } from "@/components/ui/separator";
 
 export default function ViewEditUserPage() {
   const router = useRouter();
@@ -38,6 +40,7 @@ export default function ViewEditUserPage() {
         const res = await fetch(
           `${BACKEND_ROUTES.userManagementServiceUrl}/api/users/${userId}`,
           {
+            method: "GET",
             headers: {
               Authorization: await getBearerToken(),
             },
@@ -45,7 +48,7 @@ export default function ViewEditUserPage() {
         );
 
         if (!res.ok) {
-          const errorString = await getErrorString(res);
+          const errorString = await getErrorStringFromResponse(res);
           console.error("An error occurred while fetching user details:", errorString);
           setError(errorString);
           toast.error("Error", {
@@ -92,7 +95,7 @@ export default function ViewEditUserPage() {
       );
 
       if (!res.ok) {
-        const errorString = await getErrorString(res);
+        const errorString = await getErrorStringFromResponse(res);
         console.error("An error occurred while updating user:", errorString);
         setError(errorString);
         toast("Error", {
@@ -129,7 +132,7 @@ export default function ViewEditUserPage() {
       );
 
       if (!res.ok) {
-        const errorString = await getErrorString(res);
+        const errorString = await getErrorStringFromResponse(res);
         console.error("An error occurred while deleting user:", errorString);
         setError(errorString);
         toast.error("Error", {
@@ -241,6 +244,14 @@ export default function ViewEditUserPage() {
           <ErrorMessageCallout errorHeader="Error" errorMessage={error} />
         </div>
       )}
+      <Separator className="my-3"/>
+      <div className="flex space-y-2 justify-end">
+        <Link href={`${Route.IndicateInterestCategories}/${userId}`}>
+          <Button>
+            Manage My Interests
+          </Button>
+        </Link>
+      </div>
     </div>
   );
 }
