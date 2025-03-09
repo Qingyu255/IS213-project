@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
-from .api.routes import router
+from fastapi.middleware.cors import CORSMiddleware
+from .api.routes import bookings, tickets
 
 app = FastAPI(
     title="Ticket Management Service",
@@ -8,7 +9,18 @@ app = FastAPI(
     version="1.0.0"
 )
 
-app.include_router(router, prefix="/api/v1")
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"], 
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Include routers
+app.include_router(bookings.router, prefix="/api/v1")
+app.include_router(tickets.router, prefix="/api/v1")
 
 @app.get("/")
 async def root():
