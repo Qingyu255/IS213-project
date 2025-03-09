@@ -1,0 +1,54 @@
+services:
+  logging-service:
+    build: .
+    container_name: logging_service
+    ports:
+      - "8080:8080"
+    depends_on: 
+      db:
+        condition: service_healthy
+    networks:
+      - backend
+    env_file:
+      - .env
+
+  db:
+    image: postgres:13
+    container_name: postgres_db
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - "5432:5432"
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d logging_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # db-migrations:
+  #   image: flyway/flyway:11.3.4
+  #   volumes:
+  #     - ./database/migrations:/flyway/sql
+  #   environment:
+  #     FLYWAY_URL: "jdbc:postgresql://db:5432/logging_db"
+  #     FLYWAY_USER: postgres
+  #     FLYWAY_PASSWORD: 786786
+  #     FLYWAY_BASELINE_ON_MIGRATE: "true"
+  #   command: migrate
+  #   depends_on:
+  #     db:
+  #       condition: service_healthy
+  #   networks:
+  #     - backend
+
+volumes:
+  pgdata:
+
+networks:
+  backend:
+    driver: bridge
