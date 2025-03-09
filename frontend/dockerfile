@@ -9,14 +9,10 @@ RUN npm install -g pnpm
 # Copy package files for installation
 COPY package*.json ./
 
-# Install all dependencies
 RUN pnpm install
 
-# Copy configuration files
-COPY tsconfig.json ./
-COPY next.config.ts ./
-COPY postcss.config.mjs ./
-COPY tailwind.config.ts ./
+# Copy all remaining files into the image
+COPY . .
 
 # Expose the port Next.js runs on
 EXPOSE 3000

@@ -5,45 +5,7 @@ import {
   signOut,
   resendSignUpCode,
 } from "aws-amplify/auth";
-import { Route } from "@/constants/routes";
-
-export async function handleSendEmailVerificationCode(
-  prevState: { message: string; errorMessage: string },
-  formData: FormData
-) {
-  let currentState;
-  try {
-    await resendSignUpCode({
-      username: String(formData.get("email")),
-    });
-    currentState = {
-      ...prevState,
-      message: "Code sent successfully",
-    };
-  } catch (error) {
-    currentState = {
-      ...prevState,
-      errorMessage: getErrorMessage(error),
-    };
-  }
-
-  return currentState;
-}
-
-export async function handleConfirmSignUp(
-  prevState: string | undefined,
-  formData: FormData
-) {
-  try {
-    await confirmSignUp({
-      username: String(formData.get("email")),
-      confirmationCode: String(formData.get("code")),
-    });
-  } catch (error) {
-    return getErrorMessage(error);
-  }
-  redirect("/auth/login");
-}
+import { Route } from "@/enums/Route";
 
 export async function handleSignIn(
   prevState: string | undefined,
@@ -59,7 +21,7 @@ export async function handleSignIn(
       await resendSignUpCode({
         username: String(formData.get("email")),
       });
-      redirectLink = "/auth/confirm-signup";
+      redirectLink = Route.ConfirmSignUp;
     }
   } catch (error) {
     return getErrorMessage(error);
@@ -74,7 +36,8 @@ export async function handleSignOut() {
   } catch (error) {
     console.log(getErrorMessage(error));
   }
-  redirect("/auth/login");
+  console.debug("User logged out")
+  redirect(Route.BrowseEvents);
 }
 
 export function getErrorMessage(error: unknown): string {
@@ -90,4 +53,3 @@ export function getErrorMessage(error: unknown): string {
   return "An error occurred";
 }
 export { confirmSignUp };
-

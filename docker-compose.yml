@@ -5,6 +5,8 @@ services:
     container_name: frontend
     ports:
       - "3000:3000" # Expose the Next.js frontend on localhost:3000
+    env_file:
+      - .env
     environment:
       NODE_ENV: "development"
       NEXT_PUBLIC_USER_POOL_ID: ${AWS_COGNITO_USER_POOL_ID}
@@ -13,6 +15,7 @@ services:
       NEXT_PUBLIC_USER_MANAGEMENT_SERVICE_API_BASE_URL: ${USER_MANAGEMENT_SERVICE_API_BASE_URL}
     volumes:
       - ./frontend:/app # Mount source code for hot reloading
+      - /app/node_modules # Preserve container node_modules
     networks:
       - default
 

@@ -6,6 +6,8 @@ import { siteName } from "@/constants/common";
 import Navbar from "@/components/navbar";
 import ConfigureAmplifyClientSide from "./amplify-cognito-config";
 import { Toaster } from "@/components/ui/sonner";
+import Script from "next/script";
+import InterestCheckWrapper from "@/components/InterestCheckWrapper";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,6 +34,10 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        <Script
+          src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`}
+          strategy="beforeInteractive"
+        />
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
@@ -39,9 +45,11 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <main>
-            <ConfigureAmplifyClientSide />
-            <Navbar />
-            {children}
+            <InterestCheckWrapper>
+              <ConfigureAmplifyClientSide />
+              <Navbar />
+              {children}
+            </InterestCheckWrapper>
           </main>
           <Toaster />
         </ThemeProvider>

@@ -1,4 +1,4 @@
-export const getErrorString = async (res: Response): Promise<string> => {
+export const getErrorStringFromResponse = async (res: Response): Promise<string> => {
   const resClone = res.clone();
   let errorData;
   try {
@@ -10,7 +10,7 @@ export const getErrorString = async (res: Response): Promise<string> => {
       message: rawText || err || "Unexpected error, unable to parse response",
     };
   }
-  return errorData.error
+  return res.status + " " + res.statusText + errorData.error
     ? errorData.error
     : `${res.status}: ${
         errorData.stack || errorData.message || "An unexpected error occurred."

@@ -102,6 +102,7 @@ builder.Services.AddScoped<CognitoService>(sp =>
 
 // Repositories
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IUserInterestRepository, UserInterestRepository>();
 
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();

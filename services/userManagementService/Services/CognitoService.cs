@@ -22,7 +22,7 @@ public class CognitoService
     /// </summary>
     /// <param name="createUserDto"></param>
     /// <returns></returns>
-    public async Task<SignUpResponse> CreateUserAsync(CreateUserDto createUserDto)
+    public async Task<SignUpResponse> CreateUserAsync(string userUuid, CreateUserDto createUserDto)
     {
         // Create the user in Cognito with a temporary password
         var request = new SignUpRequest
@@ -33,6 +33,7 @@ public class CognitoService
             UserAttributes = new List<AttributeType>
             {
                 new AttributeType { Name = "email", Value = createUserDto.Email},
+                new AttributeType { Name = "custom:id", Value = userUuid},
             },
         };
 

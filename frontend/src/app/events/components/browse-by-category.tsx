@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
-import { interestCategories, interestCategoryIcons } from "@/constants/common";
+import { InterestCategoryArr, InterestCategoryIcons } from "@/constants/common";
 
 export function BrowseByCategory() {
 
@@ -10,8 +10,8 @@ export function BrowseByCategory() {
         Browse by Category
       </h2>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-        {interestCategories.map((category) => {
-          const Icon = interestCategoryIcons[category];
+        {InterestCategoryArr.map((category) => {
+          const Icon = InterestCategoryIcons[category];
           return (
             <Link href={`/events?category=${category}`} key={category}>
               <Card className="hover:shadow-md transition-shadow duration-300">
