@@ -209,10 +209,7 @@ async def get_current_user_id(claims: dict = Depends(validate_token)) -> str:
     
     # Try different possible claim names for the user ID
     user_id = (
-        claims.get("custom:id") or 
-        claims.get("sub") or 
-        claims.get("userId") or
-        claims.get("user_id")
+        claims.get("custom:id")
     )
     
     if not user_id:
