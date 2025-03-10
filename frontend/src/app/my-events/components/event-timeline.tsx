@@ -1,19 +1,30 @@
-import Image from "next/image"
 import Link from "next/link"
-import { Calendar, MapPin, Clock, Ticket } from "lucide-react"
+import { Calendar, Ticket, ChevronDown } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { BookingStatus } from "@/types/booking"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion"
 
 interface Event {
   id: string
+  eventId: string
   title: string
   date: Date
-  location: string
   status: BookingStatus
-  imageUrl: string
   tickets: Array<{ ticket_id: string; booking_id: string }>
+  onAction?: (action: "confirm" | "cancel" | "refund") => void
 }
 
 interface EventTimelineProps {
@@ -25,10 +36,12 @@ export function EventTimeline({ events, type }: EventTimelineProps) {
   // Group events by month
   const groupedEvents = events.reduce(
     (groups: { [key: string]: Event[] }, event) => {
-      const monthYear = event.date.toLocaleString("default", {
+      const date = event.date
+      const monthYear = date.toLocaleString("default", {
         month: "long",
         year: "numeric",
       })
+
       if (!groups[monthYear]) {
         groups[monthYear] = []
       }
@@ -38,100 +51,115 @@ export function EventTimeline({ events, type }: EventTimelineProps) {
     {}
   )
 
+  // Sort events within each month by date
+  Object.values(groupedEvents).forEach((monthEvents) => {
+    monthEvents.sort((a, b) => b.date.getTime() - a.date.getTime())
+  })
+
   if (events.length === 0) {
     return (
-      <div className="text-center py-12">
-        <h3 className="text-lg font-medium mb-2">
-          {type === "attending"
-            ? "No events to attend yet"
-            : "No events hosted yet"}
-        </h3>
-        <p className="text-muted-foreground mb-4">
-          {type === "attending"
-            ? "Browse upcoming events and join the ones you're interested in."
-            : "Start creating your own events and invite others to join."}
-        </p>
-        <Button asChild>
-          <Link href={type === "attending" ? "/events" : "/create"}>
-            {type === "attending" ? "Browse Events" : "Create Event"}
-          </Link>
-        </Button>
+      <div className="text-center py-8">
+        <p className="text-muted-foreground">No events found</p>
       </div>
     )
   }
 
   return (
-    <div className="space-y-12">
+    <div className="space-y-8">
       {Object.entries(groupedEvents).map(([monthYear, monthEvents]) => (
         <div key={monthYear} className="relative">
-          <div className="sticky top-0 bg-background/95 backdrop-blur-sm z-10 py-2">
-            <h2 className="text-xl font-semibold">{monthYear}</h2>
+          <div className="sticky top-0 z-20 mb-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+            <h3 className="text-xl font-semibold">{monthYear}</h3>
           </div>
-
-          <div className="mt-4 space-y-4">
+          <div className="space-y-4">
             {monthEvents.map((event) => (
-              <Card
-                key={event.id}
-                className="p-4 hover:shadow-lg transition-shadow"
-              >
-                <div className="flex gap-4">
-                  <div className="relative w-24 h-24 flex-shrink-0">
-                    <Image
-                      src={event.imageUrl}
-                      alt={event.title}
-                      fill
-                      className="object-cover rounded-lg"
-                    />
-                  </div>
-
-                  <div className="flex-grow">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h3 className="font-semibold text-lg mb-1">
-                          {event.title}
-                        </h3>
-                        <div className="flex items-center text-muted-foreground text-sm mb-1">
-                          <Calendar className="w-4 h-4 mr-1" />
-                          <span>
-                            {event.date.toLocaleDateString("default", {
-                              weekday: "long",
-                              month: "long",
-                              day: "numeric",
-                            })}
-                          </span>
-                        </div>
-                        <div className="flex items-center text-muted-foreground text-sm">
-                          <Clock className="w-4 h-4 mr-1" />
-                          <span>
-                            {event.date.toLocaleTimeString("default", {
-                              timeStyle: "short",
-                            })}
-                          </span>
-                          <MapPin className="w-4 h-4 ml-3 mr-1" />
-                          <span>{event.location}</span>
-                          <Ticket className="w-4 h-4 ml-3 mr-1" />
-                          <span>{event.tickets.length} tickets</span>
-                        </div>
-                      </div>
-
-                      <div className="flex items-start gap-2">
-                        <Badge
-                          variant={
-                            event.status === "confirmed"
-                              ? "default"
-                              : "secondary"
-                          }
-                          className="capitalize"
-                        >
-                          {event.status}
-                        </Badge>
-                        <Button variant="outline" asChild>
-                          <Link href={`/events/${event.id}`}>
-                            {type === "hosting" ? "Manage" : "View"}
-                          </Link>
-                        </Button>
+              <Card key={event.id} className="p-4">
+                <div className="space-y-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="font-semibold">{event.title}</h4>
+                      <div className="flex items-center text-sm text-muted-foreground mt-1">
+                        <Calendar className="mr-2 h-4 w-4" />
+                        {event.date.toLocaleDateString()}
                       </div>
                     </div>
+                    <Badge
+                      variant={
+                        event.status === "confirmed" ? "default" : "secondary"
+                      }
+                      className="capitalize"
+                    >
+                      {event.status}
+                    </Badge>
+                  </div>
+
+                  <Accordion type="single" collapsible className="w-full">
+                    <AccordionItem value="tickets">
+                      <AccordionTrigger>
+                        <div className="flex items-center">
+                          <Ticket className="mr-2 h-4 w-4" />
+                          {event.tickets.length} ticket
+                          {event.tickets.length !== 1 ? "s" : ""}
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        <div className="space-y-2">
+                          {event.tickets.map((ticket) => (
+                            <div
+                              key={ticket.ticket_id}
+                              className="p-2 rounded-lg border flex justify-between items-center"
+                            >
+                              <span className="text-sm">
+                                Ticket #{ticket.ticket_id.slice(-8)}
+                              </span>
+                              <Button variant="outline" size="sm" asChild>
+                                <Link href={`/tickets/${ticket.ticket_id}`}>
+                                  View Ticket
+                                </Link>
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
+
+                  <div className="flex justify-end gap-2">
+                    <Button variant="outline" asChild>
+                      <Link href={`/events/${event.eventId}`}>View Event</Link>
+                    </Button>
+                    {event.onAction && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline">
+                            Actions <ChevronDown className="ml-2 h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          {event.status === "pending" && (
+                            <>
+                              <DropdownMenuItem
+                                onClick={() => event.onAction?.("confirm")}
+                              >
+                                Confirm Booking
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => event.onAction?.("cancel")}
+                              >
+                                Cancel Booking
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                          {event.status === "confirmed" && (
+                            <DropdownMenuItem
+                              onClick={() => event.onAction?.("refund")}
+                            >
+                              Request Refund
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
                   </div>
                 </div>
               </Card>

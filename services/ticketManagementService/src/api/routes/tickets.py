@@ -13,23 +13,88 @@ from ...schemas.booking import BookingStatus
 # Create API Router
 router = APIRouter(prefix="/tickets", tags=["tickets"])
 
-# Get all tickets for a user
-@router.get("/user/{user_id}", response_model=List[TicketResponse])
-async def get_user_tickets(user_id: UUID, db: AsyncSession = Depends(get_db)):
+@router.get(
+    "/user/{user_id}",
+    response_model=List[TicketResponse],
+    summary="Get User Tickets",
+    description="Retrieve all tickets associated with a specific user",
+    responses={
+        200: {"description": "List of tickets found for the user"},
+        404: {"description": "No tickets found for the user"}
+    }
+)
+async def get_user_tickets(
+    user_id: UUID,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Get all tickets for a specific user.
+    
+    Parameters:
+    - user_id: UUID of the user
+    
+    Returns:
+    - List of tickets owned by the user
+    """
     query = select(Ticket).join(Booking).where(Booking.user_id == user_id)
     result = await db.execute(query)
     return result.scalars().all()
 
-# Get all tickets for an event
-@router.get("/event/{event_id}", response_model=List[TicketResponse])
-async def get_event_tickets(event_id: UUID, db: AsyncSession = Depends(get_db)):
+@router.get(
+    "/event/{event_id}",
+    response_model=List[TicketResponse],
+    summary="Get Event Tickets",
+    description="Retrieve all tickets for a specific event",
+    responses={
+        200: {"description": "List of tickets found for the event"},
+        404: {"description": "No tickets found for the event"}
+    }
+)
+async def get_event_tickets(
+    event_id: UUID,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Get all tickets for a specific event.
+    
+    Parameters:
+    - event_id: UUID of the event
+    
+    Returns:
+    - List of tickets for the event
+    """
     query = select(Ticket).join(Booking).where(Booking.event_id == event_id)
     result = await db.execute(query)
     return result.scalars().all()
 
-# Get available ticket count for an event
-@router.get("/event/{event_id}/available")
-async def get_available_tickets(event_id: UUID, db: AsyncSession = Depends(get_db)):
+@router.get(
+    "/event/{event_id}/available",
+    summary="Get Available Tickets Count",
+    description="Get the number of available tickets for a specific event",
+    responses={
+        200: {
+            "description": "Available ticket count retrieved successfully",
+            "content": {
+                "application/json": {
+                    "example": {"available_tickets": 50}
+                }
+            }
+        }
+    }
+)
+async def get_available_tickets(
+    event_id: UUID,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Get the number of available tickets for a specific event.
+    
+    Parameters:
+    - event_id: UUID of the event
+    
+    Returns:
+    - Dictionary containing the number of available tickets
+    """
     query = select(func.count(Ticket.ticket_id)).join(Booking).where(
         Booking.event_id == event_id,
         Booking.status == BookingStatus.CONFIRMED

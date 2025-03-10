@@ -1,26 +1,25 @@
 "use client"
-import { Route } from "@/enums/Route";
-import { Menu } from "lucide-react";
-import Link from "next/link";
-import React from "react";
-import { ModeToggle } from "./mode-toggle";
-import { Button } from "./ui/button";
+import { Route } from "@/enums/Route"
+import { Menu } from "lucide-react"
+import Link from "next/link"
+import React from "react"
+import { ModeToggle } from "./mode-toggle"
+import { Button } from "./ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator,
-} from "./ui/dropdown-menu";
-import Logo from "./logo";
-import useAuthUser from "@/hooks/use-auth-user";
-import { handleSignOut } from "@/lib/cognitoActions";
-import { Avatar, AvatarFallback } from "./ui/avatar";
-
+} from "./ui/dropdown-menu"
+import Logo from "./logo"
+import useAuthUser from "@/hooks/use-auth-user"
+import { handleSignOut } from "@/lib/cognitoActions"
+import { Avatar, AvatarFallback } from "./ui/avatar"
 
 export default function Navbar() {
-  const { user, getUserId } = useAuthUser();
-  console.log(user);
+  const { user, getUserId } = useAuthUser()
+  console.log(user)
   // const isLoggedIn = false;
   return (
     <div className="relative z-10 border-b bg-transparent">
@@ -38,6 +37,14 @@ export default function Navbar() {
             >
               Browse Events
             </Link>
+            {user && user.isLoggedIn && (
+              <Link
+                href={Route.MyEvents}
+                className="text-sm font-medium transition-colors duration-200"
+              >
+                My Events
+              </Link>
+            )}
             <Link
               href={Route.CreateEvent}
               className="text-sm font-medium transition-colors duration-200"
@@ -47,7 +54,10 @@ export default function Navbar() {
           </nav>
           <div className="flex items-center gap-4 ml-0">
             {user && user.isLoggedIn ? (
-              <Button onClick={handleSignOut} className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 border-0 transition-colors duration-200">
+              <Button
+                onClick={handleSignOut}
+                className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 border-0 transition-colors duration-200"
+              >
                 Logout
               </Button>
             ) : (
@@ -71,16 +81,19 @@ export default function Navbar() {
         {/* Mobile Navigation: Keep Sign In Visible and Use Dropdown for Others */}
         <div className="flex md:hidden items-center gap-4">
           {user && user.isLoggedIn ? (
-              <Button onClick={handleSignOut} className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 border-0 transition-colors duration-200">
-                Logout
+            <Button
+              onClick={handleSignOut}
+              className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 border-0 transition-colors duration-200"
+            >
+              Logout
+            </Button>
+          ) : (
+            <Link href={Route.Login}>
+              <Button className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 border-0 transition-colors duration-200">
+                Sign In
               </Button>
-            ) : (
-              <Link href={Route.Login}>
-                <Button className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 border-0 transition-colors duration-200">
-                  Sign In
-                </Button>
-              </Link>
-            )}
+            </Link>
+          )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button aria-label="Toggle Menu" className="p-2">
@@ -91,6 +104,11 @@ export default function Navbar() {
               <DropdownMenuItem asChild>
                 <Link href={Route.BrowseEvents}>Browse Events</Link>
               </DropdownMenuItem>
+              {user && user.isLoggedIn && (
+                <DropdownMenuItem asChild>
+                  <Link href={Route.MyEvents}>My Events</Link>
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem asChild>
                 <Link href={Route.CreateEvent}>Create Event</Link>
               </DropdownMenuItem>
@@ -99,7 +117,9 @@ export default function Navbar() {
                 {user && user.isLoggedIn && (
                   <Link href={`${Route.UserProfile}/${getUserId()}`}>
                     <Avatar className="w-12 h-12">
-                      <AvatarFallback>{user?.username?.slice(0, 3)}</AvatarFallback>
+                      <AvatarFallback>
+                        {user?.username?.slice(0, 3)}
+                      </AvatarFallback>
                     </Avatar>
                   </Link>
                 )}
@@ -114,5 +134,5 @@ export default function Navbar() {
         </div>
       </div>
     </div>
-  );
+  )
 }

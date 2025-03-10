@@ -7,4 +7,5 @@ export enum Route {
     BrowseEvents = "/events",
     BookEvent = "/book",
     UserProfile = "/user",
+    MyEvents = "/my-events"
 }
