@@ -6,6 +6,7 @@ import { EventTimeline } from "./components/event-timeline"
 import { Badge } from "@/components/ui/badge"
 import { getUserBookings, type Booking } from "@/lib/api/tickets"
 import useAuthUser from "@/hooks/use-auth-user"
+import { AuthTest } from "./components/auth-test"
 
 export default function MyEventsPage() {
   const [activeTab, setActiveTab] = useState("attending")
@@ -84,6 +85,10 @@ export default function MyEventsPage() {
             Manage your events and see what&apos;s coming up
           </p>
         </div>
+
+        {/* <div className="mb-8">
+          <AuthTest />
+        </div> */}
 
         <Tabs
           defaultValue="attending"
