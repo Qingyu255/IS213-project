@@ -16,6 +16,8 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion"
+import { Spinner } from "@/components/ui/spinner"
+import { useState } from "react"
 
 interface Event {
   id: string
@@ -23,8 +25,8 @@ interface Event {
   title: string
   date: Date
   status: BookingStatus
-  tickets: Array<{ ticket_id: string; booking_id: string }>
-  onAction?: (action: "confirm" | "cancel" | "refund") => void
+  tickets: Array<{ ticket_id: string; booking_id: string; status: string }>
+  onAction?: (action: "cancel" | "refund") => void
 }
 
 interface EventTimelineProps {
@@ -33,6 +35,10 @@ interface EventTimelineProps {
 }
 
 export function EventTimeline({ events, type }: EventTimelineProps) {
+  const [processingEventId, setProcessingEventId] = useState<string | null>(
+    null
+  )
+
   // Group events by month
   const groupedEvents = events.reduce(
     (groups: { [key: string]: Event[] }, event) => {
@@ -55,6 +61,32 @@ export function EventTimeline({ events, type }: EventTimelineProps) {
   Object.values(groupedEvents).forEach((monthEvents) => {
     monthEvents.sort((a, b) => b.date.getTime() - a.date.getTime())
   })
+
+  const getStatusBadgeVariant = (
+    status: BookingStatus
+  ): "default" | "destructive" | "secondary" | "outline" => {
+    switch (status) {
+      case BookingStatus.PENDING:
+        return "secondary"
+      case BookingStatus.CONFIRMED:
+        return "default"
+      case BookingStatus.CANCELED:
+        return "destructive"
+      case BookingStatus.REFUNDED:
+        return "secondary"
+      default:
+        return "default"
+    }
+  }
+
+  const handleAction = async (event: Event, action: "cancel" | "refund") => {
+    setProcessingEventId(event.id)
+    try {
+      await event.onAction?.(action)
+    } finally {
+      setProcessingEventId(null)
+    }
+  }
 
   if (events.length === 0) {
     return (
@@ -84,12 +116,10 @@ export function EventTimeline({ events, type }: EventTimelineProps) {
                       </div>
                     </div>
                     <Badge
-                      variant={
-                        event.status === "confirmed" ? "default" : "secondary"
-                      }
+                      variant={getStatusBadgeVariant(event.status)}
                       className="capitalize"
                     >
-                      {event.status}
+                      {event.status.toLowerCase()}
                     </Badge>
                   </div>
 
@@ -109,9 +139,20 @@ export function EventTimeline({ events, type }: EventTimelineProps) {
                               key={ticket.ticket_id}
                               className="p-2 rounded-lg border flex justify-between items-center"
                             >
-                              <span className="text-sm">
-                                Ticket #{ticket.ticket_id.slice(-8)}
-                              </span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm">
+                                  Ticket #{ticket.ticket_id.slice(-8)}
+                                </span>
+                                <Badge
+                                  variant={
+                                    ticket.status === "VALID"
+                                      ? "default"
+                                      : "destructive"
+                                  }
+                                >
+                                  {ticket.status}
+                                </Badge>
+                              </div>
                               <Button variant="outline" size="sm" asChild>
                                 <Link href={`/tickets/${ticket.ticket_id}`}>
                                   View Ticket
@@ -131,28 +172,27 @@ export function EventTimeline({ events, type }: EventTimelineProps) {
                     {event.onAction && (
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="outline">
+                          <Button
+                            variant="outline"
+                            disabled={processingEventId === event.id}
+                          >
+                            {processingEventId === event.id ? (
+                              <Spinner className="mr-2 h-4 w-4" />
+                            ) : null}
                             Actions <ChevronDown className="ml-2 h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          {event.status === "pending" && (
-                            <>
-                              <DropdownMenuItem
-                                onClick={() => event.onAction?.("confirm")}
-                              >
-                                Confirm Booking
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => event.onAction?.("cancel")}
-                              >
-                                Cancel Booking
-                              </DropdownMenuItem>
-                            </>
-                          )}
-                          {event.status === "confirmed" && (
+                          {event.status === BookingStatus.PENDING && (
                             <DropdownMenuItem
-                              onClick={() => event.onAction?.("refund")}
+                              onClick={() => handleAction(event, "cancel")}
+                            >
+                              Cancel Booking
+                            </DropdownMenuItem>
+                          )}
+                          {event.status === BookingStatus.CONFIRMED && (
+                            <DropdownMenuItem
+                              onClick={() => handleAction(event, "refund")}
                             >
                               Request Refund
                             </DropdownMenuItem>

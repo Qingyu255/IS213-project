@@ -6,17 +6,19 @@ import { EventTimeline } from "./components/event-timeline"
 import { Badge } from "@/components/ui/badge"
 import {
   getUserBookings,
-  type Booking,
+  BookingResponse,
   updateBookingStatus,
+  getEventTickets,
 } from "@/lib/api/tickets"
 import useAuthUser from "@/hooks/use-auth-user"
 import { toast } from "sonner"
 import { Spinner } from "@/components/ui/spinner"
 import { ErrorMessageCallout } from "@/components/error-message-callout"
+import { BookingStatus } from "@/types/booking"
 
 export default function MyEventsPage() {
   const [activeTab, setActiveTab] = useState("attending")
-  const [bookings, setBookings] = useState<Booking[]>([])
+  const [bookings, setBookings] = useState<BookingResponse[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const { user, getUserId } = useAuthUser()
@@ -27,13 +29,17 @@ export default function MyEventsPage() {
       if (!userId) return
 
       try {
+        setIsLoading(true)
         const data = await getUserBookings(userId)
         setBookings(data)
+        setError(null)
       } catch (err) {
         setError(
           err instanceof Error ? err.message : "Failed to fetch bookings"
         )
-        toast.error("Failed to fetch your bookings")
+        toast.error("Error", {
+          description: "Failed to fetch your bookings",
+        })
       } finally {
         setIsLoading(false)
       }
@@ -44,7 +50,7 @@ export default function MyEventsPage() {
 
   const handleBookingAction = async (
     bookingId: string,
-    action: "confirm" | "cancel" | "refund"
+    action: "cancel" | "refund"
   ) => {
     try {
       await updateBookingStatus(bookingId, action)
@@ -53,9 +59,16 @@ export default function MyEventsPage() {
         const updatedBookings = await getUserBookings(userId)
         setBookings(updatedBookings)
       }
-      toast.success(`Booking ${action}ed successfully`)
+      toast.success("Success", {
+        description: `Booking ${action}ed successfully`,
+      })
     } catch (err) {
-      toast.error(`Failed to ${action} booking`)
+      const errorMessage =
+        err instanceof Error ? err.message : `Failed to ${action} booking`
+      toast.error("Error", {
+        description: errorMessage,
+      })
+      throw err // Re-throw to be handled by the component
     }
   }
 
@@ -65,9 +78,9 @@ export default function MyEventsPage() {
     eventId: booking.event_id,
     title: `Event ${booking.event_id}`,
     date: new Date(booking.created_at),
-    status: booking.status,
+    status: booking.status as BookingStatus,
     tickets: booking.tickets,
-    onAction: (action: "confirm" | "cancel" | "refund") =>
+    onAction: (action: "cancel" | "refund") =>
       handleBookingAction(booking.booking_id, action),
   }))
 

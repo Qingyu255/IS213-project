@@ -11,9 +11,11 @@ from ...schemas.booking import BookingRequest, BookingResponse, BookingStatus
 from ...core.auth import get_current_user_id, validate_token
 from typing import List
 import uuid
+from ...services.booking_service import BookingService, TicketFilterType
 
 # Create main router
 router = APIRouter(tags=["bookings"])
+booking_service = BookingService()
 
 logger = logging.getLogger(__name__)
 
@@ -39,52 +41,15 @@ async def test_auth(claims: dict = Depends(validate_token)):
     }
 
 # Protected endpoints
-@router.post("/bookings/book", response_model=BookingResponse, dependencies=[Depends(get_current_user_id)])
+@router.post("/bookings/book", response_model=BookingResponse)
 async def create_booking(
     booking: BookingRequest,
     db: AsyncSession = Depends(get_db),
     user_id: str = Depends(get_current_user_id)
 ):
-    try:
-        # Create booking
-        db_booking = Booking(
-            booking_id=str(uuid.uuid4()),
-            user_id=user_id,
-            event_id=booking.event_id,
-            status=BookingStatus.PENDING
-        )
-        db.add(db_booking)
-        await db.flush()
-
-        # Create tickets
-        tickets = []
-        for _ in range(booking.ticket_count):
-            ticket = Ticket(
-                ticket_id=str(uuid.uuid4()),
-                booking_id=db_booking.booking_id,
-                status="VALID"
-            )
-            tickets.append(ticket)
-            db.add(ticket)
-
-        await db.commit()
-        
-        # Refresh the booking and load relationships
-        result = await db.execute(select(Booking).where(Booking.booking_id == db_booking.booking_id))
-        db_booking = result.scalar_one()
-        
-        return BookingResponse(
-            booking_id=db_booking.booking_id,
-            user_id=db_booking.user_id,
-            event_id=db_booking.event_id,
-            status=db_booking.status,
-            created_at=db_booking.created_at,
-            tickets=tickets
-        )
-    except Exception as e:
-        logger.error(f"Error creating booking: {str(e)}")
-        await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+    booking_data = booking.dict()
+    booking_data["user_id"] = user_id
+    return await booking_service.create_booking(booking_data, db)
 
 @router.get("/bookings/user/{user_id}", response_model=List[BookingResponse], dependencies=[Depends(get_current_user_id)])
 async def get_user_bookings(
@@ -128,84 +93,61 @@ async def get_user_bookings(
         )
     
     return booking_responses
-@router.get("/bookings/{booking_id}", response_model=BookingResponse, dependencies=[Depends(get_current_user_id)])
+
+@router.get("/bookings/{booking_id}", response_model=BookingResponse)
 async def get_booking(
     booking_id: UUID,
     db: AsyncSession = Depends(get_db),
+    _: str = Depends(get_current_user_id)
+):
+    return await booking_service.get_booking_by_id(booking_id, db)
+
+@router.post("/bookings/{booking_id}/confirm")
+async def confirm_booking(
+    booking_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    _: str = Depends(get_current_user_id)
+):
+    return await booking_service.update_booking_status(booking_id, BookingStatus.CONFIRMED, db)
+
+@router.post("/bookings/{booking_id}/cancel")
+async def cancel_booking(
+    booking_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    _: str = Depends(get_current_user_id)
+):
+    return await booking_service.update_booking_status(booking_id, BookingStatus.CANCELED, db)
+
+@router.post("/bookings/{booking_id}/refund")
+async def refund_booking(
+    booking_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    _: str = Depends(get_current_user_id)
+):
+    return await booking_service.update_booking_status(booking_id, BookingStatus.REFUNDED, db)
+
+@router.get("/tickets/user/{user_id}")
+async def get_user_tickets(
+    user_id: UUID,
+    db: AsyncSession = Depends(get_db),
     current_user_id: str = Depends(get_current_user_id)
 ):
-    # Get the booking
-    result = await db.execute(
-        Booking.__table__.select().where(Booking.booking_id == booking_id)
-    )
-    booking = result.first()
-    
-    if not booking:
-        raise HTTPException(status_code=404, detail="Booking not found")
-        
-    # Verify user owns the booking
-    if booking.user_id != current_user_id:
-        raise HTTPException(status_code=403, detail="Cannot access other users' bookings")
-    
-    # Get tickets for the booking
-    result = await db.execute(
-        Ticket.__table__.select().where(Ticket.booking_id == booking_id)
-    )
-    tickets = result.fetchall()
-    
-    return BookingResponse(
-        booking_id=booking.booking_id,
-        user_id=booking.user_id,
-        event_id=booking.event_id,
-        status=booking.status,
-        created_at=booking.created_at,
-        tickets=tickets
-    )
+    if str(user_id) != current_user_id:
+        raise HTTPException(status_code=403, detail="Cannot access other users' tickets")
+    return await booking_service.get_tickets(user_id, TicketFilterType.USER, db)
 
-@router.put("/bookings/{booking_id}/confirm", response_model=BookingResponse, dependencies=[Depends(get_current_user_id)])
-async def confirm_booking(booking_id: UUID, db: AsyncSession = Depends(get_db)):
-    query = select(Booking).where(Booking.booking_id == booking_id)
-    result = await db.execute(query)
-    booking = result.scalar_one_or_none()
+@router.get("/tickets/event/{event_id}")
+async def get_event_tickets(
+    event_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    _: str = Depends(get_current_user_id)
+):
+    return await booking_service.get_tickets(event_id, TicketFilterType.EVENT, db)
 
-    if not booking:
-        raise HTTPException(status_code=404, detail="Booking not found")
-    if booking.status != BookingStatus.PENDING:
-        raise HTTPException(status_code=400, detail="Only pending bookings can be confirmed")
-    
-    booking.status = BookingStatus.CONFIRMED
-    await db.commit()
-    await db.refresh(booking)
-    return booking
-
-@router.put("/bookings/{booking_id}/cancel", response_model=BookingResponse, dependencies=[Depends(get_current_user_id)])
-async def cancel_booking(booking_id: UUID, db: AsyncSession = Depends(get_db)):
-    query = select(Booking).where(Booking.booking_id == booking_id)
-    result = await db.execute(query)
-    booking = result.scalar_one_or_none()
-    
-    if not booking:
-        raise HTTPException(status_code=404, detail="Booking not found")
-    if booking.status != BookingStatus.PENDING:
-        raise HTTPException(status_code=400, detail="Only pending bookings can be canceled")
-    
-    booking.status = BookingStatus.CANCELED
-    await db.commit()
-    await db.refresh(booking)
-    return booking
-
-@router.put("/bookings/{booking_id}/refund", response_model=BookingResponse, dependencies=[Depends(get_current_user_id)])
-async def refund_booking(booking_id: UUID, db: AsyncSession = Depends(get_db)):
-    query = select(Booking).where(Booking.booking_id == booking_id)
-    result = await db.execute(query)
-    booking = result.scalar_one_or_none()
-    
-    if not booking:
-        raise HTTPException(status_code=404, detail="Booking not found")
-    if booking.status != BookingStatus.CONFIRMED:
-        raise HTTPException(status_code=400, detail="Only confirmed bookings can be refunded")
-    
-    booking.status = BookingStatus.REFUNDED
-    await db.commit()
-    await db.refresh(booking)
-    return booking
+@router.get("/tickets/available/{event_id}")
+async def get_available_tickets(
+    event_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    _: str = Depends(get_current_user_id)
+):
+    return {"available_tickets": await booking_service.get_available_tickets(event_id, db)}
