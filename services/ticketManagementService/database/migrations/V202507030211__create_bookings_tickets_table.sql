@@ -3,7 +3,7 @@
 -- =========================
 CREATE TABLE IF NOT EXISTS bookings (
     booking_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL,
+    user_id UUID NOT NULL REFERENCES users(id),
     event_id UUID NOT NULL,
     status VARCHAR(20) NOT NULL CHECK (status IN ('pending', 'confirmed', 'canceled', 'refunded')),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -31,10 +31,13 @@ EXECUTE FUNCTION update_bookings_updated_at_column();
 -- =========================
 CREATE TABLE IF NOT EXISTS tickets (
     ticket_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    booking_id UUID NOT NULL REFERENCES bookings(booking_id) ON DELETE CASCADE
+    booking_id UUID NOT NULL REFERENCES bookings(booking_id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Indexes for faster lookups
 CREATE INDEX idx_tickets_booking_id ON tickets(booking_id);
+CREATE INDEX idx_bookings_user_id ON bookings(user_id);
+CREATE INDEX idx_bookings_event_id ON bookings(event_id);
 
 -- design considerations: store user_id and event_id in the tickets table to allow fast user ticket lookups and event ticket lookups VS dont store for better consistency and data integrity?
