@@ -21,40 +21,14 @@ booking_service = BookingService()
 logger = logging.getLogger(__name__)
 
 # Test endpoints (no auth required)
-@router.get("/test/cors")
-async def test_cors():
-    """Test endpoint to verify CORS is working (no auth required)"""
-    return {"message": "CORS is working"}
-
-@router.get("/bookings/test-auth")
-async def test_auth(claims: dict = Depends(validate_token)):
-    """Test endpoint to verify authentication and return user claims"""
-    # Only use custom:id as the user ID
+@router.get("/test")
+async def test_endpoints(claims: dict = Depends(validate_token)):
+    """Combined test endpoint for CORS, auth, and token info"""
     user_id = claims.get("custom:id")
-    
-    # Add information about which ID is being used
-    id_source = "custom:id"
-    
     return {
-        "message": "Authentication successful",
+        "cors_status": "CORS is working",
+        "auth_status": "Authentication successful",
         "user_id": user_id,
-        "id_source": id_source,
-        "user_claims": claims
-    }
-
-@router.get("/test/token-info")
-async def test_token_info(claims: dict = Depends(validate_token)):
-    """Test endpoint to verify token validation and return token information"""
-    # Only use custom:id as the user ID
-    user_id = claims.get("custom:id")
-    
-    # Add information about which ID is being used
-    id_source = "custom:id"
-    
-    return {
-        "message": "Token validation successful",
-        "user_id": user_id,
-        "id_source": id_source,
         "token_claims": claims
     }
 
@@ -177,41 +151,3 @@ async def refund_booking(
     _: str = Depends(get_current_user_id)
 ):
     return await booking_service.update_booking_status(booking_id, BookingStatus.REFUNDED, db)
-
-@router.get("/tickets/user/{user_id}")
-async def get_user_tickets(
-    user_id: str,
-    db: AsyncSession = Depends(get_db),
-    current_user_id: str = Depends(get_current_user_id)
-):
-    # Log the user IDs for debugging
-    logger.info(f"Tickets - User ID comparison - Requested: '{user_id}', Current: '{current_user_id}'")
-    
-    # Normalize user IDs for comparison (remove hyphens and convert to lowercase)
-    normalized_requested_id = str(user_id).replace('-', '').lower() if user_id else ''
-    normalized_current_id = current_user_id.replace('-', '').lower() if current_user_id else ''
-    
-    logger.info(f"Tickets - Normalized IDs - Requested: '{normalized_requested_id}', Current: '{normalized_current_id}'")
-    
-    # Verify user is accessing their own tickets
-    if normalized_requested_id != normalized_current_id:
-        logger.warning(f"User {current_user_id} attempted to access tickets for user {user_id}")
-        raise HTTPException(status_code=403, detail="Cannot access other users' tickets")
-    
-    return await booking_service.get_tickets(user_id, TicketFilterType.USER, db)
-
-@router.get("/tickets/event/{event_id}")
-async def get_event_tickets(
-    event_id: UUID,
-    db: AsyncSession = Depends(get_db),
-    _: str = Depends(get_current_user_id)
-):
-    return await booking_service.get_tickets(event_id, TicketFilterType.EVENT, db)
-
-@router.get("/tickets/available/{event_id}")
-async def get_available_tickets(
-    event_id: UUID,
-    db: AsyncSession = Depends(get_db),
-    _: str = Depends(get_current_user_id)
-):
-    return {"available_tickets": await booking_service.get_available_tickets(event_id, db)}

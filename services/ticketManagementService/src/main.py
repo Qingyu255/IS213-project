@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
-from .api.routes import bookings
+from .api.routes import bookings, tickets
 import asyncio
 import logging
 
@@ -16,19 +16,20 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Configure CORS - IMPORTANT: When using allow_origins=["*"], allow_credentials must be False
-# See: https://fastapi.tiangolo.com/tutorial/cors/
+# Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],  # Specific origins
-    allow_credentials=True,  # Allow credentials with specific origins
-    allow_methods=["*"],  # Allow all methods
-    allow_headers=["*"],  # Allow all headers
-    expose_headers=["*"],  # Expose all headers
+    allow_origins=["http://localhost:3000"],  # Frontend URL
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["*"],
+    max_age=3600  # Cache preflight requests for 1 hour
 )
 
 # Include router
-app.include_router(bookings.router, prefix="/api/v1")  # All endpoints
+app.include_router(bookings.router, prefix="/api/v1")  # Bookings endpoints
+app.include_router(tickets.router, prefix="/api/v1")  # Tickets endpoints
 
 @app.get("/")
 async def root():
