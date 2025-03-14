@@ -3,7 +3,7 @@ from fastapi import HTTPException
 from pydantic import UUID4
 
 # Get tickets by user_id
-async def get_tickets_by_user_id(user_id: UUID4, db: AsyncSession):
+async def get_tickets_by_user_id(user_id: str, db: AsyncSession):
     results = await db.execute("""
         SELECT t.ticket_id, t.booking_id
         FROM tickets t

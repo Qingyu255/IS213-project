@@ -1,10 +1,10 @@
 from enum import Enum
 
 class BookingStatus(str, Enum):
-    PENDING = 'pending'
-    CONFIRMED = 'confirmed'
-    CANCELED = 'canceled'
-    REFUNDED = 'refunded'
+    PENDING = 'PENDING'
+    CONFIRMED = 'CONFIRMED'
+    CANCELED = 'CANCELED'
+    REFUNDED = 'REFUNDED'
 
     @classmethod
     def can_transition_to(cls, current_status: str, new_status: str) -> bool:

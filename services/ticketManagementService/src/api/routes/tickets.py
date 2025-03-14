@@ -24,14 +24,14 @@ router = APIRouter(prefix="/tickets", tags=["tickets"])
     }
 )
 async def get_user_tickets(
-    user_id: UUID,
+    user_id: str,
     db: AsyncSession = Depends(get_db)
 ):
     """
     Get all tickets for a specific user.
     
     Parameters:
-    - user_id: UUID of the user
+    - user_id: String ID of the user (from custom:id in Cognito)
     
     Returns:
     - List of tickets owned by the user
@@ -106,3 +106,41 @@ async def get_available_tickets(
     available = total_capacity - booked_tickets
     
     return {"available_tickets": available}
+
+@router.get(
+    "/user/{user_id}/event/{event_id}",
+    response_model=List[TicketResponse],
+    summary="Get User Tickets for Event",
+    description="Retrieve all tickets for a specific user and event",
+    responses={
+        200: {"description": "List of tickets found for the user and event"},
+        404: {"description": "No tickets found for the user and event"}
+    }
+)
+async def get_user_event_tickets(
+    user_id: str,
+    event_id: UUID,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Get all tickets for a specific user and event.
+    
+    Parameters:
+    - user_id: String ID of the user (from custom:id in Cognito)
+    - event_id: UUID of the event
+    
+    Returns:
+    - List of tickets owned by the user for the specified event
+    """
+    query = select(Ticket).join(Booking).where(
+        Booking.user_id == user_id,
+        Booking.event_id == event_id
+    )
+    result = await db.execute(query)
+    tickets = result.scalars().all()
+    
+    return {
+        "tickets": tickets,
+        "count": len(tickets),
+        "ticket_ids": [str(ticket.ticket_id) for ticket in tickets]
+    }

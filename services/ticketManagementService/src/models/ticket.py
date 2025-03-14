@@ -1,4 +1,4 @@
-from sqlalchemy import Column, ForeignKey, DateTime
+from sqlalchemy import Column, ForeignKey, DateTime, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -17,7 +17,7 @@ class Ticket(Base):
 
     def to_dict(self):
         return {
-            "ticket_id": self.ticket_id,
-            "booking_id": self.booking_id,
+            "ticket_id": str(self.ticket_id),
+            "booking_id": str(self.booking_id),
             "created_at": self.created_at
         }

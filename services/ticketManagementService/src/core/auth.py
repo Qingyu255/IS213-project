@@ -100,8 +100,8 @@ async def validate_token(credentials: HTTPAuthorizationCredentials = Security(se
     """Validate the JWT token and return the claims"""
     try:
         token = credentials.credentials
-        logger.debug("Starting token validation")
-        logger.debug(f"Token received: {token[:20]}...")  # Log first part of token for debugging
+        logger.debug("=== Starting token validation ===")
+        logger.debug(f"Token received (first 20 chars): {token[:20]}...")
         
         # First decode without verification to get the header and check format
         try:
@@ -110,13 +110,23 @@ async def validate_token(credentials: HTTPAuthorizationCredentials = Security(se
                 "verify_aud": False,
                 "verify_exp": False
             })
-            logger.debug(f"Unverified claims: {unverified_claims}")
+            logger.debug("=== Unverified Token Claims ===")
+            logger.debug(f"Token use: {unverified_claims.get('token_use')}")
+            logger.debug(f"Client ID: {unverified_claims.get('client_id')}")
+            logger.debug(f"Audience: {unverified_claims.get('aud')}")
+            logger.debug(f"Subject (sub): {unverified_claims.get('sub')}")
+            logger.debug(f"custom:id: {unverified_claims.get('custom:id')}")
+            logger.debug(f"Username: {unverified_claims.get('username') or unverified_claims.get('cognito:username')}")
             
             # Determine token type and expected audience
             token_use = unverified_claims.get('token_use')
             token_aud = unverified_claims.get('aud')
             client_id = unverified_claims.get('client_id')
-            logger.debug(f"Token type: {token_use}, Token audience: {token_aud}, Client ID: {client_id}")
+            logger.debug("=== Token Validation Config ===")
+            logger.debug(f"Token type: {token_use}")
+            logger.debug(f"Token audience: {token_aud}")
+            logger.debug(f"Client ID: {client_id}")
+            logger.debug(f"Expected Client ID: {CLIENT_ID}")
             
             # For access tokens, verify against client_id
             # For ID tokens, verify against aud
@@ -126,11 +136,14 @@ async def validate_token(credentials: HTTPAuthorizationCredentials = Security(se
                     raise HTTPException(status_code=401, detail="Invalid client_id")
                 expected_audience = None  # Don't verify audience for access tokens
                 verify_aud = False
+                logger.debug("Using access token validation rules")
             else:
                 expected_audience = CLIENT_ID
                 verify_aud = True
+                logger.debug("Using ID token validation rules")
             
-            logger.debug(f"Expected audience: {expected_audience}, Verify audience: {verify_aud}")
+            logger.debug(f"Expected audience: {expected_audience}")
+            logger.debug(f"Verify audience: {verify_aud}")
             
         except Exception as e:
             logger.error(f"Error decoding unverified claims: {str(e)}")
@@ -166,6 +179,11 @@ async def validate_token(credentials: HTTPAuthorizationCredentials = Security(se
                 }
             )
             logger.debug("Token successfully decoded and verified")
+            logger.debug("=== Verified Token Claims ===")
+            logger.debug(f"Token use: {claims.get('token_use')}")
+            logger.debug(f"Subject (sub): {claims.get('sub')}")
+            logger.debug(f"custom:id: {claims.get('custom:id')}")
+            logger.debug(f"Username: {claims.get('username') or claims.get('cognito:username')}")
         except Exception as e:
             logger.error(f"Error verifying token: {str(e)}")
             # If verification fails, try to extract claims from unverified token for debugging
@@ -204,27 +222,69 @@ async def validate_token(credentials: HTTPAuthorizationCredentials = Security(se
 # Dependency to get the current user ID from the token
 async def get_current_user_id(claims: dict = Depends(validate_token)) -> str:
     """Extract the user ID from the validated token claims"""
-    logger.debug("Getting user ID from claims")
-    logger.debug(f"All available claims: {claims}")
+    logger.debug("=== Getting user ID from claims ===")
+    logger.debug(f"Token type: {claims.get('token_use', 'unknown')}")
     
-    # Try different possible claim names for the user ID
-    user_id = (
-        claims.get("custom:id")
+    # Log all available claims for debugging
+    logger.debug("Available claims:")
+    for key, value in claims.items():
+        logger.debug(f"  {key}: {value}")
+    
+    # Only use custom:id as the user ID
+    user_id = claims.get("custom:id")
+    logger.debug(f"Extracted custom:id: {user_id}")
+    
+    # Extract username and sub for better error messages
+    username = (
+        claims.get("username") or 
+        claims.get("cognito:username") or 
+        claims.get("preferred_username")
     )
+    sub = claims.get("sub")
+    logger.debug(f"Extracted username: {username}")
+    logger.debug(f"Extracted sub: {sub}")
     
     if not user_id:
-        logger.error("No user ID found in token claims")
-        # Try to get username for error message
-        username = (
-            claims.get("username") or 
-            claims.get("cognito:username") or 
-            claims.get("preferred_username")
-        )
+        logger.error("No custom:id found in token claims")
+        error_msg = "No custom:id found in token"
         if username:
-            logger.error(f"No user ID found for user {username}")
-            raise HTTPException(status_code=401, detail=f"No user ID found for user {username}")
-        else:
-            raise HTTPException(status_code=401, detail="No user identifier found in token")
+            error_msg += f" for user {username}"
+        if sub:
+            error_msg += f" (sub: {sub})"
+        logger.error(error_msg)
+        logger.error("Available claims for debugging:")
+        for key, value in claims.items():
+            logger.error(f"  {key}: {value}")
+        raise HTTPException(status_code=401, detail=error_msg)
     
-    logger.debug(f"Using user ID: {user_id}")
-    return user_id 
+    logger.debug(f"Using user ID (custom:id): {user_id}")
+    return user_id
+
+# New dependency to get the current username from the token
+async def get_current_username(claims: dict = Depends(validate_token)) -> str:
+    """Extract the username from the validated token claims"""
+    logger.debug("Getting username from claims")
+    
+    # Try different possible claim names for the username
+    username = (
+        claims.get("username") or 
+        claims.get("cognito:username") or 
+        claims.get("preferred_username")
+    )
+    
+    if not username:
+        logger.error("No username found in token claims")
+        # Try to get user ID for error message
+        user_id = claims.get("sub") or claims.get("custom:id")
+        if user_id:
+            logger.error(f"No username found for user ID {user_id}")
+            raise HTTPException(status_code=401, detail=f"No username found for user ID {user_id}")
+        else:
+            raise HTTPException(status_code=401, detail="No username found in token")
+    
+    logger.debug(f"Using username: {username}")
+    
+    # Log the exact username for debugging
+    logger.info(f"Extracted username from token: '{username}'")
+    
+    return username 
