@@ -40,6 +40,31 @@ services:
       interval: 1s
       timeout: 10s
       retries: 10
+    networks:
+      - default
+
+  # Ticket Management Database
+  ticket-db:
+    image: postgres:16.2
+    container_name: ticket-management-db
+    environment:
+      POSTGRES_DB: ${TICKET_DB}
+      POSTGRES_USER: ${TICKET_DB_USER}
+      POSTGRES_PASSWORD: ${TICKET_DB_PASSWORD}
+    env_file:
+      - .env
+    ports:
+      - "5434:5432"
+    volumes:
+      - ticket-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        ["CMD-SHELL", "pg_isready -p 5432 -U ${TICKET_DB_USER} -d ${TICKET_DB}"]
+      interval: 1s
+      timeout: 10s
+      retries: 10
+    networks:
+      - default
 
   db-migrations:
     image: flyway/flyway:11.3.4
@@ -53,6 +78,20 @@ services:
     command: migrate
     depends_on:
       postgres:
+        condition: service_healthy
+
+  ticket-db-migrations:
+    image: flyway/flyway:11.3.4
+    volumes:
+      - ./services/ticketManagementService/database/migrations:/flyway/sql
+    environment:
+      FLYWAY_URL: "jdbc:postgresql://ticket-db:5432/${TICKET_DB}"
+      FLYWAY_USER: ${TICKET_DB_USER}
+      FLYWAY_PASSWORD: ${TICKET_DB_PASSWORD}
+      FLYWAY_BASELINE_ON_MIGRATE: "true"
+    command: migrate
+    depends_on:
+      ticket-db:
         condition: service_healthy
 
   user-management-service:
@@ -83,14 +122,14 @@ services:
     ports:
       - "8000:8000"
     environment:
-      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      DATABASE_URL: postgresql+asyncpg://${TICKET_DB_USER}:${TICKET_DB_PASSWORD}@ticket-db:5432/${TICKET_DB}
       AWS_COGNITO_REGION: ${AWS_REGION}
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
       AWS_COGNITO_USER_POOL_ID: ${AWS_COGNITO_USER_POOL_ID}
       AWS_COGNITO_APP_CLIENT_ID: ${AWS_COGNITO_APP_CLIENT_ID}
     depends_on:
-      postgres:
+      ticket-db:
         condition: service_healthy
 
   # example-spring-service:
@@ -117,6 +156,7 @@ services:
 
 volumes:
   pgdata:
+  ticket-db-data:
 
 networks:
   default:
