@@ -24,24 +24,89 @@ A FastAPI-based microservice for managing event tickets and bookings.
 
 ```
 ticketManagementService/
-├── src/
-│   ├── api/            # API routes and dependencies
-│   │   ├── routes/     # Route handlers
-│   │   │   ├── bookings.py
-│   │   │   └── tickets.py
-│   ├── core/           # Core configurations
-│   │   ├── config.py   # Environment and app configs
-│   │   └── database.py # Database connection setup
-│   ├── models/         # SQLAlchemy models
-│   │   ├── booking.py  # Booking data model
-│   │   └── ticket.py   # Ticket data model
-│   ├── schemas/        # Pydantic models
-│   │   ├── booking.py  # Booking request/response models
-│   │   └── ticket.py   # Ticket response models
-│   └── main.py         # FastAPI application entry point
-├── Dockerfile          # Container configuration
-└── requirements.txt    # Python dependencies
+├── database/                  # Database migrations and scripts
+├── src/                      # Main source code directory
+│   ├── api/                  # API layer
+│   │   ├── routes/          # Route handlers
+│   │   │   ├── bookings.py  # Booking endpoints
+│   │   │   └── tickets.py   # Ticket endpoints
+│   │   └── __init__.py      # API initialization
+│   ├── core/                 # Core configurations
+│   │   ├── auth.py          # Authentication utilities
+│   │   ├── config.py        # Environment and app configs
+│   │   └── database.py      # Database connection setup
+│   ├── models/              # Database models
+│   │   ├── booking.py       # Booking ORM model
+│   │   └── ticket.py        # Ticket ORM model
+│   ├── schemas/             # Data validation schemas
+│   │   ├── booking.py       # Booking request/response schemas
+│   │   └── ticket.py        # Ticket response schemas
+│   ├── services/            # Business logic layer
+│   │   ├── base_service.py  # Base service class
+│   │   ├── booking_service.py # Booking operations
+│   │   └── ticket_service.py  # Ticket operations
+│   └── main.py             # Application entry point
+├── venv/                   # Virtual environment (not in repo)
+├── .env                    # Environment variables
+├── Dockerfile             # Container configuration
+├── README.md              # Service documentation
+└── requirements.txt       # Python dependencies
 ```
+
+## Directory Structure Explained
+
+### Root Directory
+
+- `Dockerfile`: Contains Docker build instructions for containerizing the service
+- `requirements.txt`: Lists all Python package dependencies with versions
+- `.env`: Contains environment variables for local development
+- `README.md`: Documentation for the service
+
+### src/ Directory
+
+Main source code directory containing all application code:
+
+#### api/
+
+- Handles HTTP interface and request routing
+- Contains FastAPI route definitions and endpoint handlers
+- Manages request validation and response formatting
+- Coordinates between HTTP requests and service layer
+
+#### core/
+
+- Contains essential service configurations and utilities
+- `config.py`: Manages environment variables and app settings
+- `database.py`: Handles database connection and session management
+- Houses other core functionality like authentication and logging
+
+#### models/
+
+- Defines SQLAlchemy ORM models for database tables
+- Contains data structure definitions and relationships
+- Handles database schema representation in code
+- Example: `booking.py` defines the structure of the bookings table
+
+#### schemas/
+
+- Contains Pydantic models for request/response validation
+- Defines data validation rules and type checking
+- Handles data serialization/deserialization
+- Separates API contracts from database models
+
+#### services/
+
+- Implements core business logic and data operations
+- Handles complex operations and transactions
+- Provides reusable business logic layer
+- Independent of HTTP/API concerns
+
+#### main.py
+
+- Application entry point
+- Sets up FastAPI application
+- Configures middleware and routes
+- Initializes core components
 
 ## Data Organization
 
