@@ -132,6 +132,16 @@ services:
       ticket-db:
         condition: service_healthy
 
+  create-event-service:
+    build:
+      context: ./services/createEventService/
+      dockerfile: Dockerfile
+    # container_name: client-management-service
+    ports:
+      - "8070:8070"
+    env_file:
+      - .env
+
   # example-spring-service:
   #   build:
   #     context: ./services/exampleSpringService
