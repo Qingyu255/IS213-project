@@ -17,6 +17,23 @@ class EventCreate(BaseModel):
     # List of organizer names associated with the event
     organizers: List[str]
 
+class EventCreateResponse(BaseModel):
+    message: str
+    id: UUID4
+    title: str
+    description: Optional[str]
+    start_date_time: datetime
+    end_date_time: Optional[datetime]
+    image_url: Optional[str]
+    venue: Optional[str]
+    price: Decimal
+    capacity: int
+    # List of category names that the user inputs
+    categories: List[str]
+    # List of organizer names associated with the event
+    organizers: List[str]
+    
+
 class EventUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None

@@ -22,4 +22,4 @@ class Event(Base):
     updated_at = Column(TIMESTAMP(timezone=True), server_default=func.now(), onupdate=func.now())
 
     categories = relationship("Category", secondary="event_categories", back_populates="events")
-    organizers = relationship("EventOrganizer", back_populates="event")
+    organizers = relationship("EventOrganizer", back_populates="event", cascade="all, delete-orphan", passive_deletes=True)

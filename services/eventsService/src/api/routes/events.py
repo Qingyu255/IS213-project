@@ -4,21 +4,19 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 from pydantic import UUID4
-from src.schemas.event import EventCreate, EventUpdate, EventRead
+from src.schemas.event import EventCreate, EventUpdate, EventRead, EventCreateResponse
 from src.services.event_service import (
     create_event,
     get_event_by_id,
     get_all_events,
     update_event,
     delete_event,
-    add_event_category,
-    add_event_organizer
 )
 from src.db.connection import get_db 
 
 router = APIRouter(prefix="/events", tags=["Events"])
 
-@router.post("/create", response_model=EventRead)
+@router.post("/create", response_model=EventCreateResponse)
 async def create_event_endpoint(event: EventCreate, db: AsyncSession = Depends(get_db)):
     """
     Create a new event.
@@ -53,20 +51,5 @@ async def delete_event_endpoint(event_id: UUID4, db: AsyncSession = Depends(get_
     """
     return await delete_event(event_id, db)
 
-# Optional endpoints for linking a category or organizer, if needed:
-
-# @router.post("/addEventCategory/{event_id}/categories/{category_id}")
-# async def add_event_category_endpoint(event_id: UUID4, category_id: UUID4, db: AsyncSession = Depends(get_db)):
-#     """
-#     Link an existing category (by category_id) to an event.
-#     """
-#     return await add_event_category(event_id, category_id, db)
-
-# @router.post("/addEventOrganizer/{event_id}/organizer/{organizer_id}")
-# async def add_event_organizer_endpoint(event_id: UUID4, organizer_id: UUID4, db: AsyncSession = Depends(get_db)):
-#     """
-#     Link an organizer to an event.
-#     """
-#     return await add_event_organizer(event_id, organizer_id, db)
 
 

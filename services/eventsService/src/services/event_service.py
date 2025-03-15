@@ -2,6 +2,7 @@
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from sqlalchemy import delete  
 from fastapi import HTTPException
 from ..models.events import Event
 from ..models.eventCategory import EventCategory
@@ -12,45 +13,46 @@ from pydantic import UUID4
 import uuid
 
 async def create_event(event_data: EventCreate, db: AsyncSession):
-    # Create the event record
-    new_event = Event(
-        title=event_data.title,
-        description=event_data.description,
-        start_date_time=event_data.start_date_time,
-        end_date_time=event_data.end_date_time,
-        image_url=event_data.image_url,
-        venue=event_data.venue,
-        price=event_data.price,
-        capacity=event_data.capacity,
-    )
-    db.add(new_event)
-    await db.commit()
-    await db.refresh(new_event)
-
-    # Process each category name provided.
-    for category_name in event_data.categories:
-        # Check if the category exists in the table.
-        result = await db.execute(select(Category).filter(Category.name == category_name))
-        category = result.scalars().first()
-        if not category:
-            raise HTTPException(status_code=400, detail=f"Category '{category_name}' does not exist")
-        # Link the event with the existing category.
-        event_category = EventCategory(event_id=new_event.id, category_id=category.id)
-        db.add(event_category)
-
-    # Process each organizer name provided.
-    for organizer_name in event_data.organizers:
-        organizer = EventOrganizer(
-            event_id=new_event.id,
-            organizer_id=uuid.uuid4(),  # Generating a new UUID for organizer_id
-            name=organizer_name
+    async with db.begin():
+        # Create the event record
+        new_event = Event(
+            title=event_data.title,
+            description=event_data.description,
+            start_date_time=event_data.start_date_time,
+            end_date_time=event_data.end_date_time,
+            image_url=event_data.image_url,
+            venue=event_data.venue,
+            price=event_data.price,
+            capacity=event_data.capacity,
         )
-        db.add(organizer)
+        db.add(new_event)
+        await db.flush()  # flush to get new_event.id without committing
 
-    await db.commit()
+        # Process each category name provided.
+        for category_name in event_data.categories:
+            # Check if the category exists in the table.
+            result = await db.execute(select(Category).filter(Category.name == category_name))
+            category = result.scalars().first()
+            if not category:
+                raise HTTPException(status_code=400, detail=f"Category '{category_name}' does not exist")
+            # Link the event with the existing category.
+            event_category = EventCategory(event_id=new_event.id, category_id=category.id)
+            db.add(event_category)
+
+        # Process each organizer name provided.
+        for organizer_name in event_data.organizers:
+            organizer = EventOrganizer(
+                event_id=new_event.id,
+                organizer_id=uuid.uuid4(),  # Generating a new UUID for organizer_id
+                name=organizer_name
+            )
+            db.add(organizer)
+
+    # Commit happens here automatically at the end of the context block if no exception is raised
     await db.refresh(new_event)
 
     return {
+        "message": f"Event '{new_event.title}' has been created successfully",
         "id": new_event.id,
         "title": new_event.title,
         "description": new_event.description,
@@ -110,7 +112,7 @@ async def get_event_by_id(event_id: UUID4, db: AsyncSession):
 
 ############################################################################################################
 # Get all events along with their categories and organizers
-async def get_all_events(db: AsyncSession, skip: int = 0, limit: int = 10):
+async def get_all_events(db: AsyncSession, skip: int = 0, limit: int = 100):
     # Fetch all events with pagination
     result = await db.execute(select(Event).offset(skip).limit(limit))
     events = result.scalars().all()
@@ -197,21 +199,7 @@ async def update_event(event_id: UUID4, event_data: EventUpdate, db: AsyncSessio
     await db.commit()
     await db.refresh(event)
 
-    return {
-        "id": event.id,
-        "title": event.title,
-        "description": event.description,
-        "start_date_time": event.start_date_time,
-        "end_date_time": event.end_date_time,
-        "image_url": event.image_url,
-        "venue": event.venue,
-        "price": event.price,
-        "capacity": event.capacity,
-        "created_at": event.created_at,
-        "updated_at": event.updated_at,
-        "categories": event_data.categories if event_data.categories is not None else "unchanged",
-        "organizers": event_data.organizers if event_data.organizers is not None else "unchanged"
-    }
+    return await get_event_by_id(event.id, db)
 
 
 # Delete an event
@@ -221,22 +209,12 @@ async def delete_event(event_id: UUID4, db: AsyncSession):
 
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
+    
+    event_name = event.title
 
     await db.delete(event)
     await db.commit()
 
-    return {"message": "Event deleted successfully", "event_id": str(event_id)}
+    return {"message": f"Event '{event_name}' with id '{event_id}' has been deleted."}
 
-# Link an event to a category
-async def add_event_category(event_id: UUID4, category_id: UUID4, db: AsyncSession):
-    event_category = EventCategory(event_id=event_id, category_id=category_id)
-    db.add(event_category)
-    await db.commit()
-    return {"message": "Category linked to event successfully"}
 
-# Link an event to an organizer
-async def add_event_organizer(event_id: UUID4, organizer_id: UUID4, db: AsyncSession):
-    event_organizer = EventOrganizer(event_id=event_id, organizer_id=organizer_id)
-    db.add(event_organizer)
-    await db.commit()
-    return {"message": "Organizer linked to event successfully"}
