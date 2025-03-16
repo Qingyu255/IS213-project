@@ -190,6 +190,7 @@ services:
     deploy:
       replicas: 1  
 
+
   # example-spring-service:
   #   build:
   #     context: ./services/exampleSpringService
