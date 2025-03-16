@@ -51,8 +51,11 @@ The logging service expects **JSON** messages containing specific fields. Below 
   "message": "This is a sample log message.",
   "transaction_id": "abc123"  // optional
 }
+```
 
-### Logging API 
+
+
+**Logging API**
 
 - `GET /logs/by_date_level/{date}/{level}`: Get Logs by Date and Level  
 - `GET /logs/by_date_range_level/{start_date}/{end_date}/{level}`: Get Logs by Date Range and Level  
@@ -60,4 +63,6 @@ The logging service expects **JSON** messages containing specific fields. Below 
 - `GET /logs/by_service_level_daterange/{service}/{level}/{start_date}/{end_date}`: Get Logs by Service, Level, and Date Range  
 - `GET /logs/by_transid_level/{transaction_id}/{level}`: Get Logs by Transaction ID and Level  
 - `GET /logs/getall`: Get All Logs
+
+
 
