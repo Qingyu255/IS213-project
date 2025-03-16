@@ -131,7 +131,18 @@ services:
     depends_on:
       ticket-db:
         condition: service_healthy
-
+  notification-service:
+    build:
+      context: ./services/notification-service
+    container_name: notification-service
+    ports:
+      - "5001:5001"
+    environment:
+      AWS_REGION: ${AWS_SES_REGION}
+      AWS_ACCESS_KEY: ${AWS_SES_ACCESS_KEY}
+      AWS_SECRET_KEY: ${AWS_SES_SECRET_KEY}
+    networks:
+      - default
   # example-spring-service:
   #   build:
   #     context: ./services/exampleSpringService
