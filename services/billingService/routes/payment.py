@@ -18,7 +18,7 @@ def create_payment():
             return jsonify({'error': 'Amount is required'}), 400
 
         # Create a PaymentIntent with dynamic pricing
-        payment_intent = stripe.paymentIntents.create(
+        payment_intent = stripe.PaymentIntent.create(
             amount=amount,
             currency=currency,
             automatic_payment_methods={'enabled': True}
