@@ -10,6 +10,8 @@ from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify
+from flasgger import Swagger 
+
 
 
 # Load environment variables
@@ -156,9 +158,22 @@ def run_rabbitmq_consumer():
 
 # Flask API
 app = Flask(__name__)
+swagger = Swagger(app)
 
 @app.route('/logs/getall', methods=['GET'])
 def get_logs():
+    """
+    Get All Logs
+    ---
+    tags:
+      - Logging
+    responses:
+      200:
+        description: Successfully retrieved logs
+      404:
+        description: No logs found
+    """
+
     try:
         conn = get_db_connection()
         cur = conn.cursor()
@@ -176,9 +191,30 @@ def get_logs():
     except psycopg2.Error as e:
         return jsonify({"error": str(e)}), 500
     
-# ✅ 2️⃣ Get Logs by Transaction ID and Level
+#Get Logs by Transaction ID and Level
 @app.route('/logs/by_transid_level/<transaction_id>/<level>', methods=['GET'])
 def get_logs_by_transaction_level(transaction_id, level):
+    """
+    Get Logs by Transaction ID and Level
+    ---
+    tags:
+      - Logging
+    parameters:
+      - name: transaction_id
+        in: path
+        type: string
+        required: true
+      - name: level
+        in: path
+        type: string
+        required: true
+        description: e.g. INFO, WARN, ERROR
+    responses:
+      200:
+        description: Logs returned
+      404:
+        description: No logs found
+    """
     conn = get_db_connection()
     cur = conn.cursor()
     try:
@@ -199,9 +235,33 @@ def get_logs_by_transaction_level(transaction_id, level):
         cur.close()
         conn.close()
 
-# ✅ 3️⃣ Get Logs by Date and Level
+# Get Logs by Date and Level
 @app.route('/logs/by_date_level/<date>/<level>', methods=['GET'])
 def get_logs_by_date_level(date, level):
+    """
+    Get Logs by Date and Level
+    ---
+    tags:
+      - Logging
+    parameters:
+      - name: date
+        in: path
+        type: string
+        required: true
+        description: YYYY-MM-DD
+      - name: level
+        in: path
+        type: string
+        required: true
+        description: e.g. INFO, ERROR, etc.
+    responses:
+      200:
+        description: Logs returned
+      400:
+        description: Invalid date format
+      404:
+        description: No logs found
+    """
     try:
         datetime.strptime(date, "%Y-%m-%d")  # Validate Date Format
         conn = get_db_connection()
@@ -225,9 +285,29 @@ def get_logs_by_date_level(date, level):
         cur.close()
         conn.close()
 
-# ✅ 4️⃣ Get Logs by Service and Level
+# Get Logs by Service and Level
 @app.route('/logs/by_service_level/<service>/<level>', methods=['GET'])
 def get_logs_by_service_level(service, level):
+    """
+    Get Logs by Service and Level
+    ---
+    tags:
+      - Logging
+    parameters:
+      - name: service
+        in: path
+        type: string
+        required: true
+      - name: level
+        in: path
+        type: string
+        required: true
+    responses:
+      200:
+        description: Logs returned
+      404:
+        description: No logs found
+    """
     conn = get_db_connection()
     cur = conn.cursor()
     try:
@@ -248,9 +328,37 @@ def get_logs_by_service_level(service, level):
         cur.close()
         conn.close()
 
-# ✅ 5️⃣ Get Logs by Date Range and Level
+# Get Logs by Date Range and Level
 @app.route('/logs/by_date_range_level/<start_date>/<end_date>/<level>', methods=['GET'])
 def get_logs_by_date_range_level(start_date, end_date, level):
+    """
+    Get Logs by Date Range and Level
+    ---
+    tags:
+      - Logging
+    parameters:
+      - name: start_date
+        in: path
+        type: string
+        required: true
+        description: YYYY-MM-DD
+      - name: end_date
+        in: path
+        type: string
+        required: true
+        description: YYYY-MM-DD
+      - name: level
+        in: path
+        type: string
+        required: true
+    responses:
+      200:
+        description: Logs returned
+      400:
+        description: Invalid date format
+      404:
+        description: No logs found
+    """
     try:
         datetime.strptime(start_date, "%Y-%m-%d")
         datetime.strptime(end_date, "%Y-%m-%d")
@@ -276,9 +384,41 @@ def get_logs_by_date_range_level(start_date, end_date, level):
         cur.close()
         conn.close()
 
-# ✅ 6️⃣ Get Logs by Service, Level, and Date Range
+# Get Logs by Service, Level, and Date Range
 @app.route('/logs/by_service_level_daterange/<service>/<level>/<start_date>/<end_date>', methods=['GET'])
 def get_logs_by_service_level_daterange(service, level, start_date, end_date):
+    """
+    Get Logs by Service, Level, and Date Range
+    ---
+    tags:
+      - Logging
+    parameters:
+      - name: service
+        in: path
+        type: string
+        required: true
+      - name: level
+        in: path
+        type: string
+        required: true
+      - name: start_date
+        in: path
+        type: string
+        required: true
+        description: YYYY-MM-DD
+      - name: end_date
+        in: path
+        type: string
+        required: true
+        description: YYYY-MM-DD
+    responses:
+      200:
+        description: Logs returned
+      400:
+        description: Invalid date format
+      404:
+        description: No logs found
+    """
     try:
         datetime.strptime(start_date, "%Y-%m-%d")
         datetime.strptime(end_date, "%Y-%m-%d")

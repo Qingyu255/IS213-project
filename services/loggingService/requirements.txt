@@ -2,3 +2,4 @@ python-dotenv
 Flask
 psycopg2-binary
 pika
+flasgger
