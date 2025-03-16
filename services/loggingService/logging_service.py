@@ -157,6 +157,8 @@ def run_rabbitmq_consumer():
             time.sleep(5)
 
 # Flask API
+
+
 app = Flask(__name__)
 swagger = Swagger(app)
 
