@@ -1,0 +1,44 @@
+-- create_database.sql
+
+-- Step 1: Create the billing_db database (run this from your default database)
+CREATE DATABASE billing_db;
+
+-- Step 2: Connect to the newly created database.
+\c billing_db;
+
+-- Step 3: Enable the pgcrypto extension for generating UUIDs.
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+-- Step 4: Create the Payment table.
+CREATE TABLE Payment (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    amount INTEGER NOT NULL,           -- Amount in the smallest currency unit (e.g., cents)
+    currency VARCHAR(3) NOT NULL,        -- ISO currency code, e.g., 'usd'
+    status VARCHAR(20) NOT NULL,         -- e.g., 'pending', 'completed'
+    stripeId VARCHAR(255),               -- Stripe PaymentIntent ID
+    createdAt TIMESTAMPTZ DEFAULT NOW(),
+    updatedAt TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Step 5: Create the Refund table.
+CREATE TABLE Refund (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    paymentId UUID NOT NULL,
+    status VARCHAR(20) NOT NULL,         -- e.g., 'initiated', 'completed'
+    stripeId VARCHAR(255),               -- Stripe Refund ID
+    createdAt TIMESTAMPTZ DEFAULT NOW(),
+    updatedAt TIMESTAMPTZ DEFAULT NOW(),
+    CONSTRAINT fk_payment FOREIGN KEY(paymentId) REFERENCES Payment(id)
+);
+
+-- Step 6: Create the Invoice table.
+CREATE TABLE Invoice (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    userId UUID,                         -- Reference to a User (if you have a user management system)
+    amount INTEGER NOT NULL,             -- Total invoice amount in the smallest currency unit
+    currency VARCHAR(3) NOT NULL,
+    status VARCHAR(20) NOT NULL,         -- e.g., 'draft', 'sent', 'paid'
+    dueDate TIMESTAMPTZ,                 -- Due date for the invoice, if applicable
+    createdAt TIMESTAMPTZ DEFAULT NOW(),
+    updatedAt TIMESTAMPTZ DEFAULT NOW()
+);

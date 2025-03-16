@@ -1,5 +1,5 @@
 import stripe
-from config.config import Config
+from services.billingService.config import Config
 
 stripe.api_key = Config.STRIPE_SECRET_KEY
 

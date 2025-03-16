@@ -14,5 +14,5 @@ COPY . .
 # Expose port 5001 so the service is accessible
 EXPOSE 5001
 
-# Command to run the application
-CMD ["python", "app.py"]
+## Command to run the Flask app
+CMD ["flask", "run", "--host=0.0.0.0", "--port=5001"]
