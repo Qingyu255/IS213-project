@@ -1,0 +1,4 @@
+Flask==2.2.3
+boto3==1.26.84
+botocore==1.29.84
+Werkzeug==2.2.3
