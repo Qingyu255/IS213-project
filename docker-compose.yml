@@ -110,24 +110,24 @@ services:
         condition: service_healthy
 
     #logging service flyway migrations
-    flyway:
-      image: flyway/flyway:latest
-      container_name: flyway_migration
-      env_file:
-        - .env
-      command: >
-        -url=jdbc:postgresql://postgres:5432/${POSTGRES_DB}
-        -user=${POSTGRES_USER}
-        -password=${POSTGRES_PASSWORD}
-        -connectRetries=60
-        migrate
-      volumes:
-        - ./services/loggingService/database/migrations:/flyway/sql
-      depends_on:
-        postgres:
-          condition: service_healthy
-      networks:
-        - default
+  flyway:
+    image: flyway/flyway:latest
+    container_name: flyway_migration
+    env_file:
+      - .env
+    command: >
+      -url=jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      -user=${POSTGRES_USER}
+      -password=${POSTGRES_PASSWORD}
+      -connectRetries=60
+      migrate
+    volumes:
+      - ./services/loggingService/database/migrations:/flyway/sql
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - default
 
   user-management-service:
     build:
@@ -168,7 +168,7 @@ services:
         condition: service_healthy
   
   logging_service:
-    build: .
+    build: ./services/loggingService
     container_name: logging_service
     restart: always
     depends_on:
