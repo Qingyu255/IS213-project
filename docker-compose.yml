@@ -95,6 +95,24 @@ services:
       postgres:
         condition: service_healthy
 
+  billing-service:
+    build:
+      context: ./services/billingService
+      dockerfile: Dockerfile
+    container_name: billing-service
+    restart: always
+    ports:
+      - "5001:5001"
+    env_file:
+      - .env
+    environment:
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
+    depends_on:
+      - rabbitmq
+    networks:
+      - default
+
   ticket-db-migrations:
     image: flyway/flyway:11.3.4
     volumes:
@@ -166,7 +184,7 @@ services:
     depends_on:
       ticket-db:
         condition: service_healthy
-  
+
   logging_service:
     build: ./services/loggingService
     container_name: logging_service
@@ -188,8 +206,7 @@ services:
       AWS_COGNITO_USER_POOL_ID: ${AWS_COGNITO_USER_POOL_ID}
       AWS_COGNITO_APP_CLIENT_ID: ${AWS_COGNITO_APP_CLIENT_ID}
     deploy:
-      replicas: 1  
-
+      replicas: 1
 
   # example-spring-service:
   #   build:
