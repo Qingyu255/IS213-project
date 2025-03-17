@@ -17,11 +17,11 @@ from flasgger import Swagger
 # Load environment variables
 load_dotenv(dotenv_path="../../.env", override=True)
 
-POSTGRES_HOST=os.getenv("POSTGRES_HOST")
-POSTGRES_PORT=os.getenv("POSTGRES_PORT")
-POSTGRES_USER=os.getenv("POSTGRES_USER")
-POSTGRES_PASSWORD=os.getenv("POSTGRES_PASSWORD")
-POSTGRES_DB=os.getenv("POSTGRES_DB")
+POSTGRES_HOST=os.getenv("LOGGING_DB_HOST")
+POSTGRES_PORT=5432
+POSTGRES_USER=os.getenv("LOGGING_DB_USER")
+POSTGRES_PASSWORD=os.getenv("LOGGING_DB_PASSWORD")
+POSTGRES_DB=os.getenv("LOGGING_DB")
 
 RABBITMQ_HOST = os.getenv("RABBITMQ_HOST")
 RABBITMQ_QUEUE = os.getenv("RABBITMQ_QUEUE")

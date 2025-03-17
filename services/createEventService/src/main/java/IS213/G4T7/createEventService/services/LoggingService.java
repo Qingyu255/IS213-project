@@ -1,7 +1,7 @@
 package IS213.G4T7.createEventService.services;
 
-import org.springframework.stereotype.Service;
+import IS213.G4T7.createEventService.dto.LogMessage;
 
-@Service
-public class LoggingService {
+public interface LoggingService {
+    public void sendLog(LogMessage logMessage);
 }

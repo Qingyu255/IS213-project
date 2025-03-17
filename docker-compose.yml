@@ -56,7 +56,9 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - default
+      default:
+        aliases:
+          - rabbitmq
 
   # Ticket Management Database
   ticket-db:
@@ -80,6 +82,28 @@ services:
       retries: 10
     networks:
       - default
+
+  # Logging Service Database
+  logging-db:
+    image: postgres:16.2
+    container_name: logging-db
+    environment:
+      POSTGRES_DB: ${LOGGING_DB}
+      POSTGRES_USER: ${LOGGING_DB_USER}
+      POSTGRES_PASSWORD: ${LOGGING_DB_PASSWORD}
+    ports:
+      - "5435:5432"
+    volumes:
+      - logging-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        ["CMD-SHELL", "pg_isready -p 5432 -U ${LOGGING_DB_USER} -d ${LOGGING_DB}"]
+      interval: 1s
+      timeout: 10s
+      retries: 10
+    networks:
+      - default
+
 
   db-migrations:
     image: flyway/flyway:11.3.4
@@ -109,25 +133,21 @@ services:
       ticket-db:
         condition: service_healthy
 
-    #logging service flyway migrations
-  flyway:
-    image: flyway/flyway:latest
-    container_name: flyway_migration
-    env_file:
-      - .env
-    command: >
-      -url=jdbc:postgresql://postgres:5432/${POSTGRES_DB}
-      -user=${POSTGRES_USER}
-      -password=${POSTGRES_PASSWORD}
-      -connectRetries=60
-      migrate
+  #logging service flyway migrations
+  logging-db-migrations:
+    image: flyway/flyway:11.3.4
+    container_name: logging-db-migrations
     volumes:
       - ./services/loggingService/database/migrations:/flyway/sql
+    environment:
+      FLYWAY_URL: "jdbc:postgresql://logging-db:5432/${LOGGING_DB}"
+      FLYWAY_USER: ${LOGGING_DB_USER}
+      FLYWAY_PASSWORD: ${LOGGING_DB_PASSWORD}
+      FLYWAY_BASELINE_ON_MIGRATE: "true"
+    command: migrate
     depends_on:
-      postgres:
+      logging-db:
         condition: service_healthy
-    networks:
-      - default
 
   user-management-service:
     build:
@@ -181,25 +201,21 @@ services:
     ports:
       - "9000:9000"
     environment:
-      ConnectionStrings__PostgresDbConnectionString: "Host=postgres;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
       AWS_COGNITO_REGION: ${AWS_REGION}
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
       AWS_COGNITO_USER_POOL_ID: ${AWS_COGNITO_USER_POOL_ID}
       AWS_COGNITO_APP_CLIENT_ID: ${AWS_COGNITO_APP_CLIENT_ID}
-    deploy:
-      replicas: 1  
 
-
-  create-event-service:
-    build:
-      context: ./services/createEventService/
-      dockerfile: Dockerfile
-    # container_name: client-management-service
-    ports:
-      - "8070:8070"
-    env_file:
-      - .env
+  # create-event-service:
+  #   build:
+  #     context: ./services/createEventService/
+  #     dockerfile: Dockerfile
+  #   # container_name: client-management-service
+  #   ports:
+  #     - "8070:8070"
+  #   env_file:
+  #     - .env
 
   # example-spring-service:
   #   build:
@@ -226,6 +242,7 @@ services:
 volumes:
   pgdata:
   ticket-db-data:
+  logging-db-data:
 
 networks:
   default:
