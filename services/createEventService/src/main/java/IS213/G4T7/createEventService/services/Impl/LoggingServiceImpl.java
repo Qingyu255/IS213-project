@@ -21,9 +21,13 @@ public class LoggingServiceImpl implements LoggingService {
         this.rabbitTemplate = rabbitTemplate;
     }
 
-    public void sendLog(LogMessage logMessage) throws AmqpException {
-        log.info("Attempting to send log message to RabbitMQ: {}", logMessage);
-        rabbitTemplate.convertAndSend(queueName, logMessage);
-        log.info("Sent log message to RabbitMQ: {}", logMessage);
+    public void sendLog(LogMessage logMessage){
+        try {
+            rabbitTemplate.convertAndSend(queueName, logMessage);
+            log.info("Sent log message to RabbitMQ: {}", logMessage);
+        } catch (AmqpException e) {
+            log.error("Failed to send log message to logging service via RabbitMQ: {}", logMessage);
+        }
+
     }
 }

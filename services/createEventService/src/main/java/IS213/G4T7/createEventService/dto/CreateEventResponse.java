@@ -1,10 +1,8 @@
-package IS213.G4T7.createEventService.models;
+package IS213.G4T7.createEventService.dto;
 
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Data;
 
-@Getter
-@Setter
+@Data
 public class CreateEventResponse {
     private String message;
     private String error;

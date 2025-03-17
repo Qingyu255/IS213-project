@@ -1,61 +1,96 @@
+"use client";
+import { useEffect, useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { ErrorMessageCallout } from "@/components/error-message-callout";
 import { EventList } from "./components/event-list";
 import { Pagination } from "@/components/pagination";
 import { Badge } from "@/components/ui/badge";
 import { BrowseByCategory } from "./components/browse-by-category";
 import { BrowseByLocation } from "./components/browse-by-location";
 import { Separator } from "@/components/ui/separator";
+import { BACKEND_ROUTES } from "@/constants/backend-routes";
+import { getBearerToken } from "@/utils/auth";
+import { EventDetails } from "@/types/event";
+import EventsLoading from "./components/EventsLoading";
 
-// type Event = {
-//   id: string;
-//   name: string;
-//   image: string;
-//   date: string;
-//   location: string;
-//   attendees: number;
-//   category: string;
-// };
-// but note that we alr have Events details type
+type EventsData = {
+  events: EventDetails[];
+};
 
-async function getEvents(page = 1, limit = 9) {
-  // Dummy data
-  const allEvents = Array.from({ length: 50 }, (_, i) => ({
-    id: `event-${i + 1}`,
-    name: `Event ${i + 1}`,
-    image: `/placeholder.svg?height=300&width=400&text=Event+${i + 1}`,
-    date: new Date(
-      Date.now() + Math.random() * 30 * 24 * 60 * 60 * 1000
-    ).toLocaleDateString(),
-    location: ["San Francisco", "New York", "London", "Tokyo", "Berlin"][
-      Math.floor(Math.random() * 5)
-    ],
-    attendees: Math.floor(Math.random() * 1000) + 50,
-    category: ["Technology", "Music", "Art", "Business", "Sports"][
-      Math.floor(Math.random() * 5)
-    ],
-  }));
+async function getEvents(page = 1, limit = 9): Promise<EventsData> {
+  const skip = (page - 1) * limit;
+  const res = await fetch(
+    `${BACKEND_ROUTES.eventsService}/api/v1/events/?skip=${skip}&limit=${limit}`,
+    {
+      headers: {
+        Accept: "application/json",
+        Authorization: await getBearerToken(),
+      },
+    }
+  );
 
-  // Simulate API delay
-  await new Promise((resolve) => setTimeout(resolve, 500));
+  if (!res.ok) {
+    throw new Error(`Failed to fetch events: ${res.statusText}`);
+  }
 
-  const start = (page - 1) * limit;
-  const end = start + limit;
-  const paginatedEvents = allEvents.slice(start, end);
-
-  return {
-    events: paginatedEvents,
-    total: allEvents.length,
-  };
+  const data = (await res.json()) as EventDetails[];
+  return { events: data };
 }
 
-export default async function EventsPage({
-  searchParams,
-}: {
-  searchParams: { [key: string]: string | string[] | undefined };
-}) {
-  const page =
-    typeof searchParams.page === "string" ? Number(searchParams.page) : 1;
+export default function EventsPage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  // If no page param is present, redirect to ?page=1
+  const pageParam = searchParams.get("page");
+  useEffect(() => {
+    if (!pageParam) {
+      router.push("?page=1");
+    }
+  }, [pageParam, router]);
+
+  // Use the page param from search params or default to 1
+  const [page, setPage] = useState(pageParam ? Number(pageParam) : 1);
   const limit = 9;
-  const { events, total } = await getEvents(page, limit);
+  const [eventsData, setEventsData] = useState<EventsData | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchEvents() {
+      try {
+        const data = await getEvents(page, limit);
+        setEventsData(data);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } catch (err: any) {
+        setError(err.message || "An unknown error occurred");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchEvents();
+  }, [page, limit]);
+
+  function handlePageChange(newPage: number) {
+    setPage(newPage);
+    router.push(`?page=${newPage}`);
+  }
+
+  if (isLoading) {
+    return <EventsLoading />;
+  }
+
+  if (error) {
+    return <ErrorMessageCallout errorMessage={error} />;
+  }
+
+  if (!eventsData) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p>No events found.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -78,8 +113,13 @@ export default async function EventsPage({
           <BrowseByLocation />
         </div>
         <Separator className="my-4" />
-        <EventList events={events} />
-        <Pagination total={total} limit={limit} />
+        <EventList events={eventsData.events} />
+        <Pagination
+          hasMore={!(eventsData.events.length < limit)}
+          limit={limit}
+          currentPage={page}
+          onPageChange={handlePageChange}
+        />
       </div>
     </div>
   );

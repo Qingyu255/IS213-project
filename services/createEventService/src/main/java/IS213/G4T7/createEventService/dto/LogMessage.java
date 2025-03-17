@@ -1,11 +1,9 @@
 package IS213.G4T7.createEventService.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Data;
 
-@Getter
-@Setter
+@Data
 public class LogMessage {
     @JsonProperty("service_name")
     private String serviceName;
@@ -14,8 +12,15 @@ public class LogMessage {
     @JsonProperty("transaction_id")
     private String transactionId;
 
-    public LogMessage(String serviceName, String level, String message, String transactionId) {
-        this.serviceName = serviceName;
+    public LogMessage(String level, String message) {
+        this.serviceName = "createEventService";
+        this.level = level;
+        this.message = message;
+        this.transactionId = "no-applicable-transaction-id";
+    }
+
+    public LogMessage(String level, String message, String transactionId) {
+        this.serviceName = "createEventService";
         this.level = level;
         this.message = message;
         this.transactionId = transactionId;
