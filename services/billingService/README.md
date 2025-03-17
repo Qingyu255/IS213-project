@@ -1,72 +1,94 @@
 # Billing Service
 
-This microservice handles payment processing for the event management system using Stripe as the payment gateway.
+This microservice handles payment processing for the event management system using Stripe as the payment gateway. It provides an implementation for handling payments, refunds, and webhooks.
 
 ## Features
 
-- Process payments for event tickets
-- Handle refunds for canceled events or ticket returns
-- Process Stripe webhooks for payment status updates
-- Separate test and production routes for development and production use
+- Secure payment processing using Stripe Payment Intents API
+- Support for 3D Secure authentication
+- Comprehensive refund handling with partial refund support
+- Webhook processing with signature verification
+- Idempotent payment operations
+- Detailed payment status tracking and verification
+- Integration with event service for payment notifications
 
 ## API Endpoints
 
-### Production Endpoints
+### Payment Endpoints
 
-#### Payment Endpoints
+- `POST /api/payment/process` - Process a payment using Payment Intents
 
-- `POST /api/payment/process` - Process a real payment using Payment Intents
-- `POST /api/payment/confirm` - Confirm a payment that requires additional authentication
-- `POST /api/payment/invoice` - Create an invoice for a customer
-- `GET /api/payment/:id` - Get payment details
+  ```json
+  {
+    "amount": 1000, // Amount in cents
+    "currency": "sgd", // Currency code
+    "payment_method": "pm_...", // Stripe Payment Method ID
+    "description": "Event ticket payment",
+    "metadata": {
+      // Optional metadata
+      "event_id": "123",
+      "user_id": "456"
+    },
+    "customer_email": "customer@example.com" // Optional for receipt
+  }
+  ```
+
+- `GET /api/payment/:payment_intent_id` - Get payment details
 - `POST /api/payment/verify` - Verify payment status
+  ```json
+  {
+    "payment_intent_id": "pi_..."
+  }
+  ```
 
-#### Refund Endpoints
+### Refund Endpoints
 
-- `POST /api/refund/create` - Process a refund for a charge
-- `POST /api/refund/payment_intent` - Process a refund for a payment intent
-- `GET /api/refund/:id` - Get refund details
+- `POST /api/refund/process` - Process a refund
 
-#### Webhook Endpoints
+  ```json
+  {
+    "payment_intent_id": "pi_...",
+    "amount": 1000, // Optional: Amount in cents for partial refund
+    "reason": "requested_by_customer", // Optional: Reason for refund
+    "metadata": {} // Optional: Additional metadata
+  }
+  ```
 
-- `POST /api/webhook` - Handle Stripe webhook events with signature verification
+- `GET /api/refund/:refund_id` - Get refund details
+- `POST /api/refund/verify` - Verify refund status
+  ```json
+  {
+    "refund_id": "re_..."
+  }
+  ```
 
-### Test Endpoints
+### Webhook Endpoint
 
-These endpoints are for development and testing purposes only:
-
-#### Test Payment Endpoints
-
-- `POST /api/test/payment/create` - Create a test payment using Stripe test tokens
-- `GET /api/test/payment/:id` - Get test payment details
-- `POST /api/test/payment/verify` - Verify test payment status
-
-#### Test Refund Endpoints
-
-- `POST /api/test/refund/create` - Process a test refund
-- `GET /api/test/refund/:id` - Get test refund details
-
-#### Test Webhook Endpoints
-
-- `POST /api/test/webhook` - Process test webhook events without signature verification
-- `POST /api/test/webhook/simulate` - Simulate webhook events for testing
+- `POST /api/webhook` - Handle Stripe webhook events
+  - Requires Stripe-Signature header for verification
+  - Handles various event types:
+    - Payment intent events (succeeded, failed, canceled)
+    - Charge events (succeeded, failed, refunded)
+    - Dispute events
+    - Checkout session events
 
 ## Setup
 
 1. Clone the repository
-2. Create a `.env` file with the following variables:
+2. Create a `.env` file with the following required variables:
+
    ```
    STRIPE_SECRET_KEY=your_stripe_secret_key
    STRIPE_WEBHOOK_SECRET=your_stripe_webhook_secret
-   SECRET_KEY=your_flask_secret_key
-   FLASK_DEBUG=True
    EVENT_SERVICE_URL=http://event-service:5000
-   USER_SERVICE_URL=http://user-service:5000
    ```
+
 3. Install dependencies:
+
    ```
    pip install -r requirements.txt
    ```
+
 4. Run the service:
    ```
    python app.py
@@ -76,88 +98,61 @@ These endpoints are for development and testing purposes only:
 
 Build the Docker image:
 
-```
+```bash
 docker build -t billing-service .
 ```
 
 Run the container:
 
+```bash
+docker run -p 5001:5001 \
+  -e STRIPE_SECRET_KEY=your_key \
+  -e STRIPE_WEBHOOK_SECRET=your_webhook_secret \
+  -e EVENT_SERVICE_URL=http://event-service:5000 \
+  billing-service
 ```
-docker run -p 5001:5001 -e STRIPE_SECRET_KEY=your_key billing-service
-```
 
-## Testing with Postman
+## Production Considerations
 
-### Testing Test Routes
+1. **API Keys**: Ensure you're using production Stripe API keys in production environment
 
-1. **Create a Test Payment**:
+2. **Webhook Security**:
 
-   - **Method**: POST
-   - **URL**: http://localhost:5001/api/test/payment/create
-   - **Headers**: Content-Type: application/json
-   - **Body**:
-     ```json
-     {
-       "amount": 1000,
-       "currency": "usd",
-       "source": "tok_visa",
-       "description": "Test payment"
-     }
-     ```
+   - Configure webhook endpoint in Stripe dashboard
+   - Use correct webhook signing secret
+   - Ensure proper SSL/TLS configuration
 
-2. **Verify a Test Payment**:
+3. **Error Handling**:
 
-   - **Method**: POST
-   - **URL**: http://localhost:5001/api/test/payment/verify
-   - **Headers**: Content-Type: application/json
-   - **Body**:
-     ```json
-     {
-       "payment_id": "ch_xxxxxxxxxxxxxxxx"
-     }
-     ```
+   - All endpoints include comprehensive error handling
+   - Proper logging for debugging and monitoring
+   - Idempotency support for safe retries
 
-3. **Process a Test Refund**:
+4. **Integration**:
+   - Properly configure EVENT_SERVICE_URL for inter-service communication
+   - Ensure proper network configuration for service communication
 
-   - **Method**: POST
-   - **URL**: http://localhost:5001/api/test/refund/create
-   - **Headers**: Content-Type: application/json
-   - **Body**:
-     ```json
-     {
-       "charge_id": "ch_xxxxxxxxxxxxxxxx",
-       "reason": "requested_by_customer"
-     }
-     ```
+## Health Check
 
-4. **Simulate a Test Webhook Event**:
-   - **Method**: POST
-   - **URL**: http://localhost:5001/api/test/webhook/simulate
-   - **Headers**: Content-Type: application/json
-   - **Body**:
-     ```json
-     {
-       "event_type": "payment_intent.succeeded",
-       "object_id": "pi_test123",
-       "amount": 1000,
-       "currency": "usd"
-     }
-     ```
-
-### Testing Production Routes
-
-For testing production routes, you'll need to:
-
-1. Set up a Stripe account and get API keys
-2. Create payment methods using Stripe.js in your frontend
-3. Use the payment method IDs in your API requests
-
-See the [Stripe documentation](https://stripe.com/docs/payments/accept-a-payment) for more details.
-
-## Unit Tests
-
-Run tests with pytest:
+The service provides a health check endpoint:
 
 ```
-pytest
+GET /health
 ```
+
+Response:
+
+```json
+{
+  "status": "healthy",
+  "service": "billing-service"
+}
+```
+
+## API Documentation
+
+For detailed API documentation and integration guide, refer to the Stripe API documentation:
+
+- [Payment Intents](https://stripe.com/docs/api/payment_intents)
+- [Refunds](https://stripe.com/docs/api/refunds)
+- [Webhooks](https://stripe.com/docs/webhooks)

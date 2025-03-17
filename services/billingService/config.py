@@ -5,10 +5,16 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class Config:
+    """Configuration settings for the Billing Service"""
+    # Stripe Configuration
     STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")
     STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
-    SECRET_KEY = os.getenv("SECRET_KEY", "dev_secret_key")  # For Flask sessions, etc.
-    DEBUG = os.getenv("FLASK_DEBUG", "True").lower() == "true"
-    # Add service URLs for communication with other microservices
+    
+    # Service URLs for microservice communication
     EVENT_SERVICE_URL = os.getenv("EVENT_SERVICE_URL", "http://event-service:5000")
-    USER_SERVICE_URL = os.getenv("USER_SERVICE_URL", "http://user-service:5000")
+
+    # Validate required configuration
+    if not STRIPE_SECRET_KEY:
+        raise ValueError("STRIPE_SECRET_KEY must be set")
+    if not STRIPE_WEBHOOK_SECRET:
+        raise ValueError("STRIPE_WEBHOOK_SECRET must be set")
