@@ -16,15 +16,25 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion"
+import { Spinner } from "@/components/ui/spinner"
+import { useState } from "react"
+import { UserEventTicketsResponse } from "@/lib/api/tickets"
+
+interface Booking {
+  id: string
+  status: BookingStatus
+  tickets: Array<{ ticket_id: string; booking_id: string; status: string }>
+  created_at: Date
+  onAction?: (action: "cancel" | "refund") => Promise<void>
+}
 
 interface Event {
   id: string
   eventId: string
   title: string
   date: Date
-  status: BookingStatus
-  tickets: Array<{ ticket_id: string; booking_id: string }>
-  onAction?: (action: "confirm" | "cancel" | "refund") => void
+  bookings: Booking[]
+  ticketDetails: UserEventTicketsResponse
 }
 
 interface EventTimelineProps {
@@ -33,6 +43,10 @@ interface EventTimelineProps {
 }
 
 export function EventTimeline({ events, type }: EventTimelineProps) {
+  const [processingBookingId, setProcessingBookingId] = useState<string | null>(
+    null
+  )
+
   // Group events by month
   const groupedEvents = events.reduce(
     (groups: { [key: string]: Event[] }, event) => {
@@ -55,6 +69,35 @@ export function EventTimeline({ events, type }: EventTimelineProps) {
   Object.values(groupedEvents).forEach((monthEvents) => {
     monthEvents.sort((a, b) => b.date.getTime() - a.date.getTime())
   })
+
+  const getStatusBadgeVariant = (
+    status: BookingStatus
+  ): "default" | "destructive" | "secondary" | "outline" => {
+    switch (status) {
+      case BookingStatus.PENDING:
+        return "secondary"
+      case BookingStatus.CONFIRMED:
+        return "default"
+      case BookingStatus.CANCELED:
+        return "destructive"
+      case BookingStatus.REFUNDED:
+        return "secondary"
+      default:
+        return "default"
+    }
+  }
+
+  const handleAction = async (
+    booking: Booking,
+    action: "cancel" | "refund"
+  ) => {
+    setProcessingBookingId(booking.id)
+    try {
+      await booking.onAction?.(action)
+    } finally {
+      setProcessingBookingId(null)
+    }
+  }
 
   if (events.length === 0) {
     return (
@@ -83,40 +126,109 @@ export function EventTimeline({ events, type }: EventTimelineProps) {
                         {event.date.toLocaleDateString()}
                       </div>
                     </div>
-                    <Badge
-                      variant={
-                        event.status === "confirmed" ? "default" : "secondary"
-                      }
-                      className="capitalize"
-                    >
-                      {event.status}
-                    </Badge>
                   </div>
 
-                  <Accordion type="single" collapsible className="w-full">
-                    <AccordionItem value="tickets">
+                  <Accordion type="multiple" className="w-full">
+                    <AccordionItem value="bookings">
                       <AccordionTrigger>
                         <div className="flex items-center">
                           <Ticket className="mr-2 h-4 w-4" />
-                          {event.tickets.length} ticket
-                          {event.tickets.length !== 1 ? "s" : ""}
+                          {event.bookings.length} booking
+                          {event.bookings.length !== 1 ? "s" : ""}
                         </div>
                       </AccordionTrigger>
                       <AccordionContent>
-                        <div className="space-y-2">
-                          {event.tickets.map((ticket) => (
+                        <div className="space-y-4">
+                          {event.bookings.map((booking) => (
                             <div
-                              key={ticket.ticket_id}
-                              className="p-2 rounded-lg border flex justify-between items-center"
+                              key={booking.id}
+                              className="p-3 rounded-lg border"
                             >
-                              <span className="text-sm">
-                                Ticket #{ticket.ticket_id.slice(-8)}
-                              </span>
-                              <Button variant="outline" size="sm" asChild>
-                                <Link href={`/tickets/${ticket.ticket_id}`}>
-                                  View Ticket
-                                </Link>
-                              </Button>
+                              <div className="flex justify-between items-center mb-3">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-medium">
+                                    Booking #{booking.id.slice(-8)}
+                                  </span>
+                                  <Badge
+                                    variant={getStatusBadgeVariant(
+                                      booking.status
+                                    )}
+                                  >
+                                    {booking.status.toLowerCase()}
+                                  </Badge>
+                                </div>
+                                {booking.onAction && (
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        disabled={
+                                          processingBookingId === booking.id
+                                        }
+                                      >
+                                        {processingBookingId === booking.id ? (
+                                          <Spinner className="mr-2 h-4 w-4" />
+                                        ) : null}
+                                        Actions{" "}
+                                        <ChevronDown className="ml-2 h-4 w-4" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                      {booking.status ===
+                                        BookingStatus.PENDING && (
+                                        <DropdownMenuItem
+                                          onClick={() =>
+                                            handleAction(booking, "cancel")
+                                          }
+                                        >
+                                          Cancel Booking
+                                        </DropdownMenuItem>
+                                      )}
+                                      {booking.status ===
+                                        BookingStatus.CONFIRMED && (
+                                        <DropdownMenuItem
+                                          onClick={() =>
+                                            handleAction(booking, "refund")
+                                          }
+                                        >
+                                          Request Refund
+                                        </DropdownMenuItem>
+                                      )}
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                )}
+                              </div>
+                              <div className="space-y-2">
+                                {booking.tickets.map((ticket) => (
+                                  <div
+                                    key={ticket.ticket_id}
+                                    className="p-2 rounded-lg border flex justify-between items-center"
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-sm">
+                                        Ticket #{ticket.ticket_id.slice(-8)}
+                                      </span>
+                                      <Badge
+                                        variant={
+                                          ticket.status === "VALID"
+                                            ? "default"
+                                            : "destructive"
+                                        }
+                                      >
+                                        {ticket.status}
+                                      </Badge>
+                                    </div>
+                                    <Button variant="outline" size="sm" asChild>
+                                      <Link
+                                        href={`/tickets/${ticket.ticket_id}`}
+                                      >
+                                        View Ticket
+                                      </Link>
+                                    </Button>
+                                  </div>
+                                ))}
+                              </div>
                             </div>
                           ))}
                         </div>
@@ -124,42 +236,10 @@ export function EventTimeline({ events, type }: EventTimelineProps) {
                     </AccordionItem>
                   </Accordion>
 
-                  <div className="flex justify-end gap-2">
+                  <div className="flex justify-end">
                     <Button variant="outline" asChild>
                       <Link href={`/events/${event.eventId}`}>View Event</Link>
                     </Button>
-                    {event.onAction && (
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="outline">
-                            Actions <ChevronDown className="ml-2 h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          {event.status === "pending" && (
-                            <>
-                              <DropdownMenuItem
-                                onClick={() => event.onAction?.("confirm")}
-                              >
-                                Confirm Booking
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => event.onAction?.("cancel")}
-                              >
-                                Cancel Booking
-                              </DropdownMenuItem>
-                            </>
-                          )}
-                          {event.status === "confirmed" && (
-                            <DropdownMenuItem
-                              onClick={() => event.onAction?.("refund")}
-                            >
-                              Request Refund
-                            </DropdownMenuItem>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    )}
                   </div>
                 </div>
               </Card>
