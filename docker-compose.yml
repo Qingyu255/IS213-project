@@ -217,6 +217,25 @@ services:
   #   env_file:
   #     - .env
 
+  events-service:
+    build:
+      context: ./services/eventsService
+      dockerfile: Dockerfile
+    container_name: events-service
+    ports:
+      - "8001:8001"
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      AWS_COGNITO_REGION: ${AWS_REGION}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_COGNITO_USER_POOL_ID: ${AWS_COGNITO_USER_POOL_ID}
+      AWS_COGNITO_APP_CLIENT_ID: ${AWS_COGNITO_APP_CLIENT_ID}
+    depends_on:
+      postgres:
+        condition: service_healthy
   # example-spring-service:
   #   build:
   #     context: ./services/exampleSpringService
