@@ -10,6 +10,11 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     FLASK_APP=app.py \
     FLASK_ENV=production
 
+# Required environment variables (will be overridden at runtime)
+ENV STRIPE_SECRET_KEY="" \
+    STRIPE_WEBHOOK_SECRET="" \
+    EVENT_SERVICE_URL="http://event-service:5000"
+
 # Copy the dependencies file and install dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
@@ -18,7 +23,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Create non-root user for security
-RUN adduser --disabled-password --gecos "" appuser
+RUN adduser --disabled-password --gecos "" appuser && \
+    chown -R appuser:appuser /app
 USER appuser
 
 # Expose port 5001 so the service is accessible
