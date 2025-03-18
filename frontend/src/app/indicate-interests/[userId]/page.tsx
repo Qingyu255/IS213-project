@@ -127,7 +127,7 @@ export default function IndicateInterestsPage() {
                   }`}
                 >
                   <Icon className="w-8 h-8 mb-2" />
-                  <span className="text-center">{interest}</span>
+                  <span className="text-center">{interest.substring(0, 1).toUpperCase() + interest.substring(1)}</span>
                 </div>
               )
             })}

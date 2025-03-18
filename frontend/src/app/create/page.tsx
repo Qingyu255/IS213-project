@@ -25,6 +25,7 @@ import { getBearerToken } from "@/utils/auth"
 import VenueAutocomplete from "@/components/googlemaps/VenueAutocomplete"
 import useAuthUser from "@/hooks/use-auth-user"
 import { ErrorMessageCallout } from "@/components/error-message-callout"
+import { getErrorStringFromResponse } from "@/utils/common"
 
 export default function CreateEventPage() {
   const router = useRouter()
@@ -42,10 +43,10 @@ export default function CreateEventPage() {
   const [endDate, setEndDate] = useState("")
   const [endTime, setEndTime] = useState("")
 
-  const [category, setCategory] = useState<InterestCategory>(InterestCategory.Technology)
-  const [eventType, setEventType] = useState<string>("public")
+  const [categories, setCategories] = useState<InterestCategory[]>([]);
+  // const [eventType, setEventType] = useState<string>("public")
   const [amount, setAmount] = useState(0)
-  const [currency, setCurrency] = useState("USD")
+  const [currency, setCurrency] = useState("SGD")
 
   const [capacity, setCapacity] = useState<number | null>(null)
   const [isUnlimited, setIsUnlimited] = useState(true)
@@ -86,7 +87,7 @@ export default function CreateEventPage() {
   }, [router])
 
   // Get authenticated user details
-  const { user } = useAuthUser();
+  const { user, getUserId } = useAuthUser();
 
   // -----------------------
   // Handle image file change
@@ -156,8 +157,8 @@ export default function CreateEventPage() {
         id: "", // Backend will auto-generate the ID
         title,
         description,
-        startDateTime,
-        endDateTime,
+        startDateTime: startDateTime,
+        endDateTime: endDateTime,
         venue: {
           address: address,
           name: venueName,
@@ -167,27 +168,17 @@ export default function CreateEventPage() {
           additionalDetails: additionalDetails
         },
         imageUrl: images[mainImageIndex], // Use the main image (Note that additional images wont be posted to backend for now) and this is not working (explore s3 if there is time)
-        category,
-        price: {
-          amount,
-          currency,
-        },
-        schedule: [],
+        categories,
+        price: amount,
         organizer: {
-          id: "fetch-from-useAuthUser?", // e.g. the user's Cognito sub / user name; idt sub is the same as uuid in db
+          id: getUserId(), // e.g. the user's Cognito sub / user name; idt sub is the same as uuid in db
           username: (user && user.username) ? user.username : "",
         },
-        attendees: [],
-        totalAttendees: 0,
         capacity: isUnlimited ? undefined : (capacity ?? undefined),
-        eventType: eventType,
-        invitedEmails: [],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
       }
 
       // Send the payload to your backend
-      const response = await fetch(`${BACKEND_ROUTES.createEventServiceUrl}/api/events/create`, {
+      const response = await fetch(`${BACKEND_ROUTES.createEventServiceUrl}/api/v1/create-event`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -197,13 +188,11 @@ export default function CreateEventPage() {
       })
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => null)
-        throw new Error(errorData?.message || `Failed to create event: ${response.status}`)
+        throw new Error(await getErrorStringFromResponse(response));
       }
 
       toast("Event created successfully!")
-      // Navigate to another page:
-      // router.push(Route.BrowseEvents);
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       console.error("Error creating event:", err)
@@ -328,11 +317,11 @@ export default function CreateEventPage() {
                       mode="single"
                       selected={startDate ? new Date(startDate) : undefined}
                       onSelect={(date) => date && setStartDate(date.toISOString().split("T")[0])}
+                      disabled={{ before: new Date() }} // disables all dates before today
                       initialFocus
                     />
                   </PopoverContent>
                 </Popover>
-
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button variant="outline" className="w-full justify-start text-left font-normal">
@@ -402,6 +391,7 @@ export default function CreateEventPage() {
                       mode="single"
                       selected={endDate ? new Date(endDate) : undefined}
                       onSelect={(date) => date && setEndDate(date.toISOString().split("T")[0])}
+                      disabled={{ before: new Date() }}
                       initialFocus
                     />
                   </PopoverContent>
@@ -489,28 +479,43 @@ export default function CreateEventPage() {
               </PopoverContent>
             </Popover>
 
-            {/* Event Category */}
+           {/* Event Categories */}
             <div className="space-y-2">
-              <Label className="font-bold">Event Category:</Label>
-              <Select
-                onValueChange={(val) => setCategory(val as InterestCategory)}
-                defaultValue={InterestCategory.Technology}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select a category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.values(InterestCategory).map((cat) => (
-                    <SelectItem key={cat} value={cat}>
-                      {cat}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label className="font-bold">Event Categories:</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full text-left">
+                    {categories.length > 0 ? categories.join(", ") : "Select categories"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 p-4">
+                  <div className="grid gap-2">
+                    {Object.values(InterestCategory).map((cat) => (
+                      <div key={cat} className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id={`cat-${cat}`}
+                          value={cat}
+                          checked={categories.includes(cat)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setCategories((prev) => [...prev, cat]);
+                            } else {
+                              setCategories((prev) => prev.filter((c) => c !== cat));
+                            }
+                          }}
+                          className="w-4 h-4"
+                        />
+                        <Label htmlFor={`cat-${cat}`}>{cat}</Label>
+                      </div>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
             </div>
 
             {/* Visibility */}
-            <div className="space-y-2">
+            {/* <div className="space-y-2">
               <Label className="font-bold">Event Type:</Label>
               <Select onValueChange={(val) => setEventType(val)} defaultValue={eventType}>
                 <SelectTrigger>
@@ -521,7 +526,7 @@ export default function CreateEventPage() {
                   <SelectItem value="private">Private</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
+            </div> */}
             <div className="space-y-2">
               <Label className="font-bold">Venue:</Label>
               <VenueAutocomplete
@@ -570,9 +575,8 @@ export default function CreateEventPage() {
                                 <SelectValue placeholder="Currency" />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="USD">USD</SelectItem>
-                                <SelectItem value="EUR">SGD</SelectItem>
-                                <SelectItem value="GBP">GBP</SelectItem>
+                                {/* If need other currencies, backend will need refactoring as ems does not take in currency, assume all prices in sgd*/}
+                                <SelectItem value="SGD">SGD</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>

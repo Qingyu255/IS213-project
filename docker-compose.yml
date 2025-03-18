@@ -19,42 +19,28 @@ services:
     networks:
       - default
 
-  postgres:
+  users-db:
+    container_name: users-db
     image: postgres:16.2
     environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${USERS_DB}
+      POSTGRES_USER: ${USERS_DB_USER}
+      POSTGRES_PASSWORD: ${USERS_DB_PASSWORD}
     env_file:
       - .env
     ports:
       - "5433:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - users-db-data:/var/lib/postgresql/data
     healthcheck:
       test:
         [
           "CMD-SHELL",
-          "pg_isready -p 5432 -U ${POSTGRES_USER} -d ${POSTGRES_DB}",
+          "pg_isready -p 5432 -U ${USERS_DB_USER} -d ${USERS_DB}",
         ]
       interval: 1s
       timeout: 10s
       retries: 10
-    networks:
-      - default
-
-  rabbitmq:
-    image: rabbitmq:3-management
-    container_name: logging_rabbitmq
-    restart: always
-    ports:
-      - "5672:5672"
-      - "15672:15672"
-    healthcheck:
-      test: ["CMD", "rabbitmqctl", "status"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
     networks:
       - default
 
@@ -81,18 +67,60 @@ services:
     networks:
       - default
 
-  db-migrations:
+  # Logging Service Database
+  logging-db:
+    image: postgres:16.2
+    container_name: logging-db
+    environment:
+      POSTGRES_DB: ${LOGGING_DB}
+      POSTGRES_USER: ${LOGGING_DB_USER}
+      POSTGRES_PASSWORD: ${LOGGING_DB_PASSWORD}
+    ports:
+      - "5435:5432"
+    volumes:
+      - logging-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        ["CMD-SHELL", "pg_isready -p 5432 -U ${LOGGING_DB_USER} -d ${LOGGING_DB}"]
+      interval: 1s
+      timeout: 10s
+      retries: 10
+    networks:
+      - default
+
+  # Events Service Database
+  events-db:
+    image: postgres:16.2
+    container_name: events-db
+    environment:
+      POSTGRES_DB: ${EVENTS_DB}
+      POSTGRES_USER: ${EVENTS_DB_USER}
+      POSTGRES_PASSWORD: ${EVENTS_DB_PASSWORD}
+    ports:
+      - "5436:5432"
+    volumes:
+      - events-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        ["CMD-SHELL", "pg_isready -p 5432 -U ${EVENTS_DB_USER} -d ${EVENTS_DB}"]
+      interval: 1s
+      timeout: 10s
+      retries: 10
+    networks:
+      - default
+
+  users-db-migrations:
     image: flyway/flyway:11.3.4
     volumes:
-      - ./database/migrations:/flyway/sql
+      - ./services/userManagementService/database/migrations:/flyway/sql
     environment:
-      FLYWAY_URL: "jdbc:postgresql://postgres:5432/${POSTGRES_DB}"
-      FLYWAY_USER: ${POSTGRES_USER}
-      FLYWAY_PASSWORD: ${POSTGRES_PASSWORD}
+      FLYWAY_URL: "jdbc:postgresql://users-db:5432/${USERS_DB}"
+      FLYWAY_USER: ${USERS_DB_USER}
+      FLYWAY_PASSWORD: ${USERS_DB_PASSWORD}
       FLYWAY_BASELINE_ON_MIGRATE: "true"
     command: migrate
     depends_on:
-      postgres:
+      users-db:
         condition: service_healthy
 
   ticket-db-migrations:
@@ -109,27 +137,56 @@ services:
       ticket-db:
         condition: service_healthy
 
-    #logging service flyway migrations
-  flyway:
-    image: flyway/flyway:latest
-    container_name: flyway_migration
-    env_file:
-      - .env
-    command: >
-      -url=jdbc:postgresql://postgres:5432/${POSTGRES_DB}
-      -user=${POSTGRES_USER}
-      -password=${POSTGRES_PASSWORD}
-      -connectRetries=60
-      migrate
+  #logging service flyway migrations
+  logging-db-migrations:
+    image: flyway/flyway:11.3.4
+    container_name: logging-db-migrations
     volumes:
       - ./services/loggingService/database/migrations:/flyway/sql
+    environment:
+      FLYWAY_URL: "jdbc:postgresql://logging-db:5432/${LOGGING_DB}"
+      FLYWAY_USER: ${LOGGING_DB_USER}
+      FLYWAY_PASSWORD: ${LOGGING_DB_PASSWORD}
+      FLYWAY_BASELINE_ON_MIGRATE: "true"
+    command: migrate
     depends_on:
-      postgres:
+      logging-db:
         condition: service_healthy
+
+  events-db-migrations:
+    image: flyway/flyway:11.3.4
+    container_name: events-db-migrations
+    volumes:
+      - ./services/eventsService/database/migrations:/flyway/sql
+    environment:
+      FLYWAY_URL: "jdbc:postgresql://events-db:5432/${EVENTS_DB}"
+      FLYWAY_USER: ${EVENTS_DB_USER}
+      FLYWAY_PASSWORD: ${EVENTS_DB_PASSWORD}
+      FLYWAY_BASELINE_ON_MIGRATE: "true"
+    command: migrate
+    depends_on:
+      events-db:
+        condition: service_healthy
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: logging_rabbitmq
+    restart: always
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
-      - default
+      default:
+        aliases:
+          - rabbitmq
 
   user-management-service:
+    container_name: user-management-service
     build:
       context: ./services/userManagementService
       dockerfile: Dockerfile
@@ -138,7 +195,7 @@ services:
     ports:
       - "8080:8080"
     environment:
-      ConnectionStrings__PostgresDbConnectionString: "Host=postgres;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
+      ConnectionStrings__PostgresDbConnectionString: "Host=users-db;Database=${USERS_DB};Username=${USERS_DB_USER};Password=${USERS_DB_PASSWORD}"
       ASPNETCORE_ENVIRONMENT: "Development"
       AWS_COGNITO_REGION: ${AWS_REGION}
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
@@ -146,7 +203,7 @@ services:
       AWS_COGNITO_USER_POOL_ID: ${AWS_COGNITO_USER_POOL_ID}
       AWS_COGNITO_APP_CLIENT_ID: ${AWS_COGNITO_APP_CLIENT_ID}
     depends_on:
-      postgres:
+      users-db:
         condition: service_healthy
 
   ticket-management-service:
@@ -167,12 +224,12 @@ services:
       ticket-db:
         condition: service_healthy
   
-  logging_service:
+  logging-service:
     build: ./services/loggingService
-    container_name: logging_service
+    container_name: logging-service
     restart: always
     depends_on:
-      postgres:
+      logging-db:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
@@ -181,35 +238,45 @@ services:
     ports:
       - "9000:9000"
     environment:
-      ConnectionStrings__PostgresDbConnectionString: "Host=postgres;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
       AWS_COGNITO_REGION: ${AWS_REGION}
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
       AWS_COGNITO_USER_POOL_ID: ${AWS_COGNITO_USER_POOL_ID}
       AWS_COGNITO_APP_CLIENT_ID: ${AWS_COGNITO_APP_CLIENT_ID}
-    deploy:
-      replicas: 1  
-
 
   events-service:
+    container_name: events-service
     build:
       context: ./services/eventsService
       dockerfile: Dockerfile
-    container_name: events-service
     ports:
       - "8001:8001"
     env_file:
       - .env
     environment:
-      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      DATABASE_URL: postgresql+asyncpg://${EVENTS_DB_USER}:${EVENTS_DB_PASSWORD}@events-db:5432/${EVENTS_DB}
       AWS_COGNITO_REGION: ${AWS_REGION}
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
       AWS_COGNITO_USER_POOL_ID: ${AWS_COGNITO_USER_POOL_ID}
       AWS_COGNITO_APP_CLIENT_ID: ${AWS_COGNITO_APP_CLIENT_ID}
     depends_on:
-      postgres:
+      events-db:
         condition: service_healthy
+
+  create-event-service:
+    build:
+      context: ./services/createEventService
+      dockerfile: Dockerfile
+    container_name: create-event-service
+    ports:
+      - "8070:8070"
+    env_file:
+      - .env
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
   # example-spring-service:
   #   build:
   #     context: ./services/exampleSpringService
@@ -233,8 +300,10 @@ services:
   #     - default
 
 volumes:
-  pgdata:
+  users-db-data:
   ticket-db-data:
+  logging-db-data:
+  events-db-data:
 
 networks:
   default:
