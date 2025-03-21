@@ -1,12 +1,16 @@
-// app/checkout/page.jsx
-import Checkout from '@/components/page'
+"use client"
 
-export default function CheckoutPage() {
-  // You can pass dynamic values here if needed.
+import React from "react";
+import EmbeddedCheckout from "./component";
+
+export default function PaymentPage() {
   return (
-    <div>
-      <h1>Complete Your Payment</h1>
-      <Checkout amount={2000} currency="usd" />
+    <div style={{ padding: "2rem" }}>
+      <h1>Payment Page</h1>
+      <p>This page demonstrates the embedded checkout flow.</p>
+
+      {/* Pass dynamic values if needed */}
+      <EmbeddedCheckout amount={2000} currency="usd" />
     </div>
-  )
+  );
 }
