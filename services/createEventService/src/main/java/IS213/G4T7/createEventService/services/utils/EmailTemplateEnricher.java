@@ -1,0 +1,39 @@
+package IS213.G4T7.createEventService.services.utils;
+
+import IS213.G4T7.createEventService.dto.BasicUserData;
+import IS213.G4T7.createEventService.dto.EmailData;
+import org.springframework.beans.factory.annotation.Value;
+
+public class EmailTemplateEnricher {
+    @Value("${frontend.url}")
+    private static String frontendUrl;
+    /**
+     * Enriches an EmailData object with a fixed email template.
+     * @param basicUserData User data to use for personalizing the email.
+     * @param eventCategory The category of the event.
+     * @return A populated EmailData object.
+     */
+    public static EmailData enrichEmailData(BasicUserData basicUserData, String eventCategory, String eventId) {
+        EmailData emailData = new EmailData();
+
+        // Set recipient email from BasicUserData; adjust getEmail() if needed.
+        emailData.setTo(basicUserData.getEmail());
+        emailData.setFrom("test@mulan.com"); // TODO: clarify if there is a need to pass in From as notifications service should already be aware of the qualified sender; this should not be able to be mainpulated by the caller
+        emailData.setSubject("Upcoming Event in " + eventCategory);
+
+        // Create a fixed template with personalization
+        String body = String.format(
+                "Dear %s,\n\n" +
+                        "We noticed that you have an interest in %s events. " +
+                        "There may be an upcoming event that matches your interests. " +
+                        "Check it out here: \n" +
+                        "%s \n" +
+                        "Best regards,\n" +
+                        "Event Service Team",
+                basicUserData.getUsername(), eventCategory, frontendUrl + "/events/" + eventId
+        );
+        emailData.setBody(body);
+        emailData.setHtml(false);
+        return emailData;
+    }
+}

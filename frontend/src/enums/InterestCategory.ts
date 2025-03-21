@@ -1,10 +1,11 @@
 export enum InterestCategory {
-    Technology = "Technology",
-    Sports = "Sports",
-    Music = "Music",
-    Art = "Art",
-    Travel = "Travel",
-    Food = "Food",
-    Science = "Science",
-    Business = "Business",
+    Technology = "technology",
+    Sports = "sports",
+    Music = "music",
+    Art = "art",
+    Travel = "travel",
+    Food = "food",
+    Science = "science",
+    Business = "business",
 }
+// Don't change to Capital case

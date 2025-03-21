@@ -9,13 +9,14 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { EventMap } from "./components/event-map";
 import { EventDetails } from "@/types/event";
-import { InterestCategory } from "@/enums/InterestCategory";
+import { BACKEND_ROUTES } from "@/constants/backend-routes";
+import { getBearerToken } from "@/utils/auth";
+import { ErrorMessageCallout } from "@/components/error-message-callout";
+import { Spinner } from "@/components/ui/spinner";
+import { useParams } from "next/navigation";
 
-type EventPageProps = {
-  id: string;
-};
-
-export default function EventPage({ id }: EventPageProps) {
+export default function EventPage() {
+  const { id } = useParams();
   const [event, setEvent] = useState<EventDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -24,67 +25,19 @@ export default function EventPage({ id }: EventPageProps) {
   useEffect(() => {
     async function fetchEvent() {
       try {
-        // const res = await fetch(
-        //   `${BACKEND_ROUTES.createEventServiceUrl}/api/events/${id}`
-        // );
-        // if (!res.ok) {
-        //   throw new Error(`Failed to fetch event details: ${res.status}`);
-        // }
-        // const data: EventDetails = await res.json();
-        // setEvent(data);
-
-        const dummyEventDetails: EventDetails = {
-          id: "dummy-event-001",
-          title: "Test Event: Innovation Summit 2025",
-          description:
-            "This is a dummy event used for testing. Join us for an innovative summit featuring thought leaders in technology and business.",
-          startDateTime: "2025-05-15T09:00:00Z",
-          endDateTime: "2025-05-15T17:00:00Z",
-          venue: {
-            address: "123 Test Street, Test City, TS 12345",
-            name: "Test Venue",
-            city: "Test City",
-            state: "TS",
-            additionalDetails: "Suite 100, Test Building",
-            coordinates: { lat: 37.7749, lng: -122.4194 },
-          },
-          imageUrl: "/placeholder.svg",
-          category: InterestCategory.Technology,
-          price: {
-            amount: 50,
-            currency: "USD",
-          },
-          schedule: [
-            {
-              startTime: "09:00 AM",
-              endTime: "10:00 AM",
-              title: "Registration & Welcome Coffee",
-              description: "Meet and greet with participants.",
-            },
-            {
-              startTime: "10:00 AM",
-              endTime: "11:30 AM",
-              title: "Keynote: Future of Innovation",
-              description: "An inspiring talk about the future of technology.",
-            },
-          ],
-          organizer: {
-            id: "organizer-001",
-            username: "OrganizerUser",
-          },
-          attendees: [
-            { id: "user-1", name: "Alice", imageUrl: "/alice.jpg" },
-            { id: "user-2", name: "Bob", imageUrl: "/bob.jpg" },
-          ],
-          totalAttendees: 2,
-          capacity: 100,
-          eventType: "public",
-          invitedEmails: [],
-          createdAt: "2025-01-01T00:00:00Z",
-          updatedAt: "2025-01-02T00:00:00Z",
-        };
-        setEvent(dummyEventDetails); // TODO use actual fetched data when backend done
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const res = await fetch(`${BACKEND_ROUTES.eventsService}/api/v1/events/${id}`, {
+          headers: {
+            "Accept": "application/json",
+            Authorization: await getBearerToken()
+          }
+        });
+        if (!res.ok) {
+          throw new Error(`Failed to fetch event details: ${res.statusText}`);
+        }
+        const data: EventDetails = await res.json();
+        console.log(data);
+        setEvent(data);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (err: any) {
         setError(err.message || "An error occurred");
       } finally {
@@ -94,18 +47,19 @@ export default function EventPage({ id }: EventPageProps) {
     fetchEvent();
   }, [id]);
 
+
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p>Loading event details...</p>
+      <div className="flex items-center justify-center p-5">
+        <Spinner size="sm" className="bg-black dark:bg-white" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p className="text-red-500">Error: {error}</p>
+      <div className="flex items-center justify-center p-5">
+        <ErrorMessageCallout errorMessage={error} />
       </div>
     );
   }
@@ -137,15 +91,24 @@ export default function EventPage({ id }: EventPageProps) {
           <div className="lg:col-span-2 space-y-8">
             {/* Event Header */}
             <div className="bg-card rounded-lg p-6 shadow-lg">
-              <Badge className="mb-4 bg-primary/10 text-primary hover:bg-primary/20 border-0">
-                {event.category}
-              </Badge>
+              <>
+                {event.categories.map((category, i) => {
+                  return (
+                    <Badge key={i} className="mb-4 bg-primary/10 text-primary hover:bg-primary/20 border-0">
+                      {category as string}
+                    </Badge>
+                  )
+                })}
+              </>
               <h1 className="text-4xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-blue-400">
                 {event.title}
               </h1>
               <div className="flex flex-wrap gap-4 text-muted-foreground">
                 <div className="flex items-center">
                   <Calendar className="w-5 h-5 mr-2" />
+                  <>
+                    {event.startDateTime}
+                  </>
                   {new Date(event.startDateTime).toLocaleDateString()}
                 </div>
                 <div className="flex items-center">
@@ -174,28 +137,6 @@ export default function EventPage({ id }: EventPageProps) {
               />
             </div>
 
-            {/* Schedule Section */}
-            {event.schedule && event.schedule.length > 0 && (
-              <div className="bg-card rounded-lg p-6 shadow-lg">
-                <h2 className="text-2xl font-bold mb-4">Schedule</h2>
-                <div className="space-y-4">
-                  {event.schedule.map((item, index) => (
-                    <div key={index} className="flex items-start">
-                      <div className="bg-primary/10 rounded-full p-2 mr-4">
-                        <Clock className="w-4 h-4 text-primary" />
-                      </div>
-                      <div>
-                        <div className="font-medium">{item.startTime}</div>
-                        <div className="text-muted-foreground">
-                          {item.title}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
             {/* Location Section */}
             <div className="bg-card rounded-lg p-6 shadow-lg">
               <h2 className="text-2xl font-bold mb-4">Location</h2>
@@ -222,12 +163,12 @@ export default function EventPage({ id }: EventPageProps) {
             <div className="bg-card rounded-lg p-6 shadow-lg sticky top-6">
               <div className="flex justify-between items-center mb-6">
                 <div className="text-2xl font-bold">
-                  {event.price.amount > 0
-                    ? `${event.price.amount} ${event.price.currency}`
+                  {event.price > 0
+                    ? `${event.price} SGD`
                     : "Free"}
                 </div>
                 <Button className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600">
-                  Register Now
+                  Book Now
                 </Button>
               </div>
               <Separator className="my-4" />
@@ -237,7 +178,7 @@ export default function EventPage({ id }: EventPageProps) {
                     <Users className="w-5 h-5 mr-2" />
                     <span>Attendees</span>
                   </div>
-                  <span>{event.totalAttendees}</span>
+                  {/* <span>{event.totalAttendees}</span> */}
                 </div>
               </div>
               <Separator className="my-4" />

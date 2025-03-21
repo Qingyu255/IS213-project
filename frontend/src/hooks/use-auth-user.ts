@@ -10,7 +10,7 @@ import {
 import { User } from "@/types/user";
 
 // We'll use username-based identification instead of ID mapping
-export default function useAuthUser(): { user: User | undefined; getUserId: () => string | undefined; getUsername: () => string | undefined } {
+export default function useAuthUser(): { user: User | undefined; getUserId: () => string; getUsername: () => string | undefined } {
   // TODO: Expose loading state
   const [user, setUser] = useState<User | undefined>(undefined);
   const [tokenUserId, setTokenUserId] = useState<string | undefined>(undefined);
@@ -90,8 +90,10 @@ export default function useAuthUser(): { user: User | undefined; getUserId: () =
   };
 
   // Keep getUserId for backward compatibility
-  const getUserId = (): string | undefined => {
-    if (!user || !user.isLoggedIn) return undefined;
+  const getUserId = (): string => {
+    if (!user || !user.isLoggedIn){
+      return "";
+    };
     return tokenUserId || user["custom:id"] as string;
   };
 
