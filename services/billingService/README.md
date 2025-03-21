@@ -1,6 +1,6 @@
 # Billing Service
 
-This microservice handles payment processing for the event management system using Stripe as the payment gateway. It provides an implementation for handling payments, refunds, and webhooks.
+This microservice handles payment processing for the event management system using Stripe as the payment gateway.
 
 ## Features
 
@@ -132,79 +132,34 @@ stripe trigger charge.refunded
 
 ### Payment Endpoints
 
-- `POST /api/payment/process` - Process a payment using Payment Intents
-
-  ```json
-  {
-    "amount": 1000, // Amount in cents
-    "currency": "sgd", // Currency code
-    "payment_method": "pm_...", // Stripe Payment Method ID
-    "description": "Event ticket payment",
-    "metadata": {
-      // Optional metadata
-      "event_id": "123",
-      "user_id": "456"
-    },
-    "customer_email": "customer@example.com" // Optional for receipt
-  }
-  ```
-
-- `GET /api/payment/:payment_intent_id` - Get payment details
-- `POST /api/payment/verify` - Verify payment status
-  ```json
-  {
-    "payment_intent_id": "pi_..."
-  }
-  ```
+- `POST /api/payment/create` - Create a new payment
+- `GET /api/payment/:id` - Get payment details
 
 ### Refund Endpoints
 
-- `POST /api/refund/process` - Process a refund
+- `POST /api/refund/create` - Process a refund
+- `GET /api/refund/:id` - Get refund details
 
-  ```json
-  {
-    "payment_intent_id": "pi_...",
-    "amount": 1000, // Optional: Amount in cents for partial refund
-    "reason": "requested_by_customer", // Optional: Reason for refund
-    "metadata": {} // Optional: Additional metadata
-  }
-  ```
-
-- `GET /api/refund/:refund_id` - Get refund details
-- `POST /api/refund/verify` - Verify refund status
-  ```json
-  {
-    "refund_id": "re_..."
-  }
-  ```
-
-### Webhook Endpoint
+### Webhook Endpoints
 
 - `POST /api/webhook` - Handle Stripe webhook events
-  - Requires Stripe-Signature header for verification
-  - Handles various event types:
-    - Payment intent events (succeeded, failed, canceled)
-    - Charge events (succeeded, failed, refunded)
-    - Dispute events
-    - Checkout session events
 
 ## Setup
 
 1. Clone the repository
-2. Create a `.env` file with the following required variables:
-
+2. Create a `.env` file with the following variables:
    ```
    STRIPE_SECRET_KEY=your_stripe_secret_key
    STRIPE_WEBHOOK_SECRET=your_stripe_webhook_secret
+   SECRET_KEY=your_flask_secret_key
+   FLASK_DEBUG=True
    EVENT_SERVICE_URL=http://event-service:5000
+   USER_SERVICE_URL=http://user-service:5000
    ```
-
 3. Install dependencies:
-
    ```
    pip install -r requirements.txt
    ```
-
 4. Run the service:
    ```
    python app.py
@@ -214,61 +169,20 @@ stripe trigger charge.refunded
 
 Build the Docker image:
 
-```bash
+```
 docker build -t billing-service .
 ```
 
 Run the container:
 
-```bash
-docker run -p 5001:5001 \
-  -e STRIPE_SECRET_KEY=your_key \
-  -e STRIPE_WEBHOOK_SECRET=your_webhook_secret \
-  -e EVENT_SERVICE_URL=http://event-service:5000 \
-  billing-service
+```
+docker run -p 5001:5001 -e STRIPE_SECRET_KEY=your_key billing-service
 ```
 
-## Production Considerations
+## Testing
 
-1. **API Keys**: Ensure you're using production Stripe API keys in production environment
-
-2. **Webhook Security**:
-
-   - Configure webhook endpoint in Stripe dashboard
-   - Use correct webhook signing secret
-   - Ensure proper SSL/TLS configuration
-
-3. **Error Handling**:
-
-   - All endpoints include comprehensive error handling
-   - Proper logging for debugging and monitoring
-   - Idempotency support for safe retries
-
-4. **Integration**:
-   - Properly configure EVENT_SERVICE_URL for inter-service communication
-   - Ensure proper network configuration for service communication
-
-## Health Check
-
-The service provides a health check endpoint:
+Run tests with pytest:
 
 ```
-GET /health
+pytest
 ```
-
-Response:
-
-```json
-{
-  "status": "healthy",
-  "service": "billing-service"
-}
-```
-
-## API Documentation
-
-For detailed API documentation and integration guide, refer to the Stripe API documentation:
-
-- [Payment Intents](https://stripe.com/docs/api/payment_intents)
-- [Refunds](https://stripe.com/docs/api/refunds)
-- [Webhooks](https://stripe.com/docs/webhooks)
