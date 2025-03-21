@@ -12,6 +12,7 @@ class Config:
     
     # Service URLs for microservice communication
     EVENT_SERVICE_URL = os.getenv("EVENT_SERVICE_URL", "http://event-service:5000")
+    FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
     # Validate required configuration
     if not STRIPE_SECRET_KEY:

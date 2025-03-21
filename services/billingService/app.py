@@ -1,5 +1,6 @@
 # app.py
 import logging
+import os
 from flask import Flask, jsonify
 from flask_cors import CORS
 from config import Config
@@ -11,8 +12,9 @@ from routes.webhook import webhook_bp
 
 def setup_logging():
     """Configure application logging"""
+    log_level = os.getenv('LOG_LEVEL', 'INFO')
     logging.basicConfig(
-        level=logging.INFO,
+        level=getattr(logging, log_level.upper()),
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     )
     return logging.getLogger(__name__)
@@ -26,10 +28,29 @@ def register_blueprints(app):
 def create_app():
     """Application factory function"""
     app = Flask(__name__)
-    app.config.from_object(Config)
-    CORS(app)
     
+    # Load configuration
+    app.config.from_object(Config)
+    
+    # Initialize CORS
+    CORS(app, resources={r"/api/*": {"origins": "*"}})
+    
+    # Register blueprints
     register_blueprints(app)
+    
+    # Register error handlers
+    @app.errorhandler(404)
+    def not_found_error(error):
+        return jsonify({"error": "Not found"}), 404
+
+    @app.errorhandler(500)
+    def internal_error(error):
+        return jsonify({"error": "Internal server error"}), 500
+
+    @app.errorhandler(Exception)
+    def handle_exception(e):
+        logger.error(f"Unhandled exception: {str(e)}", exc_info=True)
+        return jsonify({"error": "An unexpected error occurred"}), 500
     
     return app
 
@@ -39,17 +60,24 @@ logger = setup_logging()
 # Create the application instance
 app = create_app()
 
-# Global error handler
-@app.errorhandler(Exception)
-def handle_exception(e):
-    logger.error(f"Unhandled exception: {str(e)}")
-    return jsonify({"error": str(e)}), 500
-
 # Health check endpoint
 @app.route('/health', methods=['GET'])
 def health_check():
-    return jsonify({"status": "healthy", "service": "billing-service"}), 200
+    """Health check endpoint for Docker"""
+    try:
+        return jsonify({
+            "status": "healthy",
+            "service": "billing-service",
+            "environment": os.getenv('FLASK_ENV', 'production')
+        }), 200
+    except Exception as e:
+        logger.error(f"Health check failed: {str(e)}", exc_info=True)
+        return jsonify({
+            "status": "unhealthy",
+            "error": str(e)
+        }), 500
 
 if __name__ == '__main__':
     logger.info("Starting Billing Service...")
-    app.run(host='0.0.0.0', port=5001)
+    port = int(os.getenv('PORT', 5001))
+    app.run(host='0.0.0.0', port=port)

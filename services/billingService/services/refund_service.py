@@ -1,6 +1,6 @@
 import logging
 import stripe
-from services.validation import RefundRequest
+from services.validation import RefundRequest, validate_stripe_id
 from typing import Dict, Tuple, Optional, Any
 from config import Config
 
@@ -11,205 +11,210 @@ logger = logging.getLogger(__name__)
 
 class RefundService:
     @staticmethod
-    def process_refund(data: dict, idempotency_key: Optional[str] = None) -> Tuple[Optional[Dict], Optional[str]]:
+    def process_refund(refund_data: dict) -> Tuple[Optional[Dict], Optional[str]]:
         """
-        Process a refund using Stripe's Payment Intents API.
+        Process a refund for a payment.
+        Ensures the payment is completed and chargeable before processing refund.
         
         Args:
-            data (dict):
-                - payment_intent_id: Stripe PaymentIntent ID (pi_...)
-                - amount: Optional amount in cents for partial refund
-                - reason: Optional reason for refund
-                - metadata: Optional additional metadata
-            idempotency_key: Unique key to prevent duplicate refunds
-            
+            refund_data (dict): Validated refund data from RefundRequest model
+                
         Returns:
             tuple: (refund_details, error_str)
-                refund_details contains refund information if successful
         """
         try:
-            if 'payment_intent_id' not in data:
-                return None, "Missing payment_intent_id parameter"
-
-            # Get the payment intent and validate it
-            try:
-                payment_intent = stripe.PaymentIntent.retrieve(data['payment_intent_id'])
-            except stripe.error.InvalidRequestError:
-                return None, "Invalid payment intent ID"
-
-            if payment_intent.status != 'succeeded':
-                return None, f"Payment intent status is {payment_intent.status}, must be succeeded to refund"
-
-            if not payment_intent.charges.data:
-                return None, "No charges found for this payment intent"
-
-            charge = payment_intent.charges.data[0]
+            logger.info(f"Processing refund with data: {refund_data}")
             
-            # Validate refund amount
-            if 'amount' in data:
-                if data['amount'] <= 0:
-                    return None, "Refund amount must be positive"
-                if data['amount'] > charge.amount:
-                    return None, f"Refund amount {data['amount']} exceeds charge amount {charge.amount}"
-
-            # Check if already refunded
-            if charge.refunded:
-                return None, "Payment has already been fully refunded"
-            if charge.amount_refunded + (data.get('amount', charge.amount)) > charge.amount:
-                return None, f"Refund amount would exceed remaining refundable amount: {charge.amount - charge.amount_refunded}"
-
-            # Prepare refund data
-            refund_data = {
-                'charge': charge.id,
-                'reason': data.get('reason', 'requested_by_customer'),
-                'metadata': data.get('metadata', {})
-            }
-
-            if 'amount' in data:
-                refund_data['amount'] = data['amount']
-
-            # Add idempotency key if provided
-            if idempotency_key:
-                refund_data['idempotency_key'] = idempotency_key
-
-            # Process the refund
+            # Get the payment intent first
             try:
-                refund = stripe.Refund.create(**refund_data)
+                payment_intent = stripe.PaymentIntent.retrieve(refund_data['payment_intent_id'])
+                logger.info(f"Retrieved payment intent: {payment_intent.id}")
+                logger.info(f"Payment intent status: {payment_intent.status}")
+                
+                # Verify payment has succeeded
+                if payment_intent.status != 'succeeded':
+                    logger.warning(f"Payment {payment_intent.id} has not succeeded. Current status: {payment_intent.status}")
+                    return None, f"Cannot refund payment that has not succeeded. Current status: {payment_intent.status}"
+                
+                # Verify charge exists and has succeeded
+                if not hasattr(payment_intent, 'charges') or not payment_intent.charges or not payment_intent.charges.data:
+                    logger.warning(f"No charges found for payment intent: {payment_intent.id}")
+                    return None, "No charges found for this payment"
+                
+                charge = payment_intent.charges.data[0]
+                if charge.status != 'succeeded':
+                    logger.warning(f"Charge {charge.id} has not succeeded. Current status: {charge.status}")
+                    return None, f"Cannot refund charge that has not succeeded. Current status: {charge.status}"
+                
+                # Check if charge is already refunded
+                if charge.refunded:
+                    logger.warning(f"Charge {charge.id} has already been refunded")
+                    return None, "This charge has already been refunded"
+                
+                charge_id = charge.id
+                logger.info(f"Charge ID retrieved: {charge_id}")
+                
+                # Prepare refund parameters
+                refund_params = {
+                    'charge': charge_id,
+                    'reason': refund_data.get('reason', 'requested_by_customer'),
+                    'metadata': refund_data.get('metadata', {})
+                }
+                
+                # Add amount if specified and validate against charge amount
+                if 'amount' in refund_data and refund_data['amount'] is not None:
+                    refund_amount = refund_data['amount']
+                    if refund_amount > charge.amount:
+                        logger.warning(f"Refund amount {refund_amount} exceeds charge amount {charge.amount}")
+                        return None, "Refund amount cannot exceed the original charge amount"
+                    refund_params['amount'] = refund_amount
+                
+                logger.info(f"Creating refund with parameters: {refund_params}")
+                
+                # Create the refund
+                refund = stripe.Refund.create(**refund_params)
+                logger.info(f"Successfully created refund: {refund.id}")
+                
+                return {
+                    'success': True,
+                    'refund_id': refund.id,
+                    'payment_intent_id': payment_intent.id,
+                    'charge_id': charge_id,
+                    'amount': refund.amount,
+                    'currency': refund.currency,
+                    'status': refund.status,
+                    'reason': refund.reason,
+                    'created': refund.created,
+                    'metadata': refund.metadata,
+                    'receipt_url': refund.receipt_url if hasattr(refund, 'receipt_url') else None
+                }, None
+                
             except stripe.error.InvalidRequestError as e:
-                logger.error(f"Invalid refund request: {str(e)}")
-                return None, str(e)
-
-            return {
-                "success": True,
-                "refund_id": refund.id,
-                "payment_intent_id": payment_intent.id,
-                "charge_id": refund.charge,
-                "amount": refund.amount,
-                "currency": refund.currency,
-                "status": refund.status,
-                "reason": refund.reason,
-                "created": refund.created,
-                "metadata": refund.metadata,
-                "remaining_refundable": charge.amount - (charge.amount_refunded + refund.amount)
-            }, None
-
-        except stripe.error.PermissionError:
-            logger.error("Permission denied for refund operation")
-            return None, "Permission denied for refund operation"
-        except stripe.error.AuthenticationError:
-            logger.critical("Stripe authentication failed")
-            return None, "Refund service configuration error"
-        except stripe.error.APIConnectionError:
-            logger.error("Could not connect to Stripe")
-            return None, "Refund service temporarily unavailable"
+                logger.warning(f"Payment intent not found: {str(e)}")
+                return None, "Payment not found"
+            
+        except stripe.error.AuthenticationError as e:
+            logger.critical(f"Stripe authentication failed: {str(e)}")
+            return None, "Payment service authentication error"
+        except stripe.error.APIConnectionError as e:
+            logger.error(f"Could not connect to Stripe: {str(e)}")
+            return None, "Payment service connection error"
+        except stripe.error.InvalidRequestError as e:
+            logger.error(f"Invalid refund request: {str(e)}")
+            return None, f"Invalid refund request: {str(e)}"
         except stripe.error.StripeError as e:
             logger.error(f"Stripe error: {str(e)}")
-            return None, "Refund processing error"
+            return None, f"Payment service error: {str(e)}"
         except Exception as e:
-            logger.error(f"Unexpected error: {str(e)}")
-            return None, "An unexpected error occurred"
+            logger.error(f"Unexpected error in process_refund: {str(e)}", exc_info=True)
+            return None, f"An unexpected error occurred while processing refund: {str(e)}"
 
     @staticmethod
     def get_refund(refund_id: str) -> Tuple[Optional[Dict], Optional[str]]:
         """
         Get refund details by ID.
-        Retrieves comprehensive information about a specific refund.
         
         Args:
             refund_id: Stripe Refund ID (re_...)
             
         Returns:
             tuple: (refund_details, error_str)
-                refund_details contains full refund information and status
         """
         try:
+            logger.info(f"Retrieving refund details for refund_id: {refund_id}")
+            
             refund = stripe.Refund.retrieve(refund_id)
+            logger.info(f"Successfully retrieved refund: {refund.id}")
             
-            # Get associated charge for additional details
-            try:
-                charge = stripe.Charge.retrieve(refund.charge)
-            except stripe.error.InvalidRequestError:
-                charge = None
-
-            response = {
-                "refund_id": refund.id,
-                "charge_id": refund.charge,
-                "payment_intent_id": refund.payment_intent,
-                "amount": refund.amount,
-                "currency": refund.currency,
-                "status": refund.status,
-                "reason": refund.reason,
-                "created": refund.created,
-                "metadata": refund.metadata,
-                "failure_reason": refund.failure_reason,
-                "failure_balance_transaction": refund.failure_balance_transaction,
-                "receipt_url": refund.receipt_url if hasattr(refund, 'receipt_url') else None
-            }
-
-            if charge:
-                response.update({
-                    "charge_amount": charge.amount,
-                    "amount_refunded_total": charge.amount_refunded,
-                    "remaining_refundable": charge.amount - charge.amount_refunded,
-                    "is_fully_refunded": charge.refunded
-                })
-            
-            return response, None
+            return {
+                'refund_id': refund.id,
+                'charge_id': refund.charge,
+                'payment_intent_id': refund.payment_intent,
+                'amount': refund.amount,
+                'currency': refund.currency,
+                'status': refund.status,
+                'reason': refund.reason,
+                'created': refund.created,
+                'metadata': refund.metadata,
+                'receipt_url': refund.receipt_url if hasattr(refund, 'receipt_url') else None
+            }, None
             
         except stripe.error.InvalidRequestError as e:
-            logger.warning(f"Invalid refund ID: {str(e)}")
+            logger.warning(f"Refund not found: {str(e)}")
             return None, "Refund not found"
+        except stripe.error.AuthenticationError as e:
+            logger.critical(f"Stripe authentication failed: {str(e)}")
+            return None, "Payment service authentication error"
+        except stripe.error.APIConnectionError as e:
+            logger.error(f"Could not connect to Stripe: {str(e)}")
+            return None, "Payment service connection error"
         except stripe.error.StripeError as e:
             logger.error(f"Stripe error: {str(e)}")
-            return None, "Error retrieving refund"
+            return None, f"Payment service error: {str(e)}"
         except Exception as e:
-            logger.error(f"Unexpected error: {str(e)}")
-            return None, "An unexpected error occurred"
+            logger.error(f"Unexpected error in get_refund: {str(e)}", exc_info=True)
+            return None, "An unexpected error occurred while retrieving refund details"
 
     @staticmethod
     def verify_refund(refund_id: str) -> Tuple[Optional[Dict], Optional[str]]:
         """
         Verify the status of a refund.
-        Similar to get_refund but focused on verification-specific details.
+        Ensures the refund has been processed successfully.
         
         Args:
             refund_id: Stripe Refund ID (re_...)
             
         Returns:
             tuple: (verification_details, error_str)
-                verification_details includes refund status and processing info
         """
         try:
+            logger.info(f"Verifying refund for refund_id: {refund_id}")
+            
             refund = stripe.Refund.retrieve(refund_id)
+            logger.info(f"Successfully retrieved refund for verification: {refund.id}")
+            
+            # Verify refund status
+            if refund.status != 'succeeded':
+                logger.warning(f"Refund {refund.id} has not succeeded. Current status: {refund.status}")
+                return None, f"Refund has not succeeded. Current status: {refund.status}"
+            
+            # Get the associated charge
+            charge = stripe.Charge.retrieve(refund.charge)
+            logger.info(f"Retrieved associated charge: {charge.id}")
             
             verification = {
-                "refund_id": refund.id,
-                "verified": True,
-                "status": refund.status,
-                "is_succeeded": refund.status == 'succeeded',
-                "amount": refund.amount,
-                "currency": refund.currency,
-                "charge_id": refund.charge,
-                "payment_intent_id": refund.payment_intent,
-                "reason": refund.reason,
-                "created": refund.created,
-                "failure_reason": refund.failure_reason,
-                "failure_balance_transaction": refund.failure_balance_transaction,
-                "processing_status": {
-                    "is_pending": refund.status == 'pending',
-                    "is_failed": refund.status == 'failed',
-                    "needs_action": False  # Refunds don't typically need additional action
-                }
+                'refund_id': refund.id,
+                'verified': True,
+                'status': refund.status,
+                'is_succeeded': True,
+                'amount': refund.amount,
+                'currency': refund.currency,
+                'charge_id': refund.charge,
+                'payment_intent_id': refund.payment_intent,
+                'reason': refund.reason,
+                'created': refund.created,
+                'receipt_url': refund.receipt_url if hasattr(refund, 'receipt_url') else None,
+                'charge_status': charge.status,
+                'charge_amount': charge.amount,
+                'charge_refunded': charge.refunded,
+                'charge_dispute': charge.dispute is not None
             }
             
+            logger.info(f"Refund {refund.id} verified successfully")
             return verification, None
             
         except stripe.error.InvalidRequestError as e:
-            logger.warning(f"Invalid refund ID: {str(e)}")
+            logger.warning(f"Refund not found: {str(e)}")
             return None, "Refund not found"
+        except stripe.error.AuthenticationError as e:
+            logger.critical(f"Stripe authentication failed: {str(e)}")
+            return None, "Payment service authentication error"
+        except stripe.error.APIConnectionError as e:
+            logger.error(f"Could not connect to Stripe: {str(e)}")
+            return None, "Payment service connection error"
         except stripe.error.StripeError as e:
             logger.error(f"Stripe error: {str(e)}")
-            return None, "Error verifying refund"
+            return None, f"Payment service error: {str(e)}"
         except Exception as e:
-            logger.error(f"Unexpected error: {str(e)}")
-            return None, "An unexpected error occurred" 
+            logger.error(f"Unexpected error in verify_refund: {str(e)}", exc_info=True)
+            return None, "An unexpected error occurred while verifying refund" 

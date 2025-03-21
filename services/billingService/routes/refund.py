@@ -2,6 +2,7 @@
 from flask import Blueprint, request, jsonify
 import logging
 from services.refund_service import RefundService
+from services.validation import RefundRequest, validate_stripe_id
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -35,28 +36,39 @@ def process_refund():
             "status": "succeeded",
             "reason": "requested_by_customer",
             "created": 1234567890,
-            "metadata": {}
+            "metadata": {},
+            "receipt_url": "https://..."  # Optional
         }
         400: {"error": "Error message"}
         500: {"error": "Error message"}
     """
     try:
+        # Validate request data
         data = request.get_json()
         if not data:
+            logger.warning("Missing request data")
             return jsonify({"error": "Missing request data"}), 400
             
-        if 'payment_intent_id' not in data:
-            return jsonify({"error": "Missing payment_intent_id parameter"}), 400
+        # Validate using Pydantic model
+        try:
+            refund_request = RefundRequest(**data)
+            validated_data = refund_request.dict()
+        except Exception as e:
+            logger.warning(f"Validation error: {str(e)}")
+            return jsonify({"error": str(e)}), 400
             
-        result, error = RefundService.process_refund(data)
+        # Process the refund
+        result, error = RefundService.process_refund(validated_data)
         if error:
+            logger.warning(f"Refund processing failed: {error}")
             return jsonify({"error": error}), 400
             
+        logger.info(f"Successfully processed refund: {result['refund_id']}")
         return jsonify(result), 200
         
     except Exception as e:
-        logger.error(f"Refund endpoint error: {str(e)}")
-        return jsonify({"error": str(e)}), 500
+        logger.error(f"Refund endpoint error: {str(e)}", exc_info=True)
+        return jsonify({"error": "An unexpected error occurred while processing the refund"}), 500
 
 @refund_bp.route("/<refund_id>", methods=['GET'])
 def get_refund(refund_id):
@@ -79,19 +91,27 @@ def get_refund(refund_id):
             "metadata": {},
             "receipt_url": "https://..."  # Optional
         }
+        400: {"error": "Invalid refund ID format"}
         404: {"error": "Refund not found"}
         500: {"error": "Error message"}
     """
     try:
+        # Validate refund_id format
+        if not validate_stripe_id(refund_id, 're_'):
+            logger.warning(f"Invalid refund ID format: {refund_id}")
+            return jsonify({"error": "Invalid refund ID format"}), 400
+            
         result, error = RefundService.get_refund(refund_id)
         if error:
+            logger.warning(f"Error retrieving refund: {error}")
             return jsonify({"error": error}), 404 if error == "Refund not found" else 500
             
+        logger.info(f"Successfully retrieved refund: {refund_id}")
         return jsonify(result), 200
         
     except Exception as e:
-        logger.error(f"Error retrieving refund: {str(e)}")
-        return jsonify({"error": str(e)}), 500
+        logger.error(f"Error retrieving refund: {str(e)}", exc_info=True)
+        return jsonify({"error": "An unexpected error occurred while retrieving the refund"}), 500
 
 @refund_bp.route("/verify", methods=['POST'])
 def verify_refund():
@@ -114,7 +134,12 @@ def verify_refund():
             "charge_id": "ch_...",
             "payment_intent_id": "pi_...",
             "reason": "requested_by_customer",
-            "created": 1234567890
+            "created": 1234567890,
+            "receipt_url": "https://...",  # Optional
+            "charge_status": "succeeded",
+            "charge_amount": 1000,
+            "charge_refunded": true,
+            "charge_dispute": false
         }
         400: {
             "verified": false,
@@ -130,26 +155,44 @@ def verify_refund():
         }
     """
     try:
+        # Validate request data
         data = request.get_json()
-        
-        if not data or 'refund_id' not in data:
+        if not data:
+            logger.warning("Missing request data")
+            return jsonify({
+                "verified": False,
+                "error": "Missing request data"
+            }), 400
+            
+        if 'refund_id' not in data:
+            logger.warning("Missing refund_id in request")
             return jsonify({
                 "verified": False,
                 "error": "Missing refund_id parameter"
             }), 400
             
+        # Validate refund_id format
+        if not validate_stripe_id(data['refund_id'], 're_'):
+            logger.warning(f"Invalid refund ID format: {data['refund_id']}")
+            return jsonify({
+                "verified": False,
+                "error": "Invalid refund ID format"
+            }), 400
+            
         result, error = RefundService.verify_refund(data['refund_id'])
         if error:
+            logger.warning(f"Refund verification failed: {error}")
             return jsonify({
                 "verified": False,
                 "error": error
             }), 404 if error == "Refund not found" else 500
             
+        logger.info(f"Successfully verified refund: {data['refund_id']}")
         return jsonify(result), 200
         
     except Exception as e:
-        logger.error(f"Error verifying refund: {str(e)}")
+        logger.error(f"Error verifying refund: {str(e)}", exc_info=True)
         return jsonify({
             "verified": False,
-            "error": str(e)
+            "error": "An unexpected error occurred while verifying the refund"
         }), 500

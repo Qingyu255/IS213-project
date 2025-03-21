@@ -108,8 +108,23 @@ services:
     environment:
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
+      EVENT_SERVICE_URL: "http://events-service:8001"
+      FLASK_ENV: "development"
+    volumes:
+      - ./services/billingService:/app # Mount source code for development
+      - /app/__pycache__
+      - /app/services/__pycache__
+      - /app/routes/__pycache__
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     depends_on:
-      - rabbitmq
+      events-service:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
     networks:
       - default
 

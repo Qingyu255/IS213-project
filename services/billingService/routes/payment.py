@@ -2,6 +2,7 @@
 from flask import Blueprint, request, jsonify
 import logging
 from services.payment_service import PaymentService
+from services.validation import PaymentRequest, validate_stripe_id
 from functools import wraps
 import uuid
 
@@ -29,8 +30,8 @@ def process_payment():
     
     Request body:
     {
-        "amount": 1000,  # Required: Amount in cents
-        "currency": "usd",  # Required: 3-letter ISO currency code
+        "amount": 50,  # Required: Amount in cents
+        "currency": "sgd",  # Required: 3-letter ISO currency code
         "payment_method": "pm_...",  # Required: Stripe Payment Method ID
         "description": "Optional payment description",
         "metadata": {  # Optional: Additional data
@@ -56,28 +57,34 @@ def process_payment():
         500: {"error": "Error message"}
     """
     try:
+        # Validate request data
         data = request.get_json()
         if not data:
+            logger.warning("Missing request data")
             return jsonify({"error": "Missing request data"}), 400
 
-        # Required fields validation
-        required_fields = ['amount', 'currency', 'payment_method']
-        missing_fields = [field for field in required_fields if field not in data]
-        if missing_fields:
-            return jsonify({"error": f"Missing required fields: {', '.join(missing_fields)}"}), 400
+        # Validate using Pydantic model
+        try:
+            payment_request = PaymentRequest(**data)
+            validated_data = payment_request.dict()
+        except Exception as e:
+            logger.warning(f"Validation error: {str(e)}")
+            return jsonify({"error": str(e)}), 400
 
         # Generate idempotency key for safe retries
         idempotency_key = request.headers.get('Idempotency-Key', generate_idempotency_key())
             
-        payment, error = PaymentService.process_payment(data, idempotency_key)
+        payment, error = PaymentService.process_payment(validated_data, idempotency_key)
         if error:
+            logger.warning(f"Payment processing failed: {error}")
             return jsonify({"error": error}), 400
             
+        logger.info(f"Successfully processed payment: {payment['payment_intent_id']}")
         return jsonify({"payment": payment}), 200
         
     except Exception as e:
-        logger.error(f"Payment endpoint error: {str(e)}")
-        return jsonify({"error": "An unexpected error occurred"}), 500
+        logger.error(f"Payment endpoint error: {str(e)}", exc_info=True)
+        return jsonify({"error": "An unexpected error occurred while processing the payment"}), 500
 
 @payment_bp.route("/<payment_intent_id>", methods=['GET'])
 def get_payment(payment_intent_id):
@@ -94,25 +101,36 @@ def get_payment(payment_intent_id):
             "currency": "usd",
             "status": "succeeded",
             "created": 1234567890,
-            ...
+            "metadata": {},
+            "receipt_url": "https://...",  # Optional
+            "charge_id": "ch_...",
+            "charge_status": "succeeded",
+            "payment_method_details": {...},
+            "failure_code": null,
+            "failure_message": null,
+            "outcome": {...}
         }
+        400: {"error": "Invalid payment intent ID format"}
         404: {"error": "Payment not found"}
         500: {"error": "Error message"}
     """
     try:
         # Validate payment_intent_id format
-        if not payment_intent_id.startswith('pi_'):
+        if not validate_stripe_id(payment_intent_id, 'pi_'):
+            logger.warning(f"Invalid payment intent ID format: {payment_intent_id}")
             return jsonify({"error": "Invalid payment intent ID format"}), 400
 
         payment, error = PaymentService.get_payment(payment_intent_id)
         if error:
+            logger.warning(f"Error retrieving payment: {error}")
             return jsonify({"error": error}), 404 if error == "Payment not found" else 500
             
+        logger.info(f"Successfully retrieved payment: {payment_intent_id}")
         return jsonify(payment), 200
         
     except Exception as e:
-        logger.error(f"Error retrieving payment: {str(e)}")
-        return jsonify({"error": "An unexpected error occurred"}), 500
+        logger.error(f"Error retrieving payment: {str(e)}", exc_info=True)
+        return jsonify({"error": "An unexpected error occurred while retrieving the payment"}), 500
 
 @payment_bp.route("/verify", methods=['POST'])
 @require_json
@@ -131,9 +149,20 @@ def verify_payment():
             "verified": true,
             "status": "succeeded",
             "is_paid": true,
-            ...
+            "amount": 1000,
+            "currency": "usd",
+            "charge_id": "ch_...",
+            "charge_status": "succeeded",
+            "payment_method": "card",
+            "risk_level": "normal",
+            "risk_score": 0,
+            "seller_message": "Payment complete.",
+            "receipt_url": "https://..."  # Optional
         }
-        400: {"error": "Missing payment_intent_id parameter"}
+        400: {
+            "verified": false,
+            "error": "Missing payment_intent_id parameter"
+        }
         404: {
             "verified": false,
             "error": "Payment not found"
@@ -144,16 +173,25 @@ def verify_payment():
         }
     """
     try:
+        # Validate request data
         data = request.get_json()
-        
-        if not data or 'payment_intent_id' not in data:
+        if not data:
+            logger.warning("Missing request data")
+            return jsonify({
+                "verified": False,
+                "error": "Missing request data"
+            }), 400
+            
+        if 'payment_intent_id' not in data:
+            logger.warning("Missing payment_intent_id in request")
             return jsonify({
                 "verified": False,
                 "error": "Missing payment_intent_id parameter"
             }), 400
-
+            
         # Validate payment_intent_id format
-        if not data['payment_intent_id'].startswith('pi_'):
+        if not validate_stripe_id(data['payment_intent_id'], 'pi_'):
+            logger.warning(f"Invalid payment intent ID format: {data['payment_intent_id']}")
             return jsonify({
                 "verified": False,
                 "error": "Invalid payment intent ID format"
@@ -161,16 +199,18 @@ def verify_payment():
             
         result, error = PaymentService.verify_payment(data['payment_intent_id'])
         if error:
+            logger.warning(f"Payment verification failed: {error}")
             return jsonify({
                 "verified": False,
                 "error": error
             }), 404 if error == "Payment not found" else 500
             
+        logger.info(f"Successfully verified payment: {data['payment_intent_id']}")
         return jsonify(result), 200
         
     except Exception as e:
-        logger.error(f"Error verifying payment: {str(e)}")
+        logger.error(f"Error verifying payment: {str(e)}", exc_info=True)
         return jsonify({
             "verified": False,
-            "error": "An unexpected error occurred"
+            "error": "An unexpected error occurred while verifying the payment"
         }), 500
