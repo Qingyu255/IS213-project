@@ -1,8 +1,8 @@
 "use client"
 
 import React, { useState, useEffect } from "react";
-// import { EmbeddedCheckout, EmbeddedCheckoutProvider } from "@stripe/react-stripe-js";
-// import { loadStripe } from "@stripe/stripe-js";
+import { EmbeddedCheckout, EmbeddedCheckoutProvider } from "@stripe/react-stripe-js";
+import { loadStripe } from "@stripe/stripe-js";
 
 // Load Stripe with your publishable key. The exclamation mark (!) asserts the variable is not undefined.
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!, {
