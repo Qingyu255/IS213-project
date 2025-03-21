@@ -1,8 +1,13 @@
 "use client"
 
 import React, { useState, useEffect } from "react";
-import { EmbeddedCheckout, EmbeddedCheckoutProvider } from "@stripe/react-stripe-js";
+// Rename the imported EmbeddedCheckout to avoid collision
+import {
+  EmbeddedCheckout as StripeEmbeddedCheckout,
+  EmbeddedCheckoutProvider,
+} from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
+import { BACKEND_ROUTES } from "@/constants/backend-routes";
 
 // Load Stripe with your publishable key. The exclamation mark (!) asserts the variable is not undefined.
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!, {
@@ -27,7 +32,7 @@ export default function EmbeddedCheckout({
       try {
         // This endpoint is your backend's route that creates a PaymentIntent (or Checkout Session)
         // and returns { clientSecret: '...' }
-        const response = await fetch("/api/payment/process", {
+        const response = await fetch(`${BACKEND_ROUTES.billingService}/api/payment/process`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ amount, currency }),
@@ -56,7 +61,8 @@ export default function EmbeddedCheckout({
   return (
     <div id="checkout">
       <EmbeddedCheckoutProvider stripe={stripePromise} options={{ clientSecret }}>
-        <EmbeddedCheckout />
+        {/* Use the renamed Stripe component */}
+        <StripeEmbeddedCheckout />
       </EmbeddedCheckoutProvider>
     </div>
   );
