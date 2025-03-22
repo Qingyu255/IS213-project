@@ -42,7 +42,7 @@ export default function EmbeddedCheckoutPage({
         };
 
         // Send a POST request to your backend payment endpoint.
-        const response = await fetch(`${BACKEND_ROUTES.billingService}/api/payment/process`, {
+        const response = await fetch(`${BACKEND_ROUTES.billingService}/routes/payment`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
