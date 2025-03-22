@@ -1,7 +1,6 @@
 "use client"
 
 import React, { useState, useEffect } from "react";
-// Rename the imported EmbeddedCheckout to avoid collision
 import {
   EmbeddedCheckout as StripeEmbeddedCheckout,
   EmbeddedCheckoutProvider,
@@ -9,7 +8,7 @@ import {
 import { loadStripe } from "@stripe/stripe-js";
 import { BACKEND_ROUTES } from "@/constants/backend-routes";
 
-// Load Stripe with your publishable key. The exclamation mark (!) asserts the variable is not undefined.
+// Load Stripe with your publishable key and required beta flag.
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!, {
   betas: ["custom_checkout_beta_5"],
 });
@@ -19,7 +18,7 @@ interface EmbeddedCheckoutProps {
   currency?: string;
 }
 
-export default function EmbeddedCheckout({
+export default function EmbeddedCheckoutPage({
   amount = 1000,
   currency = "usd",
 }: EmbeddedCheckoutProps) {
@@ -30,15 +29,26 @@ export default function EmbeddedCheckout({
   useEffect(() => {
     const fetchClientSecret = async () => {
       try {
-        // This endpoint is your backend's route that creates a PaymentIntent (or Checkout Session)
-        // and returns { clientSecret: '...' }
+        // Construct the payment request payload that matches your backend PaymentRequest model.
+        // Note: "payment_method" is required by the backend model.
+        // Since Embedded Checkout collects the payment method, you can send an empty string or a placeholder.
+        const payload = {
+          amount,              // Amount in cents
+          currency,            // e.g., "usd"
+          payment_method: "",  // Placeholder (will be set later by Stripe Embedded Checkout)
+          description: "",     // Optional description
+          metadata: {},        // Optional metadata
+          customer_email: "",  // Optional receipt email
+        };
+
+        // Send a POST request to your backend payment endpoint.
         const response = await fetch(`${BACKEND_ROUTES.billingService}/api/payment/process`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ amount, currency }),
+          body: JSON.stringify(payload),
         });
-
         const data = await response.json();
+
         if (data.clientSecret) {
           setClientSecret(data.clientSecret);
         } else {
@@ -61,7 +71,6 @@ export default function EmbeddedCheckout({
   return (
     <div id="checkout">
       <EmbeddedCheckoutProvider stripe={stripePromise} options={{ clientSecret }}>
-        {/* Use the renamed Stripe component */}
         <StripeEmbeddedCheckout />
       </EmbeddedCheckoutProvider>
     </div>
