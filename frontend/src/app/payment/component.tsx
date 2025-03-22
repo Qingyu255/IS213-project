@@ -14,13 +14,17 @@ const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
 });
 
 interface EmbeddedCheckoutProps {
+  eventId: string;
   amount?: number;
   currency?: string;
+  description?: string;
 }
 
 export default function EmbeddedCheckoutPage({
+  eventId,
   amount = 1000,
-  currency = "usd",
+  currency = "sgd",
+  description = "Event ticket purchase",
 }: EmbeddedCheckoutProps) {
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -29,47 +33,59 @@ export default function EmbeddedCheckoutPage({
   useEffect(() => {
     const fetchClientSecret = async () => {
       try {
-        // Construct the payment request payload that matches your backend PaymentRequest model.
-        // Note: "payment_method" is required by the backend model.
-        // Since Embedded Checkout collects the payment method, you can send an empty string or a placeholder.
         const payload = {
-          amount,              // Amount in cents
-          currency,            // e.g., "usd"
-          payment_method: "",  // Placeholder (will be set later by Stripe Embedded Checkout)
-          description: "",     // Optional description
-          metadata: {},        // Optional metadata
-          customer_email: "",  // Optional receipt email
+          event_id: eventId,
+          amount,              
+          currency,            
+          description,     
+          metadata: {
+            event_id: eventId
+          }
         };
 
-        // Send a POST request to your backend payment endpoint.
-        const response = await fetch(`${BACKEND_ROUTES.billingService}/routes/payment`, {
+        console.log("Sending payment request:", payload);
+
+        const response = await fetch(`${BACKEND_ROUTES.billingService}/api/payment/process`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { 
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+          },
           body: JSON.stringify(payload),
         });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to create payment');
+        }
+        
         const data = await response.json();
+        console.log("Payment response:", data);
 
-        if (data.clientSecret) {
-          setClientSecret(data.clientSecret);
+        if (data.payment && data.payment.client_secret) {
+          setClientSecret(data.payment.client_secret);
         } else {
-          setError("Error: No client secret returned from server.");
+          throw new Error("No client secret returned from server");
         }
       } catch (err: any) {
+        console.error("Payment error:", err);
         setError("Error fetching client secret: " + err.message);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchClientSecret();
-  }, [amount, currency]);
+    if (eventId && amount > 0) {
+      fetchClientSecret();
+    }
+  }, [eventId, amount, currency, description]);
 
-  if (loading) return <div>Loading embedded checkout...</div>;
-  if (error) return <div>{error}</div>;
-  if (!clientSecret) return <div>No client secret available.</div>;
+  if (loading) return <div className="p-4">Loading payment checkout...</div>;
+  if (error) return <div className="p-4 text-red-500">{error}</div>;
+  if (!clientSecret) return <div className="p-4">Unable to initialize payment.</div>;
 
   return (
-    <div id="checkout">
+    <div id="checkout" className="w-full max-w-md mx-auto p-4">
       <EmbeddedCheckoutProvider stripe={stripePromise} options={{ clientSecret }}>
         <StripeEmbeddedCheckout />
       </EmbeddedCheckoutProvider>

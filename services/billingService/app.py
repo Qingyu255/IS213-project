@@ -33,7 +33,13 @@ def create_app():
     app.config.from_object(Config)
     
     # Initialize CORS
-    CORS(app, resources={r"/api/*": {"origins": "*"}})
+    CORS(app, resources={
+        r"/*": {
+            "origins": ["http://localhost:3000"],  # Add your frontend URL
+            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+            "allow_headers": ["Content-Type", "Authorization"]
+        }
+    })
     
     # Register blueprints
     register_blueprints(app)

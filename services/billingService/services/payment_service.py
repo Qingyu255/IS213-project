@@ -59,13 +59,16 @@ class PaymentService:
                 payment_intent_params = {
                     'amount': payment_data['amount'],
                     'currency': payment_data['currency'],
-                    'payment_method': payment_data['payment_method'],
-                    'confirm': True,
                     'automatic_payment_methods': {
                         'enabled': True,
                         'allow_redirects': 'always'  # Allow redirects for 3D Secure
                     }
                 }
+
+                # Add payment_method and confirm only if provided
+                if payment_data.get('payment_method'):
+                    payment_intent_params['payment_method'] = payment_data['payment_method']
+                    payment_intent_params['confirm'] = True
                 
                 # Add return URL for redirect-based payment methods
                 payment_intent_params['return_url'] = f"{Config.FRONTEND_URL}/payment/success"

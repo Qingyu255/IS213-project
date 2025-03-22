@@ -1,35 +1,35 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
-import {
-  EmbeddedCheckout,
-  EmbeddedCheckoutProvider,
-} from "@stripe/react-stripe-js"
-import { loadStripe, Stripe } from "@stripe/stripe-js"
+import 'server-only'
 
-import { fetchClientSecret } from "../../actions/stripe"
+import Stripe from 'stripe'
 
-const stripePromise = loadStripe(
-  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
-) as Promise<Stripe | null>
+export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
 
-export default function Checkout(): React.ReactElement {
-  const [clientSecret, setClientSecret] = useState<string | null>(null)
 
-  useEffect(() => {
-    fetchClientSecret().then(setClientSecret)
-  }, [])
+'use server'
 
-  if (!clientSecret) return <div>Loading...</div>
+import { headers } from 'next/headers'
 
-  return (
-    <div id="checkout">
-      <EmbeddedCheckoutProvider
-        stripe={stripePromise}
-        options={{ clientSecret }}
-      >
-        <EmbeddedCheckout />
-      </EmbeddedCheckoutProvider>
-    </div>
-  )
+import { stripe } from '../../lib/stripe'
+
+export async function fetchClientSecret() {
+  const origin = (await headers()).get('origin')
+
+  // Create Checkout Sessions from body params.
+  const session = await stripe.checkout.sessions.create({
+    ui_mode: 'embedded',
+    line_items: [
+      {
+        // Provide the exact Price ID (for example, pr_1234) of
+        // the product you want to sell
+        price: '{{PRICE_ID}}',
+        quantity: 1
+      }
+    ],
+    mode: 'payment',
+    return_url: `${origin}/return?session_id={CHECKOUT_SESSION_ID}`,
+  })
+
+  return session.client_secret
 }

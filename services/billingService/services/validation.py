@@ -4,9 +4,10 @@ from decimal import Decimal
 
 class PaymentRequest(BaseModel):
     """Validation model for payment request data"""
+    event_id: str = Field(..., description="Event ID for the payment")
     amount: int = Field(..., gt=0, description="Amount in cents")
     currency: str = Field(..., description="3-letter currency code", pattern='^[a-z]{3}$')
-    payment_method: str = Field(..., description="Stripe Payment Method ID")
+    payment_method: Optional[str] = Field(None, description="Stripe Payment Method ID")
     description: Optional[str] = Field(None, description="Payment description")
     metadata: Optional[Dict[str, Any]] = Field({}, description="Additional metadata")
     customer_email: Optional[str] = Field(None, description="Customer email for receipt")
@@ -21,6 +22,12 @@ class PaymentRequest(BaseModel):
     def validate_currency(cls, v):
         if len(v) != 3:
             raise ValueError('Currency code must be 3 letters')
+        return v.lower()
+
+    @validator('event_id')
+    def validate_event_id(cls, v):
+        if not v:
+            raise ValueError('Event ID is required')
         return v
 
 class InvoiceRequest(BaseModel):
