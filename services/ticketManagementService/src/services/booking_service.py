@@ -8,7 +8,8 @@ from .base_service import BaseService
 from pydantic import UUID4
 from typing import List, Dict, Any
 from enum import Enum
-import uuid
+from uuid import UUID
+from .logging_service import LoggingService
 
 class TicketFilterType(str, Enum):
     USER = "user_id"
@@ -17,29 +18,170 @@ class TicketFilterType(str, Enum):
 class BookingService(BaseService):
     def __init__(self):
         super().__init__(Booking)
+        self.logger = LoggingService()
 
     async def create_booking(self, booking_data: Dict[str, Any], db: AsyncSession) -> Dict[str, Any]:
+        """
+        Create a new booking with initial ticket allocation.
+        This is a synchronous operation (in terms of business logic) where everything happens in a single transaction:
+        1. Create booking record
+        2. Create ticket records
+        3. Commit transaction
+        4. Return complete booking details
+        
+        No async operations (like message queues) are used here to ensure data consistency.
+        """
         try:
-            booking = Booking(
-                user_id=uuid.UUID(booking_data["user_id"]),
-                event_id=booking_data["event_id"],
-                status='PENDING'
+            # Start transaction
+            async with db.begin():
+                # 1. Create booking with PENDING status
+                booking = Booking(
+                    event_id=UUID(booking_data["event_id"]),
+                    user_id=booking_data["user_id"],
+                    ticket_quantity=booking_data["ticket_quantity"],
+                    total_amount=booking_data["total_amount"],
+                    status=BookingStatus.PENDING
+                )
+                db.add(booking)
+                await db.flush()  # Flush to get the booking_id
+                
+                # 2. Create ticket records in the same transaction
+                tickets = [
+                    Ticket(
+                        booking_id=booking.booking_id,
+                        status="PENDING"  # Initial ticket status
+                    )
+                    for _ in range(booking_data["ticket_quantity"])
+                ]
+                db.add_all(tickets)
+                
+                # 3. Transaction will be committed automatically when the context exits
+            
+            # 4. Return complete booking details
+            await self.logger.send_log(
+                "INFO",
+                f"Successfully created booking {booking.booking_id} with {len(tickets)} tickets",
+                transaction_id=str(booking.booking_id)
             )
-            db.add(booking)
-            await db.flush()
-            
-            tickets = [Ticket(booking_id=booking.booking_id) 
-                      for _ in range(booking_data["ticket_count"])]
-            db.add_all(tickets)
-            await db.commit()
-            
             return {
-                **booking.to_dict(),
-                'tickets': [ticket.to_dict() for ticket in tickets]
+                "booking_id": str(booking.booking_id),
+                "event_id": str(booking.event_id),
+                "user_id": booking.user_id,
+                "ticket_quantity": booking.ticket_quantity,
+                "total_amount": booking.total_amount,
+                "status": booking.status,
+                "tickets": [{"ticket_id": str(ticket.ticket_id), "status": ticket.status} for ticket in tickets],
+                "message": "Booking created successfully"
             }
+
         except Exception as e:
-            await db.rollback()
-            raise e
+            # Transaction will be rolled back automatically on exception
+            await self.logger.send_log(
+                "ERROR",
+                f"Error creating booking: {str(e)}"
+            )
+            raise HTTPException(status_code=500, detail=f"Failed to create booking: {str(e)}")
+
+    async def handle_booking_status_update(self, data: Dict[str, Any], db: AsyncSession):
+        """
+        Handle asynchronous booking status updates via RabbitMQ.
+        This method is truly asynchronous as it:
+        1. Receives messages from queue
+        2. Updates booking and ticket statuses
+        3. Can handle retries and failures
+        """
+        try:
+            booking_id = UUID(data["booking_id"])
+            new_status = data["status"]
+            
+            # Get booking with tickets
+            query = select(Booking).where(Booking.booking_id == booking_id)
+            result = await db.execute(query)
+            booking = result.scalar_one_or_none()
+            
+            if not booking:
+                await self.logger.send_log(
+                    "ERROR",
+                    f"Booking not found for status update: {booking_id}",
+                    transaction_id=str(booking_id)
+                )
+                return
+            
+            # Validate status transition
+            if not BookingStatus.can_transition_to(booking.status, new_status):
+                await self.logger.send_log(
+                    "ERROR",
+                    f"Invalid status transition from {booking.status} to {new_status}",
+                    transaction_id=str(booking_id)
+                )
+                return
+            
+            async with db.begin():
+                # Update booking status
+                booking.status = new_status
+                
+                # Handle status-specific logic
+                if new_status == BookingStatus.CONFIRMED:
+                    # Update tickets status to confirmed
+                    ticket_query = select(Ticket).where(Ticket.booking_id == booking_id)
+                    tickets = (await db.execute(ticket_query)).scalars().all()
+                    for ticket in tickets:
+                        ticket.status = "CONFIRMED"
+                    
+                elif new_status == BookingStatus.CANCELLED:
+                    # Update tickets status to cancelled
+                    ticket_query = select(Ticket).where(Ticket.booking_id == booking_id)
+                    tickets = (await db.execute(ticket_query)).scalars().all()
+                    for ticket in tickets:
+                        ticket.status = "CANCELLED"
+            
+            await self.logger.send_log(
+                "INFO",
+                f"Successfully processed booking status update: {booking_id} -> {new_status}",
+                transaction_id=str(booking_id)
+            )
+            
+        except Exception as e:
+            await self.logger.send_log(
+                "ERROR",
+                f"Error processing booking status update: {str(e)}",
+                transaction_id=str(data.get("booking_id", "unknown"))
+            )
+            # Let the message queue handle retries
+            raise
+
+    async def get_booking(self, booking_id: UUID, db: AsyncSession) -> Dict[str, Any]:
+        """Get booking details with tickets"""
+        query = (
+            select(Booking)
+            .where(Booking.booking_id == booking_id)
+        )
+        result = await db.execute(query)
+        booking = result.scalar_one_or_none()
+        
+        if not booking:
+            return None
+        
+        # Get associated tickets
+        ticket_query = select(Ticket).where(Ticket.booking_id == booking_id)
+        tickets = (await db.execute(ticket_query)).scalars().all()
+            
+        return {
+            "booking_id": str(booking.booking_id),
+            "event_id": str(booking.event_id),
+            "user_id": booking.user_id,
+            "ticket_quantity": booking.ticket_quantity,
+            "total_amount": booking.total_amount,
+            "status": booking.status,
+            "created_at": booking.created_at,
+            "updated_at": booking.updated_at,
+            "tickets": [
+                {
+                    "ticket_id": str(ticket.ticket_id),
+                    "status": ticket.status
+                } for ticket in tickets
+            ]
+        }
 
     async def get_booking_by_id(self, booking_id: UUID4, db: AsyncSession) -> Dict[str, Any]:
         booking = await self.get_by_id(db, booking_id, "booking_id")
@@ -73,7 +215,7 @@ class BookingService(BaseService):
         
         if filter_type == TicketFilterType.USER:
             try:
-                user_uuid = uuid.UUID(str(filter_value))
+                user_uuid = UUID(str(filter_value))
                 query = query.filter(Booking.user_id == user_uuid)
             except ValueError as e:
                 raise HTTPException(status_code=400, detail=f"Invalid user ID format: {str(e)}")

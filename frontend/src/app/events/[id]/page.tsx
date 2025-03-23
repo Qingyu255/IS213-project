@@ -1,59 +1,61 @@
-"use client";
+"use client"
 
-import { useEffect, useState } from "react";
-import Image from "next/image";
-import { Calendar, Clock, MapPin, Users, Globe, Share2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
-import { EventMap } from "./components/event-map";
-import { EventDetails } from "@/types/event";
-import { BACKEND_ROUTES } from "@/constants/backend-routes";
-import { getBearerToken } from "@/utils/auth";
-import { ErrorMessageCallout } from "@/components/error-message-callout";
-import { Spinner } from "@/components/ui/spinner";
-import { useParams } from "next/navigation";
+import { useEffect, useState } from "react"
+import Image from "next/image"
+import { Calendar, Clock, MapPin, Users, Globe, Share2 } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Separator } from "@/components/ui/separator"
+import { EventMap } from "./components/event-map"
+import { EventDetails } from "@/types/event"
+import { BACKEND_ROUTES } from "@/constants/backend-routes"
+import { getBearerToken } from "@/utils/auth"
+import { ErrorMessageCallout } from "@/components/error-message-callout"
+import { Spinner } from "@/components/ui/spinner"
+import { useParams } from "next/navigation"
 
 export default function EventPage() {
-  const { id } = useParams();
-  const [event, setEvent] = useState<EventDetails | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { id } = useParams()
+  const [event, setEvent] = useState<EventDetails | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   // Fetch event details on component mount
   useEffect(() => {
     async function fetchEvent() {
       try {
-        const res = await fetch(`${BACKEND_ROUTES.eventsService}/api/v1/events/${id}`, {
-          headers: {
-            "Accept": "application/json",
-            Authorization: await getBearerToken()
+        const res = await fetch(
+          `${BACKEND_ROUTES.eventsService}/api/v1/events/${id}`,
+          {
+            headers: {
+              Accept: "application/json",
+              Authorization: await getBearerToken(),
+            },
           }
-        });
+        )
         if (!res.ok) {
-          throw new Error(`Failed to fetch event details: ${res.statusText}`);
+          throw new Error(`Failed to fetch event details: ${res.statusText}`)
         }
-        const data: EventDetails = await res.json();
-        console.log(data);
-        setEvent(data);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const data: EventDetails = await res.json()
+        console.log(data)
+        setEvent(data)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (err: any) {
-        setError(err.message || "An error occurred");
+        setError(err.message || "An error occurred")
       } finally {
-        setIsLoading(false);
+        setIsLoading(false)
       }
     }
-    fetchEvent();
-  }, [id]);
-
+    fetchEvent()
+  }, [id])
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-5">
         <Spinner size="sm" className="bg-black dark:bg-white" />
       </div>
-    );
+    )
   }
 
   if (error) {
@@ -61,7 +63,7 @@ export default function EventPage() {
       <div className="flex items-center justify-center p-5">
         <ErrorMessageCallout errorMessage={error} />
       </div>
-    );
+    )
   }
 
   if (!event) {
@@ -69,7 +71,7 @@ export default function EventPage() {
       <div className="flex items-center justify-center min-h-screen">
         <p>No event found.</p>
       </div>
-    );
+    )
   }
 
   return (
@@ -94,7 +96,10 @@ export default function EventPage() {
               <>
                 {event.categories.map((category, i) => {
                   return (
-                    <Badge key={i} className="mb-4 bg-primary/10 text-primary hover:bg-primary/20 border-0">
+                    <Badge
+                      key={i}
+                      className="mb-4 bg-primary/10 text-primary hover:bg-primary/20 border-0"
+                    >
                       {category as string}
                     </Badge>
                   )
@@ -106,9 +111,7 @@ export default function EventPage() {
               <div className="flex flex-wrap gap-4 text-muted-foreground">
                 <div className="flex items-center">
                   <Calendar className="w-5 h-5 mr-2" />
-                  <>
-                    {event.startDateTime}
-                  </>
+                  <>{event.startDateTime}</>
                   {new Date(event.startDateTime).toLocaleDateString()}
                 </div>
                 <div className="flex items-center">
@@ -163,9 +166,7 @@ export default function EventPage() {
             <div className="bg-card rounded-lg p-6 shadow-lg sticky top-6">
               <div className="flex justify-between items-center mb-6">
                 <div className="text-2xl font-bold">
-                  {event.price > 0
-                    ? `${event.price} SGD`
-                    : "Free"}
+                  {event.price > 0 ? `${event.price} SGD` : "Free"}
                 </div>
                 <Button className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600">
                   Book Now
@@ -200,7 +201,9 @@ export default function EventPage() {
               <h3 className="font-bold mb-4">Organized by</h3>
               <div className="flex items-center gap-4">
                 <Avatar className="w-12 h-12">
-                  <AvatarFallback>{event.organizer.username.slice(0, 3)}</AvatarFallback>
+                  <AvatarFallback>
+                    {event.organizer.username.slice(0, 3)}
+                  </AvatarFallback>
                 </Avatar>
                 <div>
                   <div className="font-medium">{event.organizer.username}</div>
@@ -211,5 +214,5 @@ export default function EventPage() {
         </div>
       </div>
     </div>
-  );
+  )
 }
