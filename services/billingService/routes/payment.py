@@ -5,6 +5,8 @@ from services.payment_service import PaymentService
 from services.validation import PaymentRequest, validate_stripe_id
 from functools import wraps
 import uuid
+import stripe
+from datetime import datetime
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -210,6 +212,81 @@ def verify_payment():
         
     except Exception as e:
         logger.error(f"Error verifying payment: {str(e)}", exc_info=True)
+        return jsonify({
+            "verified": False,
+            "error": "An unexpected error occurred while verifying the payment"
+        }), 500
+
+@payment_bp.route("/verify-event-payment", methods=['POST'])
+@require_json
+def verify_event_payment():
+    """
+    Verify payment status for an event registration.
+    
+    Request body:
+    {
+        "event_id": "string",  # Required: Event ID
+        "user_id": "string",   # Required: User ID
+    }
+    
+    Returns:
+        200: {
+            "verified": true,
+            "payment_intent_id": "pi_...",
+            "amount": 1000,
+            "currency": "sgd",
+            "status": "succeeded",
+            "event_id": "event_123",
+            "user_id": "user_123",
+            "payment_date": "2024-03-22T10:00:00Z"
+        }
+        404: {
+            "verified": false,
+            "error": "No payment found for this event registration"
+        }
+    """
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"verified": False, "error": "Missing request data"}), 400
+
+        event_id = data.get('event_id')
+        user_id = data.get('user_id')
+
+        if not event_id or not user_id:
+            return jsonify({"verified": False, "error": "Missing event_id or user_id"}), 400
+
+        # Query Stripe for payments with matching metadata
+        payments = stripe.PaymentIntent.list(
+            limit=1,
+            metadata={
+                'event_id': event_id,
+                'user_id': user_id
+            }
+        )
+
+        if not payments.data:
+            return jsonify({
+                "verified": False,
+                "error": "No payment found for this event registration"
+            }), 404
+
+        payment = payments.data[0]
+        
+        return jsonify({
+            "verified": True,
+            "payment_intent_id": payment.id,
+            "amount": payment.amount,
+            "currency": payment.currency,
+            "status": payment.status,
+            "event_id": event_id,
+            "user_id": user_id,
+            "payment_date": datetime.fromtimestamp(payment.created).isoformat(),
+            "can_refund": payment.status == "succeeded" and not payment.charges.data[0].refunded
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Error verifying event payment: {str(e)}", exc_info=True)
         return jsonify({
             "verified": False,
             "error": "An unexpected error occurred while verifying the payment"

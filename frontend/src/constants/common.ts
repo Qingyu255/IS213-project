@@ -15,12 +15,12 @@ export const InterestCategoryArr: InterestCategory[] = [
 ];
 
 export const InterestCategoryIcons: Record<string, React.FC<React.SVGProps<SVGSVGElement>>> = {
-    Technology: Code,
-    Sports: Trophy,
-    Music: Music,
-    Art: Palette,
-    Travel: Plane,
-    Food: UtensilsCrossed,
-    Science: FlaskConical,
-    Business: Briefcase,
+    technology: Code,
+    sports: Trophy,
+    music: Music,
+    art: Palette,
+    travel: Plane,
+    food: UtensilsCrossed,
+    science: FlaskConical,
+    business: Briefcase,
 };
