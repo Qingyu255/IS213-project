@@ -4,7 +4,6 @@ import logging
 from services.refund_service import RefundService
 from services.validation import RefundRequest, validate_stripe_id
 
-# Configure logging
 logger = logging.getLogger(__name__)
 
 refund_bp = Blueprint('refund', __name__)

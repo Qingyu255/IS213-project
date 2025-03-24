@@ -190,6 +190,9 @@ export default function CreateEventPage() {
 
       // Generate a proper UUID that's compatible with Java UUID format
       const eventUuid = uuidv4();
+      
+      // Get the organizer ID (user ID)
+      const organizerId = getUserId();
 
       // Construct the event payload per our EventDetails type
       const newEvent: EventDetails = {
@@ -210,7 +213,7 @@ export default function CreateEventPage() {
         categories,
         price: amount,
         organizer: {
-          id: getUserId(),
+          id: organizerId,
           username: (user && user.username) ? user.username : "",
         },
         capacity: isUnlimited ? undefined : (capacity ?? undefined),
@@ -222,6 +225,7 @@ export default function CreateEventPage() {
       // Also save in localStorage for redundancy
       try {
         localStorage.setItem('pending_event_data', JSON.stringify(newEvent));
+        console.log("Stored event data in localStorage:", newEvent);
       } catch (err) {
         // Just log the error but continue - we're using context as primary
         console.warn("Failed to use localStorage as backup:", err);
@@ -235,6 +239,7 @@ export default function CreateEventPage() {
         },
         body: JSON.stringify({
           eventId: newEvent.id,
+          organizerId: organizerId, // Include the organizer ID for verification
           amount: EVENT_CREATION_FEE_CENTS,
           description: `Event creation fee for "${newEvent.title}"`
         }),

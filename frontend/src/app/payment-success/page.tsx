@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
 import { useEffect, useState } from "react";
@@ -72,7 +73,7 @@ export default function PaymentSuccessPage() {
         setEventId(eventData.id);
 
         const token = await getBearerToken();
-        const createResponse = await fetch(`${BACKEND_ROUTES.createEventService}/api/events`, {
+        const createResponse = await fetch(`${BACKEND_ROUTES.createEventServiceUrl}/api/events`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -146,7 +147,7 @@ export default function PaymentSuccessPage() {
               <div className="flex">
                 <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
                 <p className="text-sm text-red-700">
-                  If you were charged, don't worry - we'll automatically process a refund.
+                  If you were charged, don&apos;t worry - we&apos;ll automatically process a refund.
                 </p>
               </div>
             </div>

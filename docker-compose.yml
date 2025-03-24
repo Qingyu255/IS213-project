@@ -109,6 +109,27 @@ services:
     networks:
       - default
 
+  # Billing Service Database
+  billing-db:
+    image: postgres:16.2
+    container_name: billing-db
+    environment:
+      POSTGRES_DB: ${BILLING_DB}
+      POSTGRES_USER: ${BILLING_DB_USER}
+      POSTGRES_PASSWORD: ${BILLING_DB_PASSWORD}
+    ports:
+      - "5437:5432"
+    volumes:
+      - billing-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        ["CMD-SHELL", "pg_isready -p 5432 -U ${BILLING_DB_USER} -d ${BILLING_DB}"]
+      interval: 1s
+      timeout: 10s
+      retries: 10
+    networks:
+      - default
+
   users-db-migrations:
     image: flyway/flyway:11.3.4
     volumes:
@@ -166,6 +187,22 @@ services:
     command: migrate
     depends_on:
       events-db:
+        condition: service_healthy
+        
+  # Billing service flyway migrations
+  billing-db-migrations:
+    image: flyway/flyway:11.3.4
+    container_name: billing-db-migrations
+    volumes:
+      - ./services/billingService/database/migrations:/flyway/sql
+    environment:
+      FLYWAY_URL: "jdbc:postgresql://billing-db:5432/${BILLING_DB}"
+      FLYWAY_USER: ${BILLING_DB_USER}
+      FLYWAY_PASSWORD: ${BILLING_DB_PASSWORD}
+      FLYWAY_BASELINE_ON_MIGRATE: "true"
+    command: migrate
+    depends_on:
+      billing-db:
         condition: service_healthy
 
   rabbitmq:
@@ -291,6 +328,7 @@ services:
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
       EVENT_SERVICE_URL: "http://events-service:8001"
+      DATABASE_URL: "postgresql://${BILLING_DB_USER}:${BILLING_DB_PASSWORD}@billing-db:5432/${BILLING_DB}"
       FLASK_ENV: "development"
     volumes:
       - ./services/billingService:/app # Mount source code for development
@@ -300,6 +338,8 @@ services:
     depends_on:
       events-service:
         condition: service_started
+      billing-db:
+        condition: service_healthy
       rabbitmq:
         condition: service_healthy
     networks:
@@ -309,13 +349,12 @@ services:
   stripe-cli:
     image: stripe/stripe-cli:latest
     container_name: stripe-cli
-    command: listen --api-key ${STRIPE_SECRET_KEY} --forward-to http://billing-service:5001/api/webhook
+    command: listen --api-key ${STRIPE_SECRET_KEY} --forward-to http://localhost:5001/api/webhook/
     env_file:
       - .env
     depends_on:
       - billing-service
-    networks:
-      - default
+    network_mode: "host"  # Use host network to access localhost services
 
   # example-spring-service:
   #   build:
@@ -344,6 +383,7 @@ volumes:
   ticket-db-data:
   logging-db-data:
   events-db-data:
+  billing-db-data:
 
 networks:
   default:

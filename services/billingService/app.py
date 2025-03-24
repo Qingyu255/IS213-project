@@ -9,6 +9,8 @@ from config import Config
 from routes.payment import payment_bp
 from routes.refund import refund_bp
 from routes.webhook import webhook_bp
+from routes.events import events_bp
+from models import init_db
 
 def setup_logging():
     """Configure application logging"""
@@ -24,13 +26,14 @@ def register_blueprints(app):
     app.register_blueprint(payment_bp, url_prefix="/api/payment")
     app.register_blueprint(refund_bp, url_prefix="/api/refund")
     app.register_blueprint(webhook_bp, url_prefix="/api/webhook")
+    app.register_blueprint(events_bp, url_prefix="/api/events")
 
-def create_app():
+def create_app(config_class=Config):
     """Application factory function"""
     app = Flask(__name__)
     
     # Load configuration
-    app.config.from_object(Config)
+    app.config.from_object(config_class)
     
     # Initialize CORS
     CORS(app, resources={
@@ -40,6 +43,9 @@ def create_app():
             "allow_headers": ["Content-Type", "Authorization"]
         }
     })
+    
+    # Initialize the database
+    init_db()
     
     # Register blueprints
     register_blueprints(app)
@@ -57,6 +63,10 @@ def create_app():
     def handle_exception(e):
         logger.error(f"Unhandled exception: {str(e)}", exc_info=True)
         return jsonify({"error": "An unexpected error occurred"}), 500
+    
+    @app.route('/')
+    def index():
+        return 'Billing Service API'
     
     return app
 

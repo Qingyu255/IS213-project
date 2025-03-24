@@ -9,7 +9,7 @@ export async function POST(request: Request) {
 
     // Get the request data
     const data = await request.json();
-    const { eventId, amount, description } = data;
+    const { eventId, organizerId, amount, description } = data;
 
     if (!eventId || !amount) {
       return NextResponse.json(
@@ -39,6 +39,7 @@ export async function POST(request: Request) {
       ],
       metadata: {
         event_id: eventId,
+        organizer_id: organizerId, // Include organizer ID in metadata for verification
       },
       mode: 'payment',
       success_url: `${origin}/create/success?session_id={CHECKOUT_SESSION_ID}`,
