@@ -1,13 +1,13 @@
 package IS213.G4T7.createEventService.services.utils;
 
-import IS213.G4T7.createEventService.dto.AtomicServiceEventCreationDetails;
-import IS213.G4T7.createEventService.dto.EventDetails;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.stream.Collectors;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import IS213.G4T7.createEventService.dto.AtomicServiceEventCreationDetails;
+import IS213.G4T7.createEventService.dto.EventDetails;
 
 public class EventMapper {
 
@@ -17,6 +17,7 @@ public class EventMapper {
     public static AtomicServiceEventCreationDetails toAtomic(EventDetails eventDetails) {
         AtomicServiceEventCreationDetails atomic = new AtomicServiceEventCreationDetails();
 
+        atomic.setId(eventDetails.getId());
         atomic.setTitle(eventDetails.getTitle());
         atomic.setDescription(eventDetails.getDescription());
 
