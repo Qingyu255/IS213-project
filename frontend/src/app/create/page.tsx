@@ -158,6 +158,32 @@ export default function CreateEventPage() {
     setError(null)
 
     try {
+      // Validate start date and time
+      if (!startDate || !startTime) {
+        setError("Please select both a start date and start time for your event");
+        setSubmitting(false);
+        return;
+      }
+
+      // Validate end date and time (if one is provided, both must be provided)
+      if ((endDate && !endTime) || (!endDate && endTime)) {
+        setError("Please provide both end date and end time, or leave both empty");
+        setSubmitting(false);
+        return;
+      }
+
+      // Validate that end datetime is after start datetime if provided
+      if (endDate && endTime) {
+        const startDateObj = new Date(`${startDate}T${startTime}`);
+        const endDateObj = new Date(`${endDate}T${endTime}`);
+        
+        if (endDateObj <= startDateObj) {
+          setError("End date and time must be after the start date and time");
+          setSubmitting(false);
+          return;
+        }
+      }
+
       // Combine date and time for ISO 8601 strings
       const startDateTime = startDate && startTime ? new Date(`${startDate}T${startTime}`).toISOString() : ""
       const endDateTime = endDate && endTime ? new Date(`${endDate}T${endTime}`).toISOString() : undefined
@@ -190,33 +216,16 @@ export default function CreateEventPage() {
         capacity: isUnlimited ? undefined : (capacity ?? undefined),
       }
       
-      // CRITICAL: Store in localStorage FIRST - this is our primary storage
-      try {
-        console.log("SAVE DATA: Attempting to store event data in localStorage");
-        const eventJson = JSON.stringify(newEvent);
-        localStorage.setItem('pending_event_data', eventJson);
-        
-        // Verify it was stored correctly
-        const storedDataVerify = localStorage.getItem('pending_event_data');
-        if (!storedDataVerify) {
-          throw new Error("Failed to store event data in localStorage");
-        }
-        
-        // Parse the data back to verify it's valid JSON
-        const parsedStoredData = JSON.parse(storedDataVerify);
-        console.log("SAVE DATA: Event stored in localStorage with ID:", parsedStoredData.id);
-        console.log("SAVE DATA: Event title verification:", parsedStoredData.title);
-        console.log("SAVE DATA: Storage verification successful");
-      } catch (err) {
-        console.error("CRITICAL ERROR: Failed to store event data in localStorage:", err);
-        setError("Failed to store event data. Please try again.");
-        setSubmitting(false);
-        return;
-      }
-      
-      // Also store in context as backup
+      // Store in context first
       setEventData(newEvent);
-      console.log("SAVE DATA: Event data also set in context");
+      
+      // Also save in localStorage for redundancy
+      try {
+        localStorage.setItem('pending_event_data', JSON.stringify(newEvent));
+      } catch (err) {
+        // Just log the error but continue - we're using context as primary
+        console.warn("Failed to use localStorage as backup:", err);
+      }
       
       // Create a payment session with Stripe
       const response = await fetch('/api/stripe', {
@@ -356,11 +365,16 @@ export default function CreateEventPage() {
 
             {/* Date / Time */}
             <div className="space-y-2">
-              <Label>Start Date & Time</Label>
+              <Label>
+                Start Date & Time <span className="text-red-500">*</span>
+              </Label>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-start text-left font-normal">
+                    <Button 
+                      variant="outline" 
+                      className={`w-full justify-start text-left font-normal ${!startDate ? "border-red-200 dark:border-red-800" : ""}`}
+                    >
                       <CalendarIcon className="mr-2 h-4 w-4" />
                       {startDate ? startDate : <span>Pick a date</span>}
                     </Button>
@@ -377,7 +391,10 @@ export default function CreateEventPage() {
                 </Popover>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-start text-left font-normal">
+                    <Button 
+                      variant="outline" 
+                      className={`w-full justify-start text-left font-normal ${!startTime ? "border-red-200 dark:border-red-800" : ""}`}
+                    >
                       <Clock className="mr-2 h-4 w-4" />
                       {startTime ? startTime : <span>Set time</span>}
                     </Button>
@@ -427,6 +444,7 @@ export default function CreateEventPage() {
                   </PopoverContent>
                 </Popover>
               </div>
+              <p className="text-sm text-muted-foreground">Both start date and time are required.</p>
             </div>
 
             <div className="space-y-2">
@@ -434,7 +452,12 @@ export default function CreateEventPage() {
               <div className="flex flex-col sm:flex-row gap-4">
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-start text-left font-normal">
+                    <Button 
+                      variant="outline" 
+                      className={`w-full justify-start text-left font-normal ${
+                        endTime && !endDate ? "border-red-200 dark:border-red-800" : ""
+                      }`}
+                    >
                       <CalendarIcon className="mr-2 h-4 w-4" />
                       {endDate ? endDate : <span>Pick a date</span>}
                     </Button>
@@ -452,7 +475,12 @@ export default function CreateEventPage() {
 
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-start text-left font-normal">
+                    <Button 
+                      variant="outline" 
+                      className={`w-full justify-start text-left font-normal ${
+                        endDate && !endTime ? "border-red-200 dark:border-red-800" : ""
+                      }`}
+                    >
                       <Clock className="mr-2 h-4 w-4" />
                       {endTime ? endTime : <span>Set time</span>}
                     </Button>
@@ -502,6 +530,7 @@ export default function CreateEventPage() {
                   </PopoverContent>
                 </Popover>
               </div>
+              <p className="text-sm text-muted-foreground">If setting an end time, both date and time must be provided. End time must be after start time.</p>
             </div>
 
             {/* Timezone */}

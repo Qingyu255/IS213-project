@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client"
 
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react'
@@ -29,37 +30,31 @@ export function EventCreationProvider({ children }: { children: ReactNode }) {
 
   // Initialize from localStorage on client-side mount
   useEffect(() => {
-    console.log("PROVIDER: EventCreationProvider mounting");
-    
     // Safety check for client-side code
-    if (typeof window === 'undefined') {
-      console.log("PROVIDER: Running on server, skipping localStorage check");
-      return;
-    }
+    if (typeof window === 'undefined') return;
     
     try {
+      // Try to restore from localStorage - this helps with page refreshes
       const storedData = localStorage.getItem('pending_event_data')
       
       if (!storedData) {
-        console.log("PROVIDER: No event data found in localStorage during initialization");
         setInitialized(true);
         return;
       }
       
-      console.log("PROVIDER: Found data in localStorage during initialization, length:", storedData.length);
-      
       try {
         const parsedData = JSON.parse(storedData)
-        console.log("PROVIDER: Successfully parsed event data from localStorage, ID:", parsedData.id);
-        console.log("PROVIDER: Event title from localStorage:", parsedData.title);
+        console.log("Restored event data from localStorage, ID:", parsedData.id);
+        
+        // Set the data in our context
         setEventDataState(parsedData)
       } catch (e) {
-        console.error("PROVIDER: Error parsing localStorage data during initialization:", e)
+        console.error("Error parsing saved data:", e)
         // If we can't parse the data, clear it to avoid future errors
         localStorage.removeItem('pending_event_data')
       }
     } catch (e) {
-      console.error("PROVIDER: Error accessing localStorage during initialization:", e)
+      console.error("Error during initialization:", e)
     } finally {
       setInitialized(true)
     }
@@ -71,17 +66,15 @@ export function EventCreationProvider({ children }: { children: ReactNode }) {
     
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'pending_event_data') {
-        console.log("PROVIDER: localStorage event data changed externally");
         if (e.newValue) {
           try {
             const parsedData = JSON.parse(e.newValue);
-            console.log("PROVIDER: Updating context from external localStorage change");
+            console.log("External storage change detected, updating context");
             setEventDataState(parsedData);
           } catch (err) {
-            console.error("PROVIDER: Error parsing external localStorage change:", err);
+            console.error("Error parsing external data change:", err);
           }
         } else {
-          console.log("PROVIDER: External localStorage event data was cleared");
           setEventDataState(null);
         }
       }
@@ -92,37 +85,28 @@ export function EventCreationProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const setEventData = (data: EventDetails) => {
-    console.log("PROVIDER: Setting event data in context:", data.id);
-    console.log("PROVIDER: Event title:", data.title);
+    console.log("Setting event data in context, ID:", data.id);
     
-    // Update state
+    // Update context state - this is the PRIMARY storage
     setEventDataState(data)
     
-    // Sync with localStorage
+    // Sync with localStorage as backup
     try {
-      const jsonData = JSON.stringify(data);
-      localStorage.setItem('pending_event_data', jsonData);
-      
-      // Verify storage worked
-      const storedData = localStorage.getItem('pending_event_data');
-      if (!storedData) {
-        console.error("PROVIDER: Failed to store data in localStorage after verification check");
-      } else {
-        console.log("PROVIDER: Successfully stored event data in localStorage, verified");
-      }
+      localStorage.setItem('pending_event_data', JSON.stringify(data));
     } catch (e) {
-      console.error("PROVIDER: Error storing event data in localStorage:", e)
+      console.error("Error saving to localStorage:", e)
     }
   }
 
   const clearEventData = () => {
-    console.log("PROVIDER: Clearing event data from context and localStorage");
+    // Clear primary storage (context)
     setEventDataState(null)
     
+    // Also clear backup
     try {
       localStorage.removeItem('pending_event_data')
     } catch (e) {
-      console.error("PROVIDER: Error removing event data from localStorage:", e)
+      console.error("Error clearing localStorage:", e)
     }
   }
 

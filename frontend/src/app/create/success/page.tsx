@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { BACKEND_ROUTES } from "@/constants/backend-routes";
 import { getBearerToken } from "@/utils/auth";
 import { Spinner } from "@/components/ui/spinner";
@@ -24,6 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { getCheckoutSession } from "../actions";
 import { useEventCreation } from "@/providers/event-creation-provider";
 import { toast } from "sonner";
+import type { EventDetails } from "@/types/event";
 
 type SuccessProps = {
   searchParams: {
@@ -41,80 +42,78 @@ export default function Success({ searchParams }: SuccessProps) {
   const [eventTitle, setEventTitle] = useState<string | null>(null);
   const [progress, setProgress] = useState(33);
   const { eventData, clearEventData } = useEventCreation();
+  const isProcessing = useRef(false);
 
   useEffect(() => {
     async function processSuccess() {
+      // Prevent duplicate processing
+      if (isProcessing.current) {
+        console.log("Already processing event creation, skipping duplicate call");
+        return;
+      }
+      
+      // Set processing flag to prevent duplicate calls
+      isProcessing.current = true;
+      
       try {
         const sessionId = searchParams.session_id;
         if (!sessionId) {
           throw new Error("Missing session_id parameter");
         }
 
-        console.log("SUCCESS PAGE: Processing with session_id:", sessionId);
+        // 1. Check context data first (primary source)
+        let eventToCreate = eventData;
         
-        // 1. LOCAL STORAGE FIRST - this is our primary data source
-        // Get the pending event data from localStorage
-        console.log("SUCCESS PAGE: Checking localStorage directly first");
-        const storedEventDataString = localStorage.getItem('pending_event_data');
-        
-        if (!storedEventDataString) {
-          console.error("SUCCESS PAGE: No event data found in localStorage!");
-          // Event data not found - check if the user has it in context as backup
-          console.log("SUCCESS PAGE: Falling back to context data:", !!eventData);
+        if (eventToCreate) {
+          console.log("Found event data in context, ID:", eventToCreate.id);
+        } else {
+          // 2. Fall back to localStorage if context data is not available
+          console.log("Context data not found, checking localStorage fallback");
+          const storedEventDataString = localStorage.getItem('pending_event_data');
           
-          if (!eventData) {
+          if (!storedEventDataString) {
+            console.error("No event data found in either context or localStorage!");
             throw new Error("Event data not found. Please try creating your event again.");
           }
-        } else {
-          console.log("SUCCESS PAGE: Found event data in localStorage, length:", storedEventDataString.length);
+          
+          try {
+            eventToCreate = JSON.parse(storedEventDataString) as EventDetails;
+            console.log("Retrieved event from localStorage, ID:", eventToCreate.id);
+          } catch (error) {
+            console.error("Error parsing localStorage event data:", error);
+            throw new Error("Could not retrieve valid event data. Please try again.");
+          }
         }
         
-        // 2. Verify payment with Stripe
-        console.log("SUCCESS PAGE: Verifying payment session:", sessionId);
+        // 3. Verify payment with Stripe
         const sessionResult = await getCheckoutSession(sessionId);
         
         if (!sessionResult.success) {
-          console.error("SUCCESS PAGE: Session verification failed:", sessionResult.error);
+          console.error("Session verification failed:", sessionResult.error);
           throw new Error(`Payment verification failed: ${sessionResult.error}`);
         }
         
         const checkoutSession = sessionResult.session;
-        console.log("SUCCESS PAGE: Payment status:", checkoutSession?.status);
         
         if (!checkoutSession || checkoutSession.status !== 'complete') {
           throw new Error(`Payment not completed. Status: ${checkoutSession?.status || 'unknown'}`);
         }
         
-        console.log("SUCCESS PAGE: Payment verification successful");
+        console.log("Payment verification successful");
         setStatus('verifying');
         setProgress(66);
-        
-        // 3. Parse and use event data from localStorage
-        let eventToCreate;
-        
-        try {
-          if (storedEventDataString) {
-            console.log("SUCCESS PAGE: Parsing localStorage event data");
-            eventToCreate = JSON.parse(storedEventDataString);
-            console.log("SUCCESS PAGE: Event from localStorage:", eventToCreate?.id);
-          } else if (eventData) {
-            console.log("SUCCESS PAGE: Using context fallback");
-            eventToCreate = eventData;
-            console.log("SUCCESS PAGE: Event from context:", eventData?.id);
-          }
-        } catch (error) {
-          console.error("SUCCESS PAGE: Error parsing event data:", error);
-          throw new Error("Could not retrieve valid event data. Please try again.");
-        }
         
         // 4. Make sure we have valid event data to proceed
         if (!eventToCreate || !eventToCreate.id) {
           throw new Error("Invalid event data. Please try creating your event again.");
         }
         
-        setEventId(eventToCreate.id);
-        setEventTitle(eventToCreate.title);
-        console.log("SUCCESS PAGE: Creating event with ID:", eventToCreate.id);
+        // At this point we've verified eventToCreate is not null
+        const validEventData = eventToCreate; // Non-null assertion via new variable
+        
+        setEventId(validEventData.id);
+        setEventTitle(validEventData.title);
+        console.log("Creating event with ID:", validEventData.id);
         
         // 5. Create the event with the service
         setStatus("creating");
@@ -131,7 +130,7 @@ export default function Success({ searchParams }: SuccessProps) {
               "Content-Type": "application/json",
               Authorization: `Bearer ${token}`,
             },
-            body: JSON.stringify(eventToCreate),
+            body: JSON.stringify(validEventData),
           }
         );
 
@@ -158,11 +157,17 @@ export default function Success({ searchParams }: SuccessProps) {
           error instanceof Error ? error.message : "An unknown error occurred"
         );
         setStatus("error");
+      } finally {
+        // Reset processing flag in case of mount/unmount scenarios
+        // This ensures future mounts can still process if needed
+        setTimeout(() => {
+          isProcessing.current = false;
+        }, 5000); // Add a small delay to prevent rapid retries
       }
     }
 
     processSuccess();
-  }, [searchParams, eventData, clearEventData]);
+  }, [searchParams.session_id, clearEventData]); // Removed eventData from dependencies
 
   // Show appropriate UI based on status
   return (
@@ -305,3 +310,4 @@ export default function Success({ searchParams }: SuccessProps) {
     </div>
   );
 }
+

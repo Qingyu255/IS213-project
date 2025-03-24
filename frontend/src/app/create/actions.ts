@@ -1,8 +1,6 @@
 'use server'
 
 import { stripe } from '@/lib/stripe'
-// We still need Stripe for type definitions
-import type Stripe from 'stripe'
 
 type CheckoutSessionResponse = {
   success: boolean;
