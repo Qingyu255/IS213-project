@@ -1,6 +1,7 @@
 "use client"
 import { useEffect, useState, type FormEvent } from "react"
 import type React from "react"
+import { v4 as uuidv4 } from 'uuid';
 
 import Image from "next/image"
 import { Calendar as CalendarIcon, Clock, ChevronDown, Users, Pencil, Ticket, Plus, X } from "lucide-react"
@@ -13,7 +14,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Textarea } from "@/components/ui/textarea"
 import { Spinner } from "@/components/ui/spinner"
 import { Calendar } from "@/components/ui/calendar"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 
 import { fetchAuthSession } from "aws-amplify/auth"
 import { Route } from "@/enums/Route"
@@ -65,6 +66,13 @@ export default function CreateEventPage() {
   // Other fields
   const [timezone, setTimezone] = useState("utc")
 
+  const searchParams = useSearchParams();
+  if (searchParams.get("canceled")) {
+    console.log(
+      'Event Creation Payment canceled'
+      // route to cancelled page?
+    )
+  }
   // -----------------------
   // Auth check on mount (DO NOT MODIFY)
   // -----------------------
@@ -152,9 +160,12 @@ export default function CreateEventPage() {
       const startDateTime = startDate && startTime ? new Date(`${startDate}T${startTime}`).toISOString() : ""
       const endDateTime = endDate && endTime ? new Date(`${endDate}T${endTime}`).toISOString() : undefined
 
+      // Generate a proper UUID that's compatible with Java UUID format
+      const eventUuid = uuidv4();
+
       // Construct the event payload per our EventDetails type
       const newEvent: EventDetails = {
-        id: "", // Backend will auto-generate the ID
+        id: eventUuid, // Use standard UUID format
         title,
         description,
         startDateTime: startDateTime,
@@ -167,11 +178,11 @@ export default function CreateEventPage() {
           coordinates: coordinates,
           additionalDetails: additionalDetails
         },
-        imageUrl: images[mainImageIndex], // Use the main image (Note that additional images wont be posted to backend for now) and this is not working (explore s3 if there is time)
+        imageUrl: images[mainImageIndex], // Use the main image
         categories,
         price: amount,
         organizer: {
-          id: getUserId(), // e.g. the user's Cognito sub / user name; idt sub is the same as uuid in db
+          id: getUserId(),
           username: (user && user.username) ? user.username : "",
         },
         capacity: isUnlimited ? undefined : (capacity ?? undefined),
@@ -195,9 +206,8 @@ export default function CreateEventPage() {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
-      console.error("Error creating event:", err)
+      console.error("Error preparing event creation:", err)
       setError(err.message || "An unknown error occurred.")
-    } finally {
       setSubmitting(false)
     }
   }
@@ -634,9 +644,14 @@ export default function CreateEventPage() {
             )}
 
             {/* Submit Button */}
-            <Button className="w-full" type="submit" disabled={submitting}>
-              {submitting ? "Creating..." : "Create Event"}
-            </Button>
+            <form action="/api/checkout_sessions" method="POST">
+              <Button className="w-full" type="submit" disabled={submitting}>
+                {submitting ? "Processing..." : `Create Event ($2 SGD Fee)`}
+              </Button>
+            </form>
+            <p className="text-sm text-muted-foreground text-center mt-2">
+              A $2 SGD fee applies to all event listings. You&apos;ll be directed to payment after clicking the button.
+            </p>
           </div>
         </div>
       </form>

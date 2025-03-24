@@ -42,7 +42,7 @@ interface EventTimelineProps {
   type: "attending" | "hosting"
 }
 
-export function EventTimeline({ events, type }: EventTimelineProps) {
+export function EventTimeline({ events }: EventTimelineProps) {
   const [processingBookingId, setProcessingBookingId] = useState<string | null>(
     null
   )

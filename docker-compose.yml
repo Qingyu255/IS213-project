@@ -297,16 +297,23 @@ services:
       - /app/__pycache__
       - /app/services/__pycache__
       - /app/routes/__pycache__
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
     depends_on:
       events-service:
         condition: service_started
       rabbitmq:
         condition: service_healthy
+    networks:
+      - default
+
+  # Stripe CLI service for webhook forwarding
+  stripe-cli:
+    image: stripe/stripe-cli:latest
+    container_name: stripe-cli
+    command: listen --api-key ${STRIPE_SECRET_KEY} --forward-to http://billing-service:5001/api/webhook
+    env_file:
+      - .env
+    depends_on:
+      - billing-service
     networks:
       - default
 

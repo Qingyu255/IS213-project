@@ -13,13 +13,19 @@ import { BACKEND_ROUTES } from "@/constants/backend-routes";
 import { getBearerToken } from "@/utils/auth";
 import { ErrorMessageCallout } from "@/components/error-message-callout";
 import { Spinner } from "@/components/ui/spinner";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 
 export default function EventPage() {
   const { id } = useParams();
   const [event, setEvent] = useState<EventDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isRegistered, setIsRegistered] = useState(false);
+  const router = useRouter();
+
+  const handleRefundClick = () => {
+    router.push(`/events/${id}/refund`);
+  };
 
   // Fetch event details on component mount
   useEffect(() => {
@@ -47,6 +53,30 @@ export default function EventPage() {
     fetchEvent();
   }, [id]);
 
+  // Check if user is registered for the event
+  useEffect(() => {
+    async function checkRegistration() {
+      if (!event) return;
+      
+      try {
+        // In a real implementation, this would call an API to check registration
+        // For now, we'll just check if the user has a valid token
+        const token = await getBearerToken();
+        if (token) {
+          // This is a placeholder - in a real app you would call your API
+          // const response = await fetch(`${BACKEND_ROUTES.ticketManagementService}/api/tickets/check/${id}`);
+          // setIsRegistered(await response.json());
+          
+          // For demo purposes, we'll just set it to false
+          setIsRegistered(false);
+        }
+      } catch (error) {
+        console.error("Failed to check registration status:", error);
+      }
+    }
+    
+    checkRegistration();
+  }, [event, id]);
 
   if (isLoading) {
     return (
@@ -167,9 +197,19 @@ export default function EventPage() {
                     ? `${event.price} SGD`
                     : "Free"}
                 </div>
-                <Button className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600">
-                  Book Now
-                </Button>
+                {isRegistered ? (
+                  <Button
+                    variant="outline"
+                    onClick={handleRefundClick}
+                    className="w-full md:w-auto"
+                  >
+                    Request Refund
+                  </Button>
+                ) : (
+                  <Button className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600">
+                    Book Now
+                  </Button>
+                )}
               </div>
               <Separator className="my-4" />
               <div className="space-y-4">

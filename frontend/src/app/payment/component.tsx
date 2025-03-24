@@ -38,6 +38,8 @@ export default function EmbeddedCheckoutPage({
           amount,              
           currency,            
           description,     
+          confirm: true,
+          return_url: `${window.location.origin}/payment-success?eventId=${eventId}`,
           metadata: {
             event_id: eventId
           }
@@ -67,9 +69,10 @@ export default function EmbeddedCheckoutPage({
         } else {
           throw new Error("No client secret returned from server");
         }
-      } catch (err: any) {
+      } catch (err: Error | unknown) {
         console.error("Payment error:", err);
-        setError("Error fetching client secret: " + err.message);
+        const errorMessage = err instanceof Error ? err.message : "Unknown error";
+        setError("Error fetching client secret: " + errorMessage);
       } finally {
         setLoading(false);
       }
