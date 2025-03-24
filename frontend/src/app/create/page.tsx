@@ -21,18 +21,20 @@ import { Route } from "@/enums/Route"
 import { InterestCategory } from "@/enums/InterestCategory"
 import type { EventDetails } from "@/types/event"
 import { toast } from "sonner"
-import { BACKEND_ROUTES } from "@/constants/backend-routes"
-import { getBearerToken } from "@/utils/auth"
 import VenueAutocomplete from "@/components/googlemaps/VenueAutocomplete"
 import useAuthUser from "@/hooks/use-auth-user"
 import { ErrorMessageCallout } from "@/components/error-message-callout"
-import { getErrorStringFromResponse } from "@/utils/common"
+import { useEventCreation } from "@/providers/event-creation-provider"
+
+// Constants
+const EVENT_CREATION_FEE_CENTS = 200  // $2.00 SGD
 
 export default function CreateEventPage() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const { setEventData } = useEventCreation()
 
   // -----------------------
   // Form field states
@@ -187,28 +189,69 @@ export default function CreateEventPage() {
         },
         capacity: isUnlimited ? undefined : (capacity ?? undefined),
       }
-
-      // Send the payload to your backend
-      const response = await fetch(`${BACKEND_ROUTES.createEventServiceUrl}/api/v1/create-event`, {
-        method: "POST",
+      
+      // CRITICAL: Store in localStorage FIRST - this is our primary storage
+      try {
+        console.log("SAVE DATA: Attempting to store event data in localStorage");
+        const eventJson = JSON.stringify(newEvent);
+        localStorage.setItem('pending_event_data', eventJson);
+        
+        // Verify it was stored correctly
+        const storedDataVerify = localStorage.getItem('pending_event_data');
+        if (!storedDataVerify) {
+          throw new Error("Failed to store event data in localStorage");
+        }
+        
+        // Parse the data back to verify it's valid JSON
+        const parsedStoredData = JSON.parse(storedDataVerify);
+        console.log("SAVE DATA: Event stored in localStorage with ID:", parsedStoredData.id);
+        console.log("SAVE DATA: Event title verification:", parsedStoredData.title);
+        console.log("SAVE DATA: Storage verification successful");
+      } catch (err) {
+        console.error("CRITICAL ERROR: Failed to store event data in localStorage:", err);
+        setError("Failed to store event data. Please try again.");
+        setSubmitting(false);
+        return;
+      }
+      
+      // Also store in context as backup
+      setEventData(newEvent);
+      console.log("SAVE DATA: Event data also set in context");
+      
+      // Create a payment session with Stripe
+      const response = await fetch('/api/stripe', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
-          Authorization: await getBearerToken(),
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify(newEvent),
+        body: JSON.stringify({
+          eventId: newEvent.id,
+          amount: EVENT_CREATION_FEE_CENTS,
+          description: `Event creation fee for "${newEvent.title}"`
+        }),
       })
 
       if (!response.ok) {
-        throw new Error(await getErrorStringFromResponse(response));
+        const errorData = await response.json()
+        throw new Error(`Error creating payment session: ${errorData.error || response.statusText}`)
       }
 
-      toast("Event created successfully!")
+      const { url } = await response.json()
+      
+      if (!url) {
+        throw new Error('No checkout URL returned from payment service')
+      }
+      
+      // Redirect to the Stripe Checkout page
+      window.location.href = url
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       console.error("Error preparing event creation:", err)
       setError(err.message || "An unknown error occurred.")
       setSubmitting(false)
+      // Show error toast
+      toast.error(err.message || "An unknown error occurred.")
     }
   }
 
@@ -644,11 +687,9 @@ export default function CreateEventPage() {
             )}
 
             {/* Submit Button */}
-            <form action="/api/checkout_sessions" method="POST">
-              <Button className="w-full" type="submit" disabled={submitting}>
-                {submitting ? "Processing..." : `Create Event ($2 SGD Fee)`}
-              </Button>
-            </form>
+            <Button className="w-full" type="submit" disabled={submitting}>
+              {submitting ? "Processing..." : `Create Event ($2 SGD Fee)`}
+            </Button>
             <p className="text-sm text-muted-foreground text-center mt-2">
               A $2 SGD fee applies to all event listings. You&apos;ll be directed to payment after clicking the button.
             </p>
