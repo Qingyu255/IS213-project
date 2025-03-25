@@ -9,6 +9,6 @@ class EventOrganizer(Base):
 
     event_id = Column(UUID(as_uuid=True), ForeignKey("events.id", ondelete="CASCADE"), primary_key=True)
     organizer_id = Column(UUID(as_uuid=True), primary_key=True)  # No FK constraint, assuming external reference
-    name = Column(String, nullable=False)
+    organizer_username = Column(String, nullable=False)
 
     event = relationship("Event", back_populates="organizers")

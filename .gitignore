@@ -58,3 +58,6 @@ yarn-error.log*
 # Python related
 venv/
 __pycache__/
+
+# Rider related
+*.sln

@@ -7,6 +7,7 @@ import lombok.Data;
 
 @Data
 public class AtomicServiceEventCreationDetails {
+    private String id;
     private String title;
     private String description;
     private LocalDateTime startDateTime;

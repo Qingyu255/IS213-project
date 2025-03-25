@@ -8,6 +8,7 @@ import ConfigureAmplifyClientSide from "./amplify-cognito-config";
 import { Toaster } from "@/components/ui/sonner";
 import Script from "next/script";
 import InterestCheckWrapper from "@/components/InterestCheckWrapper";
+import { EventCreationProvider } from "@/providers/event-creation-provider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -46,9 +47,11 @@ export default function RootLayout({
         >
           <main>
             <InterestCheckWrapper>
-              <ConfigureAmplifyClientSide />
-              <Navbar />
-              {children}
+              <EventCreationProvider>
+                <ConfigureAmplifyClientSide />
+                <Navbar />
+                {children}
+              </EventCreationProvider>
             </InterestCheckWrapper>
           </main>
           <Toaster />

@@ -20,6 +20,7 @@ class Venue(BaseModel):
     coordinates: Coordinates
 
 class EventCreate(BaseModel):
+    id: str
     title: str
     description: Optional[str]
     startDateTime: datetime
