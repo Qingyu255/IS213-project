@@ -1,4 +1,4 @@
-# app.py
+from http import HTTPStatus
 import logging
 import os
 from flask import Flask, jsonify
@@ -6,7 +6,6 @@ from flask_cors import CORS
 from config import Config
 
 # Import routes
-from routes.payment import payment_bp
 from routes.refund import refund_bp
 from routes.webhook import webhook_bp
 from routes.events import events_bp
@@ -23,7 +22,6 @@ def setup_logging():
 
 def register_blueprints(app):
     """Register all blueprints for the application"""
-    app.register_blueprint(payment_bp, url_prefix="/api/payment")
     app.register_blueprint(refund_bp, url_prefix="/api/refund")
     app.register_blueprint(webhook_bp, url_prefix="/api/webhook")
     app.register_blueprint(events_bp, url_prefix="/api/events")
@@ -51,18 +49,18 @@ def create_app(config_class=Config):
     register_blueprints(app)
     
     # Register error handlers
-    @app.errorhandler(404)
+    @app.errorhandler(HTTPStatus.BAD_REQUEST)
     def not_found_error(error):
-        return jsonify({"error": "Not found"}), 404
+        return jsonify({"error": "Not found"}), HTTPStatus.BAD_REQUEST
 
-    @app.errorhandler(500)
+    @app.errorhandler(HTTPStatus.INTERNAL_SERVER_ERROR)
     def internal_error(error):
-        return jsonify({"error": "Internal server error"}), 500
+        return jsonify({"error": "Internal server error"}), HTTPStatus.INTERNAL_SERVER_ERROR
 
     @app.errorhandler(Exception)
     def handle_exception(e):
         logger.error(f"Unhandled exception: {str(e)}", exc_info=True)
-        return jsonify({"error": "An unexpected error occurred"}), 500
+        return jsonify({"error": "An unexpected error occurred"}), HTTPStatus.INTERNAL_SERVER_ERROR
     
     @app.route('/')
     def index():
@@ -91,9 +89,9 @@ def health_check():
         return jsonify({
             "status": "unhealthy",
             "error": str(e)
-        }), 500
+        }), HTTPStatus.INTERNAL_SERVER_ERROR
 
 if __name__ == '__main__':
     logger.info("Starting Billing Service...")
-    port = int(os.getenv('PORT', 5001))
+    port = int(os.getenv('PORT', HTTPStatus.INTERNAL_SERVER_ERROR1))
     app.run(host='0.0.0.0', port=port)

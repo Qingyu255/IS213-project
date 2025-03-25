@@ -1,4 +1,5 @@
 # routes/refund.py
+# TODO: This file needs work for refund composite service
 from flask import Blueprint, request, jsonify
 import logging
 from services.refund_service import RefundService
@@ -8,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 refund_bp = Blueprint('refund', __name__)
 
-@refund_bp.route("/process", methods=['POST'])
+@refund_bp.route("/process", methods=['POST']) # TODO: Check if still needed
 def process_refund():
     """
     Process a refund using Stripe's Payment Intents API.

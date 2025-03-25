@@ -356,28 +356,6 @@ services:
       - billing-service
     network_mode: "host"  # Use host network to access localhost services
 
-  # example-spring-service:
-  #   build:
-  #     context: ./services/exampleSpringService
-  #   container_name: example-spring-service
-  #   ports:
-  #     - "8080:8080" # Expose the Spring service on localhost:8080; change port accordingly for your service
-  #   networks:
-  #     - default
-
-  # example-flask-service:
-  #   build:
-  #     context: ./services/exampleFlaskService
-  #   container_name: example-flask-service
-  #   ports:
-  #     - "5000:5000" # Expose the Flask service on localhost:5000; change port accodingly for your service
-  #   depends_on:
-  #     - example-spring-service # Ensure the example-spring-service is up before flask tries to connect
-  #   volumes:
-  #     - ./services/exampleFlaskService:/app # Mount only the Flask service directory
-  #   networks:
-  #     - default
-
 volumes:
   users-db-data:
   ticket-db-data:

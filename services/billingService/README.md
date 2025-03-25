@@ -1,188 +1,212 @@
 # Billing Service
 
-This microservice handles payment processing for the event management system using Stripe as the payment gateway.
+A Flask-based service that handles payment processing, verification, and refunds using Stripe.
 
 ## Features
 
-- Secure payment processing using Stripe Payment Intents API
-- Support for 3D Secure authentication
-- Comprehensive refund handling with partial refund support
-- Production-grade webhook processing with signature verification
-- Idempotent payment operations
-- Detailed payment status tracking and verification
-- Integration with event service for payment notifications
-
-## Testing Guide
-
-### 1. Test Cards & Payment Methods
-
-For security, card information is never sent directly to this service. Instead:
-
-1. **Create a Test Payment Method** using Stripe CLI:
-
-```bash
-# Create a Payment Method with test card
-stripe payment_methods create \
-  -d type=card \
-  -d card[number]=4242424242424242 \
-  -d card[exp_month]=12 \
-  -d card[exp_year]=2024 \
-  -d card[cvc]=123
-
-# Save the Payment Method ID (pm_...) for API calls
-```
-
-**Available Test Cards:**
-
-```
-Successful Payment:
-  Number: 4242 4242 4242 4242
-  Expiry: Any future date
-  CVC: Any 3 digits
-
-3D Secure Required:
-  Number: 4000 0000 0000 3220
-  Expiry: Any future date
-  CVC: Any 3 digits
-
-Payment Fails:
-  Number: 4000 0000 0000 9995
-  Expiry: Any future date
-  CVC: Any 3 digits
-```
-
-### 2. Test API Calls
-
-1. **Process a Payment** (using Payment Method ID):
-
-```bash
-curl -X POST http://localhost:5001/api/payment/process \
-  -H "Content-Type: application/json" \
-  -d '{
-    "amount": 1000,
-    "currency": "sgd",
-    "payment_method": "pm_...",  # Use Payment Method ID from step 1
-    "description": "Test payment",
-    "metadata": {
-      "event_id": "test_123"
-    }
-  }'
-```
-
-2. **Verify Payment Status**:
-
-```bash
-curl -X POST http://localhost:5001/api/payment/verify \
-  -H "Content-Type: application/json" \
-  -d '{
-    "payment_intent_id": "pi_..."  # Use ID from previous response
-  }'
-```
-
-3. **Process a Refund**:
-
-```bash
-curl -X POST http://localhost:5001/api/refund/process \
-  -H "Content-Type: application/json" \
-  -d '{
-    "payment_intent_id": "pi_...",
-    "amount": 1000,
-    "reason": "requested_by_customer"
-  }'
-```
-
-### 3. Testing Webhooks Locally
-
-1. Install Stripe CLI:
-
-```bash
-# Windows (using Chocolatey)
-choco install stripe-cli
-
-# macOS (using Homebrew)
-brew install stripe/stripe-cli/stripe
-```
-
-2. Login to Stripe CLI:
-
-```bash
-stripe login
-```
-
-3. Forward webhooks to your local server:
-
-```bash
-stripe listen --forward-to localhost:5001/api/webhook
-```
-
-4. In a new terminal, trigger test events:
-
-```bash
-# Test successful payment
-stripe trigger payment_intent.succeeded
-
-# Test failed payment
-stripe trigger payment_intent.payment_failed
-
-# Test refund
-stripe trigger charge.refunded
-```
+- Payment processing and verification
+- Webhook handling for Stripe events
+- Refund processing and verification
+- Payment verification records storage (both database and file-based)
+- Event payment verification
+- Comprehensive logging and error handling
 
 ## API Endpoints
 
-### Payment Endpoints
+### Event Payment Endpoints
 
-- `POST /api/payment/create` - Create a new payment
-- `GET /api/payment/:id` - Get payment details
+#### GET /api/events/verify-payment
+Verify payment status for an event.
 
-### Refund Endpoints
+**Query Parameters:**
+- `event_id` (required): ID of the event to verify payment for
+- `organizer_id` (required): ID of the organizer for additional verification
 
-- `POST /api/refund/create` - Process a refund
-- `GET /api/refund/:id` - Get refund details
+**Response:**
+```json
+{
+    "success": true,
+    "event_id": "event_id",
+    "is_paid": true,
+    "total_paid": 2000,  // in cents
+    "currency": "sgd",
+    "verification_count": 1,
+    "successful_payment_count": 1,
+    "latest_payment": {
+        // payment details
+    }
+}
+```
+
+**Error Response:**
+```json
+{
+    "success": false,
+    "error": "Missing event_id and/or organizer_id parameter"
+}
+```
+
+### Payment Verification
+
+#### GET /api/events/verify-payment
+Verify payment status for an event.
+
+**Query Parameters:**
+- `event_id` (required): ID of the event to verify payment for
+- `organizer_id` (required): ID of the organizer for additional verification
+
+**Response:**
+```json
+{
+    "success": true,
+    "event_id": "event_id",
+    "is_paid": true,
+    "total_paid": 2000,  // in cents
+    "currency": "sgd",
+    "verification_count": 1,
+    "successful_payment_count": 1,
+    "latest_payment": {
+        // payment details
+    }
+}
+```
 
 ### Webhook Endpoints
 
-- `POST /api/webhook` - Handle Stripe webhook events
+#### POST /api/webhook/
+Handle Stripe webhook events.
+
+**Headers:**
+- `Stripe-Signature`: Signature provided by Stripe
+- `X-Development-Testing`: Set to "true" to bypass signature verification (development only)
+
+**Supported Events:**
+- Payment Intent events:
+  - `payment_intent.succeeded`
+  - `payment_intent.payment_failed`
+  - `payment_intent.created`
+  - `payment_intent.canceled`
+- Charge events:
+  - `charge.succeeded`
+  - `charge.failed`
+  - `charge.refunded`
+  - `charge.dispute.created`
+- Checkout events:
+  - `checkout.session.completed`
+  - `checkout.session.expired`
+
+#### GET /api/webhook/payment-verifications
+View all payment verification records (UI endpoint).
+
+**Query Parameters:**
+- `payment_id`: Filter by payment ID
+- `event_id`: Filter by event ID
+
+#### GET /api/webhook/payment-verifications/api
+API endpoint to get payment verifications.
+
+**Query Parameters:**
+- `payment_id`: Filter by payment ID
+- `event_id`: Filter by event ID
+- `user_id`: Filter by user ID
+- `organizer_id`: Filter by organizer ID
+- `page`: Page number (default: 1)
+- `page_size`: Items per page (default: 50)
+
+#### GET /api/webhook/view-verification
+View a specific verification file.
+
+**Query Parameters:**
+- `file`: Verification file name
+
+#### GET /api/webhook/debug
+Get debug information about webhook configuration.
+
+### Refund Endpoints
+
+#### POST /api/refund/process
+Process a refund.
+
+**Request Body:**
+```json
+{
+    "payment_intent_id": "pi_...",
+    "amount": 1000,  // Optional: Amount in cents
+    "reason": "requested_by_customer",  // Optional
+    "metadata": {  // Optional
+        "refund_reason": "Customer request",
+        "requested_by": "Support agent"
+    }
+}
+```
+
+#### GET /api/refund/{refund_id}
+Get refund details by ID.
+
+#### POST /api/refund/verify
+Verify the status of a refund.
+
+**Request Body:**
+```json
+{
+    "refund_id": "re_..."
+}
+```
 
 ## Setup
 
-1. Clone the repository
-2. Create a `.env` file with the following variables:
-   ```
-   STRIPE_SECRET_KEY=your_stripe_secret_key
-   STRIPE_WEBHOOK_SECRET=your_stripe_webhook_secret
-   SECRET_KEY=your_flask_secret_key
-   FLASK_DEBUG=True
-   EVENT_SERVICE_URL=http://event-service:5000
-   USER_SERVICE_URL=http://user-service:5000
-   ```
-3. Install dependencies:
-   ```
-   pip install -r requirements.txt
-   ```
-4. Run the service:
-   ```
-   python app.py
-   ```
-
-## Docker
-
-Build the Docker image:
-
-```
-docker build -t billing-service .
+1. Install dependencies:
+```bash
+pip install -r requirements.txt
 ```
 
-Run the container:
-
+2. Set up environment variables:
+```bash
+cp .env.example .env
+# Edit .env with your configuration
 ```
-docker run -p 5001:5001 -e STRIPE_SECRET_KEY=your_key billing-service
+
+3. Run the service:
+```bash
+python app.py
 ```
 
 ## Testing
 
-Run tests with pytest:
+### Running Stripe CLI for Local Testing
 
+Option 1: Using Docker (recommended)
+```bash
+docker-compose up stripe-cli
 ```
-pytest
+
+Option 2: Running directly on host
+```bash
+stripe listen --forward-to localhost:5001/api/webhook/
 ```
+
+Note: Ensure the billing service is running on port 5001.
+
+## Development
+
+The service uses:
+- Flask for the web framework
+- SQLAlchemy for database operations
+- Stripe for payment processing
+- Pydantic for data validation
+
+## Error Handling
+
+The service implements comprehensive error handling:
+- Input validation using Pydantic models
+- Proper HTTP status codes
+- Detailed error messages
+- Logging of all operations
+- Fallback mechanisms for database operations
+
+## Security
+
+- Stripe webhook signature verification
+- Environment variable configuration for secrets
+- Input validation and sanitization
+- Secure error handling

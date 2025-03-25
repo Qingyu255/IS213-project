@@ -149,6 +149,27 @@ export default function CreateEventPage() {
     setMainImageIndex(index)
   }
 
+  // Add this helper function at the top of the file, after imports
+  function convertToUTC(date: Date, timezone: string): Date {
+    const localDate = new Date(date);
+    let offset = 0;
+    
+    switch (timezone) {
+      case 'est':
+        offset = 5 * 60; // EST is UTC-5
+        break;
+      case 'pst':
+        offset = 8 * 60; // PST is UTC-8
+        break;
+      case 'utc':
+      default:
+        offset = 0;
+    }
+    
+    // Add the offset to convert to UTC
+    return new Date(localDate.getTime() + (offset * 60000));
+  }
+
   // -----------------------
   // Submit Handler
   // -----------------------
@@ -172,21 +193,20 @@ export default function CreateEventPage() {
         return;
       }
 
+      // Create Date objects from the selected date and time
+      const startDateObj = new Date(`${startDate}T${startTime}`);
+      const endDateObj = endDate && endTime ? new Date(`${endDate}T${endTime}`) : undefined;
+
       // Validate that end datetime is after start datetime if provided
-      if (endDate && endTime) {
-        const startDateObj = new Date(`${startDate}T${startTime}`);
-        const endDateObj = new Date(`${endDate}T${endTime}`);
-        
-        if (endDateObj <= startDateObj) {
-          setError("End date and time must be after the start date and time");
-          setSubmitting(false);
-          return;
-        }
+      if (endDateObj && endDateObj <= startDateObj) {
+        setError("End date and time must be after the start date and time");
+        setSubmitting(false);
+        return;
       }
 
-      // Combine date and time for ISO 8601 strings
-      const startDateTime = startDate && startTime ? new Date(`${startDate}T${startTime}`).toISOString() : ""
-      const endDateTime = endDate && endTime ? new Date(`${endDate}T${endTime}`).toISOString() : undefined
+      // Convert dates to UTC based on selected timezone
+      const startDateTimeUTC = convertToUTC(startDateObj, timezone);
+      const endDateTimeUTC = endDateObj ? convertToUTC(endDateObj, timezone) : undefined;
 
       // Generate a proper UUID that's compatible with Java UUID format
       const eventUuid = uuidv4();
@@ -196,11 +216,11 @@ export default function CreateEventPage() {
 
       // Construct the event payload per our EventDetails type
       const newEvent: EventDetails = {
-        id: eventUuid, // Use standard UUID format
+        id: eventUuid,
         title,
         description,
-        startDateTime: startDateTime,
-        endDateTime: endDateTime,
+        startDateTime: startDateTimeUTC.toISOString(),
+        endDateTime: endDateTimeUTC?.toISOString(),
         venue: {
           address: address,
           name: venueName,
@@ -209,7 +229,7 @@ export default function CreateEventPage() {
           coordinates: coordinates,
           additionalDetails: additionalDetails
         },
-        imageUrl: images[mainImageIndex], // Use the main image
+        imageUrl: images[mainImageIndex],
         categories,
         price: amount,
         organizer: {
@@ -388,7 +408,13 @@ export default function CreateEventPage() {
                     <Calendar
                       mode="single"
                       selected={startDate ? new Date(startDate) : undefined}
-                      onSelect={(date) => date && setStartDate(date.toISOString().split("T")[0])}
+                      onSelect={(date) => {
+                        if (date) {
+                          // Adjust the date to account for timezone offset
+                          const localDate = new Date(date.getTime() - (date.getTimezoneOffset() * 60000));
+                          setStartDate(localDate.toISOString().split('T')[0]);
+                        }
+                      }}
                       disabled={{ before: new Date() }} // disables all dates before today
                       initialFocus
                     />
@@ -471,7 +497,13 @@ export default function CreateEventPage() {
                     <Calendar
                       mode="single"
                       selected={endDate ? new Date(endDate) : undefined}
-                      onSelect={(date) => date && setEndDate(date.toISOString().split("T")[0])}
+                      onSelect={(date) => {
+                        if (date) {
+                          // Adjust the date to account for timezone offset
+                          const localDate = new Date(date.getTime() - (date.getTimezoneOffset() * 60000));
+                          setEndDate(localDate.toISOString().split('T')[0]);
+                        }
+                      }}
                       disabled={{ before: new Date() }}
                       initialFocus
                     />
@@ -542,7 +574,9 @@ export default function CreateEventPage() {
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant="outline" className="w-full justify-between">
-                  GMT+00:00 {timezone.toUpperCase()}
+                  {timezone === 'utc' ? 'GMT+00:00 UTC' : 
+                   timezone === 'est' ? 'GMT-05:00 EST' : 
+                   'GMT-08:00 PST'}
                   <ChevronDown className="ml-2 h-4 w-4 opacity-50" />
                 </Button>
               </PopoverTrigger>
@@ -552,7 +586,7 @@ export default function CreateEventPage() {
                     <h4 className="font-medium leading-none">Timezone</h4>
                     <p className="text-sm">Set the timezone for your event.</p>
                   </div>
-                  <Select onValueChange={(val) => setTimezone(val)} defaultValue={timezone}>
+                  <Select onValueChange={(val) => setTimezone(val)} value={timezone}>
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select timezone" />
                     </SelectTrigger>

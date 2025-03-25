@@ -32,6 +32,7 @@ class PaymentVerificationService:
             record_data = {
                 'payment_id': verification_data.get('payment_intent_id') or verification_data.get('session_id', ''),
                 'event_id': verification_data.get('event_id'),
+                'organizer_id': verification_data.get('metadata').get('organizer_id'),
                 'user_id': verification_data.get('user_id'),
                 'event_type': verification_data.get('event_type'),
                 'amount': self._extract_amount(verification_data),
@@ -40,7 +41,6 @@ class PaymentVerificationService:
                 'payment_method': verification_data.get('payment_details', {}).get('payment_method'),
                 'receipt_email': verification_data.get('payment_details', {}).get('receipt_email'),
                 'receipt_url': verification_data.get('charge_details', {}).get('receipt_url'),
-                'verification_data': verification_data,
                 'created_at': datetime.fromtimestamp(verification_data.get('timestamp', 0)) if verification_data.get('timestamp') else None
             }
             
@@ -114,6 +114,20 @@ class PaymentVerificationService:
             list: List of verification dictionaries
         """
         verifications = self._repository.find_by_event_id(event_id)
+        return [v.to_dict() for v in verifications]
+    
+    def get_verifications_by_event_id_and_organizer_id(self, event_id, organizer_id):
+        """
+        Get verifications by event ID
+        
+        Args:
+            event_id (str): Event ID
+            organizer_id (str): Organizer ID
+            
+        Returns:
+            list: List of verification dictionaries
+        """
+        verifications = self._repository.find_by_event_id_and_organizer_id(event_id, organizer_id)
         return [v.to_dict() for v in verifications]
     
     def get_verifications_by_user_id(self, user_id):

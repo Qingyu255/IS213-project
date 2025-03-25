@@ -25,6 +25,7 @@ import { getCheckoutSession } from "../actions";
 import { useEventCreation } from "@/providers/event-creation-provider";
 import { toast } from "sonner";
 import type { EventDetails } from "@/types/event";
+import React from "react";
 
 type SuccessProps = {
   searchParams: {
@@ -43,6 +44,8 @@ export default function Success({ searchParams }: SuccessProps) {
   const [progress, setProgress] = useState(33);
   const { eventData, clearEventData } = useEventCreation();
   const isProcessing = useRef(false);
+  // @ts-expect-error next docs says to use React.use but ts was screaming
+  const sessionId = React.use(searchParams).session_id;
 
   useEffect(() => {
     async function processSuccess() {
@@ -56,7 +59,6 @@ export default function Success({ searchParams }: SuccessProps) {
       isProcessing.current = true;
       
       try {
-        const sessionId = searchParams.session_id;
         if (!sessionId) {
           throw new Error("Missing session_id parameter");
         }
@@ -167,7 +169,7 @@ export default function Success({ searchParams }: SuccessProps) {
     }
 
     processSuccess();
-  }, [searchParams.session_id, clearEventData]); // Removed eventData from dependencies
+  }, [clearEventData]); // Removed eventData from dependencies
 
   // Show appropriate UI based on status
   return (
@@ -258,9 +260,6 @@ export default function Success({ searchParams }: SuccessProps) {
                 <div className="bg-red-100 p-3 rounded-full">
                   <XCircle className="h-16 w-16 text-red-500" />
                 </div>
-                <Badge variant="destructive" className="mt-4">
-                  Error Occurred
-                </Badge>
                 <h2 className="text-2xl font-bold mt-4 text-center">
                   Something Went Wrong
                 </h2>

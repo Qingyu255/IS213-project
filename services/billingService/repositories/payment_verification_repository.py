@@ -63,6 +63,21 @@ class PaymentVerificationRepository:
             PaymentVerification.event_id == event_id
         ).order_by(desc(PaymentVerification.created_at)).all()
     
+    def find_by_event_id_and_organizer_id(self, event_id, organizer_id):
+        """
+        Find payment verifications by event ID
+        
+        Args:
+            event_id (str): Event ID in our system
+            organizer_id (str): Event Organizer Id
+        
+        Returns:
+            list: List of PaymentVerification instances
+        """
+        return self._session.query(PaymentVerification).filter(
+            PaymentVerification.event_id == event_id and PaymentVerification.organizer_id == organizer_id
+        ).order_by(desc(PaymentVerification.created_at)).all()
+    
     def find_by_user_id(self, user_id):
         """
         Find payment verifications by user ID
