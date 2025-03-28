@@ -18,7 +18,6 @@ services:
       - /app/node_modules # Preserve container node_modules
     networks:
       - default
-
   users-db:
     container_name: users-db
     image: postgres:16.2
@@ -43,12 +42,16 @@ services:
       retries: 10
     networks:
       - default
+  #Kong Database
+  kong-db:
+    image: postgres:16.2
     container_name: kong-db
     environment:
       POSTGRES_DB: kong
       POSTGRES_USER: kong
       POSTGRES_PASSWORD: ${KONG_DB_PASSWORD}
     volumes:
+      - kong-db-data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "kong"]
       interval: 5s
