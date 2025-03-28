@@ -1,0 +1,134 @@
+_format_version: "2.1"
+_transform: true
+  
+services:
+  - name: auth-public
+    url: http://user-management-service:8080
+    routes:
+      - name: auth-public-route
+        paths:
+          - /api/users/create
+    # no plugins for this 
+  - name: user-management-service
+    url: http://user-management-service:8080
+    routes:
+      - name: user-management-route
+        paths:
+          - /api/users
+    plugins:
+      - name: jwt
+        config:
+          secret_is_base64: false
+          claims_to_verify:
+            - exp
+          key_claim_name: kid
+          run_on_preflight: true
+          auth_methods:
+            - header
+          header_names:
+            - Authorization
+          secret_key_names:
+            - aud
+            - clientId
+          jwks_uri: https://cognito-idp.${AWS_REGION}.amazonaws.com/${USER_POOL_ID}/.well-known/jwks.json
+  
+  - name: ticket-management-service
+    url: http://ticket-management-service:8000
+    routes:
+      - name: ticket-management-route
+        paths:
+          - /api/v1/bookings
+          - /api/v1/tickets
+    plugins:
+      - name: jwt
+        config:
+          secret_is_base64: false
+          claims_to_verify:
+            - exp
+          key_claim_name: kid
+          run_on_preflight: true
+          auth_methods:
+            - header
+          header_names:
+            - Authorization
+          secret_key_names:
+            - aud
+            - clientId
+          jwks_uri: https://cognito-idp.${AWS_REGION}.amazonaws.com/${USER_POOL_ID}/.well-known/jwks.json
+  
+  - name: events-service
+    url: http://events-service:8001
+    routes:
+      - name: events-service-route
+        paths:
+          - /api/v1/events
+    plugins:
+      - name: jwt
+        config:
+          secret_is_base64: false
+          claims_to_verify:
+            - exp
+          key_claim_name: kid
+          run_on_preflight: true
+          auth_methods:
+            - header
+          header_names:
+            - Authorization
+          secret_key_names:
+            - aud
+            - clientId
+          jwks_uri: https://cognito-idp.${AWS_REGION}.amazonaws.com/${USER_POOL_ID}/.well-known/jwks.json
+  
+  - name: billing-service
+    url: http://billing-service:5001
+    routes:
+      - name: billing-service-route
+        paths:
+          - /api/refund
+          - /api/events
+    plugins:
+      - name: jwt
+        config:
+          secret_is_base64: false
+          claims_to_verify:
+            - exp
+          key_claim_name: kid
+          run_on_preflight: true
+          auth_methods:
+            - header
+          header_names:
+            - Authorization
+          secret_key_names:
+            - aud
+            - clientId
+          jwks_uri: https://cognito-idp.${AWS_REGION}.amazonaws.com/${USER_POOL_ID}/.well-known/jwks.json
+  
+  - name: create-event-service
+    url: http://create-event-service:8070
+    routes:
+      - name: create-event-service-route
+        paths:
+          - /api/v1/create-event
+    plugins:
+      - name: jwt
+        config:
+          secret_is_base64: false
+          claims_to_verify:
+            - exp
+          key_claim_name: kid
+          run_on_preflight: true
+          auth_methods:
+            - header
+          header_names:
+            - Authorization
+          secret_key_names:
+            - aud
+            - clientId
+          jwks_uri: https://cognito-idp.${AWS_REGION}.amazonaws.com/${USER_POOL_ID}/.well-known/jwks.json
+
+consumers:
+  - username: frontend-app
+    jwt_secrets:
+      - key: frontend-app
+        algorithm: HS256
+        secret: ${JWT_SECRET}

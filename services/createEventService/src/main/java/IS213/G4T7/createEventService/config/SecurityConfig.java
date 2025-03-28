@@ -11,11 +11,13 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http
-                .csrf(csrf -> csrf.disable()) // Temporarily disable CSRF protection
-                .authorizeHttpRequests(authz -> authz.anyRequest().permitAll())
-                .httpBasic(Customizer.withDefaults());
+    http
+        .csrf(csrf -> csrf.disable()) // Temporarily disable CSRF protection
+        .authorizeHttpRequests(authz -> authz
+            .requestMatchers("/api/v1/create-event").permitAll()  // Trust Kong's JWT verification
+        )
+        .httpBasic(Customizer.withDefaults());
 
-        return http.build();
-    }
+    return http.build();
 }
+    }
