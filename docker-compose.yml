@@ -34,10 +34,7 @@ services:
       - users-db-data:/var/lib/postgresql/data
     healthcheck:
       test:
-        [
-          "CMD-SHELL",
-          "pg_isready -p 5432 -U ${USERS_DB_USER} -d ${USERS_DB}",
-        ]
+        ["CMD-SHELL", "pg_isready -p 5432 -U ${USERS_DB_USER} -d ${USERS_DB}"]
       interval: 1s
       timeout: 10s
       retries: 10
@@ -81,7 +78,10 @@ services:
       - logging-db-data:/var/lib/postgresql/data
     healthcheck:
       test:
-        ["CMD-SHELL", "pg_isready -p 5432 -U ${LOGGING_DB_USER} -d ${LOGGING_DB}"]
+        [
+          "CMD-SHELL",
+          "pg_isready -p 5432 -U ${LOGGING_DB_USER} -d ${LOGGING_DB}",
+        ]
       interval: 1s
       timeout: 10s
       retries: 10
@@ -123,7 +123,10 @@ services:
       - billing-db-data:/var/lib/postgresql/data
     healthcheck:
       test:
-        ["CMD-SHELL", "pg_isready -p 5432 -U ${BILLING_DB_USER} -d ${BILLING_DB}"]
+        [
+          "CMD-SHELL",
+          "pg_isready -p 5432 -U ${BILLING_DB_USER} -d ${BILLING_DB}",
+        ]
       interval: 1s
       timeout: 10s
       retries: 10
@@ -188,7 +191,7 @@ services:
     depends_on:
       events-db:
         condition: service_healthy
-        
+
   # Billing service flyway migrations
   billing-db-migrations:
     image: flyway/flyway:11.3.4
@@ -260,7 +263,7 @@ services:
     depends_on:
       ticket-db:
         condition: service_healthy
-  
+
   logging-service:
     build: ./services/loggingService
     container_name: logging-service
@@ -313,7 +316,7 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
-        
+
   billing-service:
     build:
       context: ./services/billingService
@@ -354,7 +357,34 @@ services:
       - .env
     depends_on:
       - billing-service
-    network_mode: "host"  # Use host network to access localhost services
+    network_mode: "host" # Use host network to access localhost services
+
+  booking-service:
+    build:
+      context: ./services/bookingService
+      dockerfile: Dockerfile
+    container_name: booking-service
+    restart: always
+    ports:
+      - "8002:8002"
+    env_file:
+      - .env
+    environment:
+      EVENT_SERVICE_URL: "http://events-service:8001"
+      TICKET_SERVICE_URL: "http://ticket-management-service:8000"
+      BILLING_SERVICE_URL: "http://billing-service:5001"
+      RABBITMQ_URL: "amqp://rabbitmq:5672"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      events-service:
+        condition: service_started
+      ticket-management-service:
+        condition: service_started
+      billing-service:
+        condition: service_started
+    networks:
+      - default
 
 volumes:
   users-db-data:

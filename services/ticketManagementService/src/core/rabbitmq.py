@@ -64,6 +64,7 @@ class RabbitMQConsumer:
         routing_patterns = [
             "booking.created",
             "booking.status_updated",
+            "booking.confirmed",
             "booking.cancelled",
             "booking.refunded"
         ]
