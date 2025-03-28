@@ -8,6 +8,7 @@ const TICKET_SERVICE_URL =
   process.env.NEXT_PUBLIC_TICKET_SERVICE_URL || "http://localhost:8000"
 
 export function AuthTest() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [testResult, setTestResult] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)

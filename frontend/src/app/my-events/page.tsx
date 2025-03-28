@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client"
 
 import { useEffect, useState } from "react"
@@ -8,7 +9,6 @@ import {
   getUserBookings,
   BookingResponse,
   updateBookingStatus,
-  getEventTickets,
   getUserEventTickets,
   UserEventTicketsResponse,
 } from "@/lib/api/tickets"

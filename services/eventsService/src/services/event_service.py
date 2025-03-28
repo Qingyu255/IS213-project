@@ -16,6 +16,7 @@ async def create_event(event_data: EventCreate, db: AsyncSession):
     async with db.begin():
         # Create the event record
         new_event = Event(
+            id=event_data.id,
             title=event_data.title,
             description=event_data.description,
             start_date_time=event_data.startDateTime,
@@ -39,11 +40,11 @@ async def create_event(event_data: EventCreate, db: AsyncSession):
             event_category = EventCategory(event_id=new_event.id, category_id=category.id)
             db.add(event_category)
 
-        # Process organizer id and name provided.
+        # Process organizer id and username
         organizer = EventOrganizer(
             event_id=new_event.id,
             organizer_id=event_data.organizer.id,
-            name=event_data.organizer.username
+            organizer_username=event_data.organizer.username
         )
         db.add(organizer)
 
@@ -86,7 +87,7 @@ async def get_event_by_id(event_id: UUID4, db: AsyncSession):
     )
     categories = category_result.scalars().all()  # Extract category names
 
-    # Fetch event organizers (now using the `name` column)
+    # Fetch event organizers
     organizer_result = await db.execute(
         select(EventOrganizer)
         .filter(EventOrganizer.event_id == event_id)
@@ -94,7 +95,7 @@ async def get_event_by_id(event_id: UUID4, db: AsyncSession):
     organizer_obj = organizer_result.scalars().first()
     organizer = Organizer(
         id=str(organizer_obj.organizer_id),
-        username=organizer_obj.name
+        username=organizer_obj.organizer_username
     )
 
     if event.venue:
@@ -150,7 +151,7 @@ async def get_all_events(db: AsyncSession, skip: int = 0, limit: int = 100):
         organizer_obj = organizer_result.scalars().first()
         organizer = Organizer(
             id=str(organizer_obj.organizer_id),
-            username=organizer_obj.name
+            username=organizer_obj.organizer_username
         )
 
         if event.venue:
@@ -218,7 +219,7 @@ async def update_event(event_id: UUID4, event_data: EventUpdate, db: AsyncSessio
         organizer = EventOrganizer(
             event_id=event.id,
             organizer_id=event_data.organizer.id,
-            name=event_data.organizer.username
+            organizer_username=event_data.organizer.username
         )
         db.add(organizer)
 

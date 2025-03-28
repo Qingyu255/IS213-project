@@ -9,7 +9,6 @@ import { BrowseByCategory } from "./components/browse-by-category";
 import { BrowseByLocation } from "./components/browse-by-location";
 import { Separator } from "@/components/ui/separator";
 import { BACKEND_ROUTES } from "@/constants/backend-routes";
-import { getBearerToken } from "@/utils/auth";
 import { EventDetails } from "@/types/event";
 import EventsLoading from "./components/EventsLoading";
 
@@ -24,7 +23,6 @@ async function getEvents(page = 1, limit = 9): Promise<EventsData> {
     {
       headers: {
         Accept: "application/json",
-        Authorization: await getBearerToken(),
       },
     }
   );

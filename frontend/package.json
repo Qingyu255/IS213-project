@@ -22,7 +22,10 @@
     "@radix-ui/react-slot": "^1.1.2",
     "@radix-ui/react-switch": "^1.1.3",
     "@radix-ui/react-tabs": "^1.1.3",
+    "@stripe/react-stripe-js": "^3.5.1",
+    "@stripe/stripe-js": "^6.1.0",
     "@types/google.maps": "^3.58.1",
+    "@types/stripe": "^8.0.417",
     "aws-amplify": "^6.13.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -35,11 +38,10 @@
     "react-day-picker": "^8.10.1",
     "react-dom": "^19.0.0",
     "sonner": "^2.0.1",
+    "stripe": "^17.7.0",
     "tailwind-merge": "^3.0.2",
     "tailwindcss-animate": "^1.0.7",
-    "@hookform/resolvers": "^3.3.4",
-    "react-hook-form": "^7.50.0",
-    "zod": "^3.22.4"
+    "uuid": "^11.1.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

@@ -9,7 +9,7 @@ from .base import Base
 class Event(Base):
     __tablename__ = "events"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(UUID, primary_key=True, nullable=False)
     title = Column(String, nullable=False)
     description = Column(Text)
     start_date_time = Column(TIMESTAMP(timezone=True), nullable=False)

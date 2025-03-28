@@ -1,6 +1,7 @@
 "use client"
 import { useEffect, useState, type FormEvent } from "react"
 import type React from "react"
+import { v4 as uuidv4 } from 'uuid';
 
 import Image from "next/image"
 import { Calendar as CalendarIcon, Clock, ChevronDown, Users, Pencil, Ticket, Plus, X } from "lucide-react"
@@ -13,25 +14,27 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Textarea } from "@/components/ui/textarea"
 import { Spinner } from "@/components/ui/spinner"
 import { Calendar } from "@/components/ui/calendar"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 
 import { fetchAuthSession } from "aws-amplify/auth"
 import { Route } from "@/enums/Route"
 import { InterestCategory } from "@/enums/InterestCategory"
 import type { EventDetails } from "@/types/event"
 import { toast } from "sonner"
-import { BACKEND_ROUTES } from "@/constants/backend-routes"
-import { getBearerToken } from "@/utils/auth"
 import VenueAutocomplete from "@/components/googlemaps/VenueAutocomplete"
 import useAuthUser from "@/hooks/use-auth-user"
 import { ErrorMessageCallout } from "@/components/error-message-callout"
-import { getErrorStringFromResponse } from "@/utils/common"
+import { useEventCreation } from "@/providers/event-creation-provider"
+
+// Constants
+const EVENT_CREATION_FEE_CENTS = 200  // $2.00 SGD
 
 export default function CreateEventPage() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const { setEventData } = useEventCreation()
 
   // -----------------------
   // Form field states
@@ -65,6 +68,13 @@ export default function CreateEventPage() {
   // Other fields
   const [timezone, setTimezone] = useState("utc")
 
+  const searchParams = useSearchParams();
+  if (searchParams.get("canceled")) {
+    console.log(
+      'Event Creation Payment canceled'
+      // route to cancelled page?
+    )
+  }
   // -----------------------
   // Auth check on mount (DO NOT MODIFY)
   // -----------------------
@@ -139,6 +149,27 @@ export default function CreateEventPage() {
     setMainImageIndex(index)
   }
 
+  // Add this helper function at the top of the file, after imports
+  function convertToUTC(date: Date, timezone: string): Date {
+    const localDate = new Date(date);
+    let offset = 0;
+    
+    switch (timezone) {
+      case 'est':
+        offset = 5 * 60; // EST is UTC-5
+        break;
+      case 'pst':
+        offset = 8 * 60; // PST is UTC-8
+        break;
+      case 'utc':
+      default:
+        offset = 0;
+    }
+    
+    // Add the offset to convert to UTC
+    return new Date(localDate.getTime() + (offset * 60000));
+  }
+
   // -----------------------
   // Submit Handler
   // -----------------------
@@ -148,17 +179,48 @@ export default function CreateEventPage() {
     setError(null)
 
     try {
-      // Combine date and time for ISO 8601 strings
-      const startDateTime = startDate && startTime ? new Date(`${startDate}T${startTime}`).toISOString() : ""
-      const endDateTime = endDate && endTime ? new Date(`${endDate}T${endTime}`).toISOString() : undefined
+      // Validate start date and time
+      if (!startDate || !startTime) {
+        setError("Please select both a start date and start time for your event");
+        setSubmitting(false);
+        return;
+      }
+
+      // Validate end date and time (if one is provided, both must be provided)
+      if ((endDate && !endTime) || (!endDate && endTime)) {
+        setError("Please provide both end date and end time, or leave both empty");
+        setSubmitting(false);
+        return;
+      }
+
+      // Create Date objects from the selected date and time
+      const startDateObj = new Date(`${startDate}T${startTime}`);
+      const endDateObj = endDate && endTime ? new Date(`${endDate}T${endTime}`) : undefined;
+
+      // Validate that end datetime is after start datetime if provided
+      if (endDateObj && endDateObj <= startDateObj) {
+        setError("End date and time must be after the start date and time");
+        setSubmitting(false);
+        return;
+      }
+
+      // Convert dates to UTC based on selected timezone
+      const startDateTimeUTC = convertToUTC(startDateObj, timezone);
+      const endDateTimeUTC = endDateObj ? convertToUTC(endDateObj, timezone) : undefined;
+
+      // Generate a proper UUID that's compatible with Java UUID format
+      const eventUuid = uuidv4();
+      
+      // Get the organizer ID (user ID)
+      const organizerId = getUserId();
 
       // Construct the event payload per our EventDetails type
       const newEvent: EventDetails = {
-        id: "", // Backend will auto-generate the ID
+        id: eventUuid,
         title,
         description,
-        startDateTime: startDateTime,
-        endDateTime: endDateTime,
+        startDateTime: startDateTimeUTC.toISOString(),
+        endDateTime: endDateTimeUTC?.toISOString(),
         venue: {
           address: address,
           name: venueName,
@@ -167,38 +229,63 @@ export default function CreateEventPage() {
           coordinates: coordinates,
           additionalDetails: additionalDetails
         },
-        imageUrl: images[mainImageIndex], // Use the main image (Note that additional images wont be posted to backend for now) and this is not working (explore s3 if there is time)
+        imageUrl: images[mainImageIndex],
         categories,
         price: amount,
         organizer: {
-          id: getUserId(), // e.g. the user's Cognito sub / user name; idt sub is the same as uuid in db
+          id: organizerId,
           username: (user && user.username) ? user.username : "",
         },
         capacity: isUnlimited ? undefined : (capacity ?? undefined),
       }
-
-      // Send the payload to your backend
-      const response = await fetch(`${BACKEND_ROUTES.createEventServiceUrl}/api/v1/create-event`, {
-        method: "POST",
+      
+      // Store in context first
+      setEventData(newEvent);
+      
+      // Also save in localStorage for redundancy
+      try {
+        localStorage.setItem('pending_event_data', JSON.stringify(newEvent));
+        console.log("Stored event data in localStorage:", newEvent);
+      } catch (err) {
+        // Just log the error but continue - we're using context as primary
+        console.warn("Failed to use localStorage as backup:", err);
+      }
+      
+      // Create a payment session with Stripe
+      const response = await fetch('/api/stripe', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
-          Authorization: await getBearerToken(),
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify(newEvent),
+        body: JSON.stringify({
+          eventId: newEvent.id,
+          organizerId: organizerId, // Include the organizer ID for verification
+          amount: EVENT_CREATION_FEE_CENTS,
+          description: `Event creation fee for "${newEvent.title}"`
+        }),
       })
 
       if (!response.ok) {
-        throw new Error(await getErrorStringFromResponse(response));
+        const errorData = await response.json()
+        throw new Error(`Error creating payment session: ${errorData.error || response.statusText}`)
       }
 
-      toast("Event created successfully!")
+      const { url } = await response.json()
+      
+      if (!url) {
+        throw new Error('No checkout URL returned from payment service')
+      }
+      
+      // Redirect to the Stripe Checkout page
+      window.location.href = url
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
-      console.error("Error creating event:", err)
+      console.error("Error preparing event creation:", err)
       setError(err.message || "An unknown error occurred.")
-    } finally {
       setSubmitting(false)
+      // Show error toast
+      toast.error(err.message || "An unknown error occurred.")
     }
   }
 
@@ -303,11 +390,16 @@ export default function CreateEventPage() {
 
             {/* Date / Time */}
             <div className="space-y-2">
-              <Label>Start Date & Time</Label>
+              <Label>
+                Start Date & Time <span className="text-red-500">*</span>
+              </Label>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-start text-left font-normal">
+                    <Button 
+                      variant="outline" 
+                      className={`w-full justify-start text-left font-normal ${!startDate ? "border-red-200 dark:border-red-800" : ""}`}
+                    >
                       <CalendarIcon className="mr-2 h-4 w-4" />
                       {startDate ? startDate : <span>Pick a date</span>}
                     </Button>
@@ -316,7 +408,13 @@ export default function CreateEventPage() {
                     <Calendar
                       mode="single"
                       selected={startDate ? new Date(startDate) : undefined}
-                      onSelect={(date) => date && setStartDate(date.toISOString().split("T")[0])}
+                      onSelect={(date) => {
+                        if (date) {
+                          // Adjust the date to account for timezone offset
+                          const localDate = new Date(date.getTime() - (date.getTimezoneOffset() * 60000));
+                          setStartDate(localDate.toISOString().split('T')[0]);
+                        }
+                      }}
                       disabled={{ before: new Date() }} // disables all dates before today
                       initialFocus
                     />
@@ -324,7 +422,10 @@ export default function CreateEventPage() {
                 </Popover>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-start text-left font-normal">
+                    <Button 
+                      variant="outline" 
+                      className={`w-full justify-start text-left font-normal ${!startTime ? "border-red-200 dark:border-red-800" : ""}`}
+                    >
                       <Clock className="mr-2 h-4 w-4" />
                       {startTime ? startTime : <span>Set time</span>}
                     </Button>
@@ -374,6 +475,7 @@ export default function CreateEventPage() {
                   </PopoverContent>
                 </Popover>
               </div>
+              <p className="text-sm text-muted-foreground">Both start date and time are required.</p>
             </div>
 
             <div className="space-y-2">
@@ -381,7 +483,12 @@ export default function CreateEventPage() {
               <div className="flex flex-col sm:flex-row gap-4">
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-start text-left font-normal">
+                    <Button 
+                      variant="outline" 
+                      className={`w-full justify-start text-left font-normal ${
+                        endTime && !endDate ? "border-red-200 dark:border-red-800" : ""
+                      }`}
+                    >
                       <CalendarIcon className="mr-2 h-4 w-4" />
                       {endDate ? endDate : <span>Pick a date</span>}
                     </Button>
@@ -390,7 +497,13 @@ export default function CreateEventPage() {
                     <Calendar
                       mode="single"
                       selected={endDate ? new Date(endDate) : undefined}
-                      onSelect={(date) => date && setEndDate(date.toISOString().split("T")[0])}
+                      onSelect={(date) => {
+                        if (date) {
+                          // Adjust the date to account for timezone offset
+                          const localDate = new Date(date.getTime() - (date.getTimezoneOffset() * 60000));
+                          setEndDate(localDate.toISOString().split('T')[0]);
+                        }
+                      }}
                       disabled={{ before: new Date() }}
                       initialFocus
                     />
@@ -399,7 +512,12 @@ export default function CreateEventPage() {
 
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-start text-left font-normal">
+                    <Button 
+                      variant="outline" 
+                      className={`w-full justify-start text-left font-normal ${
+                        endDate && !endTime ? "border-red-200 dark:border-red-800" : ""
+                      }`}
+                    >
                       <Clock className="mr-2 h-4 w-4" />
                       {endTime ? endTime : <span>Set time</span>}
                     </Button>
@@ -449,13 +567,16 @@ export default function CreateEventPage() {
                   </PopoverContent>
                 </Popover>
               </div>
+              <p className="text-sm text-muted-foreground">If setting an end time, both date and time must be provided. End time must be after start time.</p>
             </div>
 
             {/* Timezone */}
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant="outline" className="w-full justify-between">
-                  GMT+00:00 {timezone.toUpperCase()}
+                  {timezone === 'utc' ? 'GMT+00:00 UTC' : 
+                   timezone === 'est' ? 'GMT-05:00 EST' : 
+                   'GMT-08:00 PST'}
                   <ChevronDown className="ml-2 h-4 w-4 opacity-50" />
                 </Button>
               </PopoverTrigger>
@@ -465,7 +586,7 @@ export default function CreateEventPage() {
                     <h4 className="font-medium leading-none">Timezone</h4>
                     <p className="text-sm">Set the timezone for your event.</p>
                   </div>
-                  <Select onValueChange={(val) => setTimezone(val)} defaultValue={timezone}>
+                  <Select onValueChange={(val) => setTimezone(val)} value={timezone}>
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select timezone" />
                     </SelectTrigger>
@@ -635,8 +756,11 @@ export default function CreateEventPage() {
 
             {/* Submit Button */}
             <Button className="w-full" type="submit" disabled={submitting}>
-              {submitting ? "Creating..." : "Create Event"}
+              {submitting ? "Processing..." : `Create Event ($2 SGD Fee)`}
             </Button>
+            <p className="text-sm text-muted-foreground text-center mt-2">
+              A $2 SGD fee applies to all event listings. You&apos;ll be directed to payment after clicking the button.
+            </p>
           </div>
         </div>
       </form>

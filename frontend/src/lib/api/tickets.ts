@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { BookingStatus } from "@/types/booking";
 import { fetchAuthSession } from "aws-amplify/auth";
 
