@@ -33,7 +33,7 @@ class Booking(Base):
     __tablename__ = "bookings"
 
     booking_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(UUID(as_uuid=True), nullable=False)
+    user_id = Column(String, nullable=False)
     event_id = Column(UUID(as_uuid=True), nullable=False)
     status = Column(BookingStatusType, nullable=False, default=BookingStatus.PENDING)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -45,7 +45,7 @@ class Booking(Base):
     def to_dict(self):
         return {
             "booking_id": str(self.booking_id),
-            "user_id": str(self.user_id),
+            "user_id": self.user_id,
             "event_id": str(self.event_id),
             "status": self.status.value if self.status else None,
             "created_at": self.created_at,

@@ -1,27 +1,27 @@
-"use client";
+"use client"
 
-import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { ErrorMessageCallout } from "@/components/error-message-callout";
-import { InterestCategoryArr, InterestCategoryIcons } from "@/constants/common";
-import { toast } from "sonner";
-import { BACKEND_ROUTES } from "@/constants/backend-routes";
-import { getBearerToken } from "@/utils/auth";
-import { Spinner } from "@/components/ui/spinner";
-import { getErrorMessage } from "@/lib/cognitoActions";
-import { LocalStorageKeys } from "@/enums/LocalStorageKeys";
+import { useParams } from "next/navigation"
+import { useEffect, useState } from "react"
+import { Button } from "@/components/ui/button"
+import { ErrorMessageCallout } from "@/components/error-message-callout"
+import { InterestCategoryArr, InterestCategoryIcons } from "@/constants/common"
+import { toast } from "sonner"
+import { BACKEND_ROUTES } from "@/constants/backend-routes"
+import { getBearerToken } from "@/utils/auth"
+import { Spinner } from "@/components/ui/spinner"
+import { getErrorMessage } from "@/lib/cognitoActions"
+import { LocalStorageKeys } from "@/enums/LocalStorageKeys"
 
 export default function IndicateInterestsPage() {
-  const { userId } = useParams() as { userId: string }; // dynamic route param
-  const [existingInterests, setExistingInterests] = useState<string[]>([]);
-  const [error, setError] = useState<string>("");
-  const [loading, setLoading] = useState<boolean>(false);
+  const { userId } = useParams() as { userId: string } // dynamic route param
+  const [existingInterests, setExistingInterests] = useState<string[]>([])
+  const [error, setError] = useState<string>("")
+  const [loading, setLoading] = useState<boolean>(false)
 
   // Fetch existing interests for the user
   useEffect(() => {
     async function fetchUserInterests() {
-      if (!userId) return;
+      if (!userId) return
       try {
         const res = await fetch(
           `${BACKEND_ROUTES.userManagementServiceUrl}/api/userinterests/user/${userId}`,
@@ -31,38 +31,38 @@ export default function IndicateInterestsPage() {
               Authorization: await getBearerToken(),
             },
           }
-        );
+        )
         if (!res.ok) {
-          toast.error("Failed to load interests");
-          setError(getErrorMessage(res));
-          return;
+          toast.error("Failed to load interests")
+          setError(getErrorMessage(res))
+          return
         }
-        const interests: string[] = await res.json();
-        setExistingInterests(interests);
+        const interests: string[] = await res.json()
+        setExistingInterests(interests)
       } catch (error) {
-        setError(error + "");
-        toast.error(`Error fetching interests: ${error}`);
+        setError(error + "")
+        toast.error(`Error fetching interests: ${error}`)
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
     }
-    fetchUserInterests();
-  }, [userId]);
+    fetchUserInterests()
+  }, [userId])
 
   // Toggle interest selection
   const toggleInterest = (interest: string) => {
     if (existingInterests.includes(interest)) {
-      setExistingInterests(existingInterests.filter((i) => i !== interest));
+      setExistingInterests(existingInterests.filter((i) => i !== interest))
     } else {
-      setExistingInterests([...existingInterests, interest]);
+      setExistingInterests([...existingInterests, interest])
     }
-  };
+  }
 
   //Save (Upsert) interests
   const handleSaveInterests = async () => {
     try {
-      setError("");
-      setLoading(true);
+      setError("")
+      setLoading(true)
 
       const res = await fetch(
         `${BACKEND_ROUTES.userManagementServiceUrl}/api/userinterests/user/${userId}`,
@@ -75,31 +75,31 @@ export default function IndicateInterestsPage() {
           // We send the final list of interests as a simple array of strings
           body: JSON.stringify(existingInterests),
         }
-      );
+      )
       if (!res.ok) {
-        setError(getErrorMessage(res));
+        setError(getErrorMessage(res))
       }
 
-      toast("Interests updated successfully");
+      toast("Interests updated successfully")
 
       if (!localStorage.getItem(LocalStorageKeys.UserHasOnceSetInterests)) {
-        localStorage.setItem(LocalStorageKeys.UserHasOnceSetInterests, "true");
+        localStorage.setItem(LocalStorageKeys.UserHasOnceSetInterests, "true")
       }
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
-      setError(err.message || "Error updating interests");
+      setError(err.message || "Error updating interests")
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   if (error) {
     return (
       <div className="p-4">
         <ErrorMessageCallout errorMessage={error} />
       </div>
-    );
+    )
   }
 
   // 4) Render
@@ -114,8 +114,8 @@ export default function IndicateInterestsPage() {
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 my-4">
             {InterestCategoryArr.map((interest) => {
               // Get the corresponding icon component
-              const Icon = InterestCategoryIcons[interest];
-              const isSelected = existingInterests.includes(interest);
+              const Icon = InterestCategoryIcons[interest]
+              const isSelected = existingInterests.includes(interest)
               return (
                 <div
                   key={interest}
@@ -127,9 +127,12 @@ export default function IndicateInterestsPage() {
                   }`}
                 >
                   <Icon className="w-8 h-8 mb-2" />
-                  <span className="text-center">{interest.substring(0, 1).toUpperCase() + interest.substring(1)}</span>
+                  <span className="text-center">
+                    {interest.substring(0, 1).toUpperCase() +
+                      interest.substring(1)}
+                  </span>
                 </div>
-              );
+              )
             })}
           </div>
 
@@ -139,5 +142,5 @@ export default function IndicateInterestsPage() {
         </>
       )}
     </div>
-  );
+  )
 }

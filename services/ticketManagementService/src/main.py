@@ -8,10 +8,14 @@ from .core.rabbitmq import RabbitMQConsumer
 from .services.booking_service import BookingService
 from .core.database import get_db, engine
 from sqlalchemy.ext.asyncio import AsyncSession
+from .core.config import get_settings
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Get settings
+settings = get_settings()
 
 # Create FastAPI app
 app = FastAPI(
@@ -23,7 +27,7 @@ app = FastAPI(
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Frontend URL
+    allow_origins=[settings.FRONTEND_URL],  # Frontend URL from settings
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

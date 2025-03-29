@@ -1,9 +1,9 @@
-from pydantic import BaseModel, Field
-from pydantic.types import UUID4
-from uuid import UUID
+from pydantic import BaseModel, Field, UUID4
+from pydantic.types import UUID
 from datetime import datetime
 from typing import List, Optional
 from enum import Enum
+from ..core.enums import BookingStatus
 from .ticket import TicketResponse
 
 class BookingStatus(str, Enum):
@@ -31,7 +31,7 @@ class BookingStatus(str, Enum):
 
 # Booking Request Model
 class BookingRequest(BaseModel):
-    event_id: str
+    event_id: UUID4
     ticket_quantity: int
     total_amount: float
     user_id: Optional[str] = None  # Make user_id optional, it will be taken from the token
@@ -40,7 +40,7 @@ class BookingRequest(BaseModel):
 class BookingResponse(BaseModel):
     booking_id: str
     user_id: str  # Changed from UUID4 to str to match the database model
-    event_id: str
+    event_id: str  # Keep as str in response for consistency with API
     ticket_quantity: int
     total_amount: float
     status: BookingStatus

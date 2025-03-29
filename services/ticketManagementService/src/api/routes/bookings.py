@@ -37,18 +37,14 @@ async def test_endpoints(claims: dict = Depends(validate_token)):
 async def create_booking(
     booking: BookingRequest,
     db: AsyncSession = Depends(get_db),
-    user_id: str = Depends(get_current_user_id)
+    current_user_id: str = Depends(get_current_user_id)
 ):
     try:
-        # Convert user_id string to UUID
-        try:
-            user_uuid = UUID(user_id)
-        except ValueError:
-            logger.error(f"Invalid user ID format: {user_id}")
-            raise HTTPException(status_code=400, detail="Invalid user ID format")
-            
+        # Use custom:id directly as string
+        logger.debug(f"Creating booking for user (custom:id): {current_user_id}")
+        
         booking_data = booking.dict()
-        booking_data["user_id"] = user_uuid
+        booking_data["user_id"] = current_user_id
         
         # Log the booking data for debugging
         logger.debug(f"Creating booking with data: {booking_data}")
@@ -69,64 +65,66 @@ async def get_user_bookings(
     logger.debug(f"Requested user_id: {user_id}")
     logger.debug(f"Current user_id from token: {current_user_id}")
     
-    # Convert both IDs to UUID for comparison
-    try:
-        requested_uuid = UUID(user_id)
-        current_uuid = UUID(current_user_id)
-        if requested_uuid != current_uuid:
-            logger.warning(f"User {current_user_id} attempted to access bookings for user {user_id}")
-            raise HTTPException(status_code=403, detail="Cannot access other users' bookings")
-    except ValueError:
-        logger.error(f"Invalid user ID format: {user_id} or {current_user_id}")
-        raise HTTPException(status_code=400, detail="Invalid user ID format")
+    # Compare the requested user_id with the current user's ID
+    if user_id != current_user_id:
+        logger.warning(f"User {current_user_id} attempted to access bookings for user {user_id}")
+        raise HTTPException(status_code=403, detail="Cannot access other users' bookings")
     
     try:
-        # First, get all bookings for the user
-        logger.debug(f"Querying database for bookings with user_id: {current_uuid}")
-        bookings_query = select(Booking).where(Booking.user_id == current_uuid)
+        # Get all bookings for the user
+        logger.debug(f"Querying database for bookings with user_id: {user_id}")
+        bookings_query = select(Booking).where(Booking.user_id == user_id)
         bookings_result = await db.execute(bookings_query)
         bookings = bookings_result.scalars().all()
         
+        logger.debug(f"Found {len(bookings)} bookings in database")
         if not bookings:
-            logger.debug(f"No bookings found for user {current_uuid}")
+            logger.debug(f"No bookings found for user {user_id}")
             return []
         
         # Get all tickets for these bookings in a single query
-        booking_ids = [booking.booking_id for booking in bookings]
+        booking_ids = [str(booking.booking_id) for booking in bookings]  # Convert UUIDs to strings
         logger.debug(f"Found bookings with IDs: {booking_ids}")
-        tickets_query = select(Ticket).where(Ticket.booking_id.in_(booking_ids))
+        tickets_query = select(Ticket).where(Ticket.booking_id.in_([UUID(bid) for bid in booking_ids]))  # Convert strings back to UUIDs
         tickets_result = await db.execute(tickets_query)
         tickets = tickets_result.scalars().all()
         
         # Create a mapping of booking_id to tickets
         tickets_by_booking = {}
         for ticket in tickets:
-            if ticket.booking_id not in tickets_by_booking:
-                tickets_by_booking[ticket.booking_id] = []
-            tickets_by_booking[ticket.booking_id].append(ticket)
+            booking_id_str = str(ticket.booking_id)  # Convert UUID to string for dictionary key
+            if booking_id_str not in tickets_by_booking:
+                tickets_by_booking[booking_id_str] = []
+            tickets_by_booking[booking_id_str].append(ticket)
         
         # Create booking responses
         booking_responses = []
         for booking in bookings:
+            booking_id_str = str(booking.booking_id)
+            booking_tickets = tickets_by_booking.get(booking_id_str, [])
+            
             booking_dict = {
-                "booking_id": str(booking.booking_id),
-                "user_id": str(booking.user_id),
-                "event_id": str(booking.event_id),
+                "booking_id": booking_id_str,
+                "user_id": booking.user_id,  # Already a string
+                "event_id": str(booking.event_id),  # Convert UUID to string
                 "status": booking.status.value if booking.status else None,
                 "created_at": booking.created_at,
                 "updated_at": booking.updated_at,
+                "ticket_quantity": len(booking_tickets),  # Add ticket quantity
+                "total_amount": 0.0,  # Default to 0.0 as total amount is managed by billing service
                 "tickets": [
                     {
                         "ticket_id": str(ticket.ticket_id),
                         "booking_id": str(ticket.booking_id),
                         "created_at": ticket.created_at
                     }
-                    for ticket in tickets_by_booking.get(booking.booking_id, [])
+                    for ticket in booking_tickets
                 ]
             }
             booking_responses.append(booking_dict)
         
         logger.debug(f"Returning {len(booking_responses)} bookings")
+        logger.debug(f"First booking response: {booking_responses[0] if booking_responses else 'None'}")
         return booking_responses
     except Exception as e:
         logger.error(f"Error fetching bookings: {str(e)}")
@@ -146,21 +144,10 @@ async def get_booking(
     logger.debug(f"Current user_id from token: {current_user_id}")
     logger.debug(f"Booking user_id: {booking['user_id']}")
     
-    # Convert both IDs to UUID for comparison
-    try:
-        current_user_uuid = UUID(current_user_id)
-        booking_user_uuid = UUID(booking["user_id"])
-        logger.debug(f"Current user UUID: {current_user_uuid}")
-        logger.debug(f"Booking user UUID: {booking_user_uuid}")
-        logger.debug(f"UUIDs match: {current_user_uuid == booking_user_uuid}")
-        
-        if booking_user_uuid != current_user_uuid:
-            logger.warning(f"User {current_user_id} attempted to access booking {booking_id} owned by user {booking['user_id']}")
-            raise HTTPException(status_code=403, detail="Cannot access other users' bookings")
-    except ValueError as e:
-        logger.error(f"Invalid user ID format: {current_user_id} or {booking['user_id']}")
-        logger.error(f"Error details: {str(e)}")
-        raise HTTPException(status_code=400, detail="Invalid user ID format")
+    # Compare user IDs as strings
+    if booking["user_id"] != current_user_id:
+        logger.warning(f"User {current_user_id} attempted to access booking {booking_id} owned by user {booking['user_id']}")
+        raise HTTPException(status_code=403, detail="Cannot access other users' bookings")
     
     return booking
 
@@ -184,21 +171,10 @@ async def confirm_booking(
         logger.info(f"Booking {booking_id} is already confirmed")
         return {"message": "Booking already confirmed", "status": BookingStatus.CONFIRMED}
     
-    # Convert both IDs to UUID for comparison
-    try:
-        current_user_uuid = UUID(current_user_id)
-        booking_user_uuid = UUID(booking["user_id"])
-        logger.debug(f"Current user UUID: {current_user_uuid}")
-        logger.debug(f"Booking user UUID: {booking_user_uuid}")
-        logger.debug(f"UUIDs match: {current_user_uuid == booking_user_uuid}")
-        
-        if booking_user_uuid != current_user_uuid:
-            logger.warning(f"User {current_user_id} attempted to confirm booking {booking_id} owned by user {booking['user_id']}")
-            raise HTTPException(status_code=403, detail="Cannot confirm other users' bookings")
-    except ValueError as e:
-        logger.error(f"Invalid user ID format: {current_user_id} or {booking['user_id']}")
-        logger.error(f"Error details: {str(e)}")
-        raise HTTPException(status_code=400, detail="Invalid user ID format")
+    # Compare user IDs as strings
+    if booking["user_id"] != current_user_id:
+        logger.warning(f"User {current_user_id} attempted to confirm booking {booking_id} owned by user {booking['user_id']}")
+        raise HTTPException(status_code=403, detail="Cannot confirm other users' bookings")
     
     try:
         return await booking_service.update_booking_status(booking_id, BookingStatus.CONFIRMED, db)
@@ -215,15 +191,10 @@ async def cancel_booking(
     # Get the booking first to check ownership
     booking = await booking_service.get_booking_by_id(booking_id, db)
     
-    # Convert current_user_id to UUID for comparison
-    try:
-        current_user_uuid = UUID(current_user_id)
-        if booking["user_id"] != str(current_user_uuid):
-            logger.warning(f"User {current_user_id} attempted to cancel booking {booking_id} owned by user {booking['user_id']}")
-            raise HTTPException(status_code=403, detail="Cannot cancel other users' bookings")
-    except ValueError:
-        logger.error(f"Invalid user ID format: {current_user_id}")
-        raise HTTPException(status_code=400, detail="Invalid user ID format")
+    # Compare user IDs as strings
+    if booking["user_id"] != current_user_id:
+        logger.warning(f"User {current_user_id} attempted to cancel booking {booking_id} owned by user {booking['user_id']}")
+        raise HTTPException(status_code=403, detail="Cannot cancel other users' bookings")
     
     return await booking_service.update_booking_status(booking_id, BookingStatus.CANCELED, db)
 
@@ -236,14 +207,9 @@ async def refund_booking(
     # Get the booking first to check ownership
     booking = await booking_service.get_booking_by_id(booking_id, db)
     
-    # Convert current_user_id to UUID for comparison
-    try:
-        current_user_uuid = UUID(current_user_id)
-        if booking["user_id"] != str(current_user_uuid):
-            logger.warning(f"User {current_user_id} attempted to refund booking {booking_id} owned by user {booking['user_id']}")
-            raise HTTPException(status_code=403, detail="Cannot refund other users' bookings")
-    except ValueError:
-        logger.error(f"Invalid user ID format: {current_user_id}")
-        raise HTTPException(status_code=400, detail="Invalid user ID format")
+    # Compare user IDs as strings
+    if booking["user_id"] != current_user_id:
+        logger.warning(f"User {current_user_id} attempted to refund booking {booking_id} owned by user {booking['user_id']}")
+        raise HTTPException(status_code=403, detail="Cannot refund other users' bookings")
     
     return await booking_service.update_booking_status(booking_id, BookingStatus.REFUNDED, db)

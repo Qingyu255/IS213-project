@@ -199,27 +199,15 @@ async def get_current_user_id(
         claims = await validate_token(credentials)
         logger.debug("=== Getting user ID from claims ===")
         
-        # First try to get sub (from access token)
-        user_id = claims.get("sub")
-        if user_id:
-            logger.debug(f"Using sub as user ID: {user_id}")
-            return user_id
-            
-        # If no sub, try custom:id (from ID token)
+        # Get custom:id from token claims
         user_id = claims.get("custom:id")
-        if user_id:
-            logger.debug(f"Found custom:id: {user_id}")
-            return user_id
+        if not user_id:
+            logger.error("No custom:id found in token claims")
+            logger.debug(f"Available claims: {claims}")
+            raise HTTPException(status_code=401, detail="No custom:id found in token")
             
-        # If still no user ID, try username
-        username = claims.get("username") or claims.get("cognito:username")
-        if username:
-            logger.debug(f"Using username as user ID: {username}")
-            return username
-            
-        logger.error("No user identifier found in token claims")
-        logger.debug(f"Available claims: {claims}")
-        raise HTTPException(status_code=401, detail="No user identifier found in token")
+        logger.debug(f"Using custom:id as user ID: {user_id}")
+        return user_id
         
     except Exception as e:
         logger.error(f"Error getting user ID: {str(e)}")

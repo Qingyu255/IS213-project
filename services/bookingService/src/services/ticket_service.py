@@ -186,10 +186,6 @@ class TicketService:
     ) -> Dict[str, Any]:
         """Create a new booking"""
         try:
-            # Convert IDs to UUID format to validate them
-            event_uuid = UUID(event_id)
-            user_uuid = UUID(user_id)  # Validate UUID format but send as string
-
             # Prepare request data according to BookingRequest schema
             booking_data = {
                 "event_id": event_id,  # Send as string
@@ -205,9 +201,6 @@ class TicketService:
                 auth_token=auth_token,
                 json=booking_data
             )
-        except ValueError as e:
-            logger.error(f"Invalid UUID format: {str(e)}")
-            raise HTTPException(status_code=400, detail=f"Invalid ID format: {str(e)}")
         except TicketServiceException as e:
             logger.error(f"Error creating booking: {str(e)}")
             raise HTTPException(status_code=500, detail=str(e))

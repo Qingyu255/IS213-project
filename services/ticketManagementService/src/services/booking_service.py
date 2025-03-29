@@ -37,8 +37,8 @@ class BookingService(BaseService):
             async with db.begin():
                 # 1. Create booking with PENDING status
                 booking = Booking(
-                    event_id=UUID(booking_data["event_id"]),
-                    user_id=booking_data["user_id"],
+                    event_id=booking_data["event_id"],  # Store as string
+                    user_id=booking_data["user_id"],    # Store as string
                     status=BookingStatus.PENDING
                 )
                 db.add(booking)
@@ -240,11 +240,7 @@ class BookingService(BaseService):
         query = select(Booking)
         
         if filter_type == TicketFilterType.USER:
-            try:
-                user_uuid = UUID(str(filter_value))
-                query = query.filter(Booking.user_id == user_uuid)
-            except ValueError as e:
-                raise HTTPException(status_code=400, detail=f"Invalid user ID format: {str(e)}")
+            query = query.filter(Booking.user_id == filter_value)
         else:
             query = query.filter(Booking.event_id == filter_value)
         

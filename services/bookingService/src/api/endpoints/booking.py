@@ -245,7 +245,11 @@ def get_user_bookings(
     """Get all bookings for a user"""
     try:
         claims = validate_token(authorization)
-        if claims["sub"] != user_id:
+        logger.debug(f"Token claims: {claims}")
+        logger.debug(f"Requested user_id: {user_id}")
+        logger.debug(f"User ID from token (custom:id): {claims.get('custom:id')}")
+        
+        if claims.get('custom:id') != user_id:
             raise HTTPException(status_code=403, detail="Not authorized to view these bookings")
         return controller.get_user_bookings(user_id)
     except HTTPException:
@@ -275,11 +279,11 @@ def confirm_booking(
 
         # Log booking details for debugging
         logger.debug(f"Booking details: {booking}")
-        logger.debug(f"User ID from token: {claims['sub']}")
+        logger.debug(f"User ID from token (custom:id): {claims.get('custom:id')}")
         logger.debug(f"User ID from booking: {booking['user_id']}")
 
-        # Verify the user owns the booking
-        if booking["user_id"] != claims["sub"]:
+        # Verify the user owns the booking using custom:id
+        if booking["user_id"] != claims.get('custom:id'):
             raise HTTPException(status_code=403, detail="Not authorized to confirm this booking")
 
         # Get event details to verify the amount

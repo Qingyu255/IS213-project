@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     POSTGRES_PASSWORD: str = os.getenv("TICKET_DB_PASSWORD", "ticketlocaldbpassword")
     RABBITMQ_URL: str = os.getenv("RABBITMQ_URL", "amqp://guest:guest@rabbitmq:5672/")
     RABBITMQ_QUEUE: str = os.getenv("RABBITMQ_QUEUE", "logs_queue")
+    FRONTEND_URL: str = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
 @lru_cache()
 def get_settings():

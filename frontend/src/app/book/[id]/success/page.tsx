@@ -1,72 +1,72 @@
-"use client";
+"use client"
 
-import { useEffect, useState } from "react";
-import { useRouter, useSearchParams, useParams } from "next/navigation";
-import { confirmBooking } from "@/app/book/actions";
-import { signInWithRedirect } from "aws-amplify/auth";
-import { getBearerToken } from "@/utils/auth";
+import { useEffect, useState } from "react"
+import { useRouter, useSearchParams, useParams } from "next/navigation"
+import { confirmBooking } from "@/app/book/actions"
+import { signInWithRedirect } from "aws-amplify/auth"
+import { getBearerIdToken } from "@/utils/auth"
 
 export default function BookingSuccessPage() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const params = useParams();
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const params = useParams()
   const [status, setStatus] = useState<"loading" | "success" | "error">(
     "loading"
-  );
-  const [error, setError] = useState<string | null>(null);
-  const bookingId = params.id as string;
-  const sessionId = searchParams.get("session_id");
+  )
+  const [error, setError] = useState<string | null>(null)
+  const bookingId = params.id as string
+  const sessionId = searchParams.get("session_id")
 
   useEffect(() => {
     const confirmBookingStatus = async () => {
       if (!bookingId || !sessionId) {
-        setStatus("error");
-        setError("Missing booking or session information");
-        return;
+        setStatus("error")
+        setError("Missing booking or session information")
+        return
       }
 
       try {
         // Get the bearer token on the client side
-        const bearerToken = await getBearerToken();
+        const bearerToken = await getBearerIdToken()
         if (!bearerToken) {
-          setStatus("error");
-          setError("Please log in to confirm your booking");
-          return;
+          setStatus("error")
+          setError("Please log in to confirm your booking")
+          return
         }
 
-        const result = await confirmBooking(bookingId, sessionId, bearerToken);
+        const result = await confirmBooking(bookingId, sessionId, bearerToken)
 
         if (result.requiresAuth) {
           // Store the booking and session IDs in localStorage
-          localStorage.setItem("pendingBookingId", bookingId);
-          localStorage.setItem("pendingSessionId", sessionId);
+          localStorage.setItem("pendingBookingId", bookingId)
+          localStorage.setItem("pendingSessionId", sessionId)
           // Try to sign in
           try {
-            await signInWithRedirect();
-            return; // The page will reload after auth
+            await signInWithRedirect()
+            return // The page will reload after auth
           } catch (err) {
-            setStatus("error");
-            setError("Authentication failed. Please try again.");
+            setStatus("error")
+            setError("Authentication failed. Please try again.")
           }
-          return;
+          return
         }
 
         if (result.success) {
-          setStatus("success");
+          setStatus("success")
         } else {
-          setStatus("error");
-          setError(result.error || "Failed to confirm booking");
+          setStatus("error")
+          setError(result.error || "Failed to confirm booking")
         }
       } catch (err) {
-        setStatus("error");
+        setStatus("error")
         setError(
           err instanceof Error ? err.message : "Failed to confirm booking"
-        );
+        )
       }
-    };
+    }
 
-    confirmBookingStatus();
-  }, [bookingId, sessionId]);
+    confirmBookingStatus()
+  }, [bookingId, sessionId])
 
   if (status === "loading") {
     return (
@@ -78,7 +78,7 @@ export default function BookingSuccessPage() {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
         </div>
       </div>
-    );
+    )
   }
 
   if (status === "error") {
@@ -95,7 +95,7 @@ export default function BookingSuccessPage() {
           </button>
         </div>
       </div>
-    );
+    )
   }
 
   return (
@@ -115,5 +115,5 @@ export default function BookingSuccessPage() {
         </button>
       </div>
     </div>
-  );
+  )
 }
