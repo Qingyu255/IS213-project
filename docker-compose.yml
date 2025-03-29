@@ -90,13 +90,15 @@ services:
       KONG_ADMIN_ERROR_LOG: /dev/stderr
       KONG_ADMIN_LISTEN: 0.0.0.0:8001
       KONG_ADMIN_GUI_URL: http://localhost:8002
-      KONG_DECLARATIVE_CONFIG: /kong/declarative/jwt-plugin.yaml
+      KONG_DECLARATIVE_CONFIG: /kong/config/jwt-plugin.yaml
+    volumes:
+      - ./kong/config:/kong/config
     depends_on:
       kong-migration:
         condition: service_completed_successfully
     ports:
-      - "8000:8000" # Kong proxy port
-      - "8001:8001" # Kong admin API
+      - "10000:8000" # Kong proxy port
+      - "10001:8001" # Kong admin API
       - "8443:8443" # Kong proxy SSL port
       - "8444:8444" # Kong admin SSL port
     networks:
@@ -120,17 +122,17 @@ services:
         echo 'Waiting for Kong to be ready...' &&
         sleep 10 &&
         curl -s -X POST http://kong:8001/services -d 'name=user-management-service' -d 'url=http://user-management-service:8080' &&
-        curl -s -X POST http://kong:8001/services/user-management-service/routes -d 'paths[]=/api/users' &&
+        curl -s -X POST http://kong:8001/services/user-management-service/routes -d 'paths[]=/api/users' -d 'paths[]=/api/users/' -d 'paths[]=/api/userinterests' -d 'paths[]=/api/userinterests/' -d 'strip_path=false' &&
         curl -s -X POST http://kong:8001/services -d 'name=ticket-management-service' -d 'url=http://ticket-management-service:8000' &&
-        curl -s -X POST http://kong:8001/services/ticket-management-service/routes -d 'paths[]=/api/v1/bookings' -d 'paths[]=/api/v1/tickets' &&
+        curl -s -X POST http://kong:8001/services/ticket-management-service/routes -d 'paths[]=/api/bookings' -d 'paths[]=/api/tickets' -d 'strip_path=false' &&
         curl -s -X POST http://kong:8001/services -d 'name=events-service' -d 'url=http://events-service:8001' &&
-        curl -s -X POST http://kong:8001/services/events-service/routes -d 'paths[]=/api/v1/events' &&
+        curl -s -X POST http://kong:8001/services/events-service/routes -d 'paths[]=/api/events' -d 'strip_path=false' &&
         curl -s -X POST http://kong:8001/services -d 'name=billing-service' -d 'url=http://billing-service:5001' &&
-        curl -s -X POST http://kong:8001/services/billing-service/routes -d 'paths[]=/api/refund' -d 'paths[]=/api/events' &&
+        curl -s -X POST http://kong:8001/services/billing-service/routes -d 'paths[]=/api/refund' -d 'paths[]=/api/events' -d 'strip_path=false' &&
         curl -s -X POST http://kong:8001/services -d 'name=create-event-service' -d 'url=http://create-event-service:8070' &&
-        curl -s -X POST http://kong:8001/services/create-event-service/routes -d 'paths[]=/api/v1/create-event' &&
+        curl -s -X POST http://kong:8001/services/create-event-service/routes -d 'paths[]=/api/create-event' -d 'strip_path=false' &&
         curl -s -X POST http://kong:8001/consumers -d 'username=frontend-app' &&
-        curl -s -X POST http://kong:8001/plugins -d 'name=cors' -d 'config.origins=http://localhost:3000' -d 'config.methods=GET,POST,PUT,DELETE,OPTIONS' -d 'config.headers=Accept,Accept-Version,Content-Length,Content-MD5,Content-Type,Date,X-Auth-Token,Authorization' -d 'config.exposed_headers=X-Auth-Token' -d 'config.credentials=true' -d 'config.max_age=3600'
+        curl -s -X POST http://kong:8001/plugins -d 'name=cors' -d 'config.origins=http://localhost:3000' -d 'config.methods=GET,POST,PUT,DELETE,OPTIONS' -d 'config.headers=Accept,Accept-Version,Content-Length,Content-MD5,Content-Type,Date,X-Auth-Token,Authorization' -d 'config.exposed_headers=X-Auth-Token' -d 'config.credentials=true' -d 'config.max_age=3600' &&
         curl -s -X POST http://kong:8001/plugins -d 'name=jwt' -d 'config.secret_is_base64=false' -d 'config.claims_to_verify=exp' -d 'config.key_claim_name=kid' -d 'config.run_on_preflight=true' -d 'config.auth_methods=header' -d 'config.header_names=Authorization'
       "
     networks:
