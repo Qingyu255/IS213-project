@@ -1,62 +1,62 @@
-"use client"
-import { useEffect, useState, type FormEvent } from "react"
-import type React from "react"
+"use client";
+import { useEffect, useState, type FormEvent } from "react";
+import type React from "react";
 import { v4 as uuidv4 } from 'uuid';
 
-import Image from "next/image"
-import { Calendar as CalendarIcon, Clock, ChevronDown, Users, Pencil, Ticket, Plus, X } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Textarea } from "@/components/ui/textarea"
-import { Spinner } from "@/components/ui/spinner"
-import { Calendar } from "@/components/ui/calendar"
-import { useRouter, useSearchParams } from "next/navigation"
+import Image from "next/image";
+import { Calendar as CalendarIcon, Clock, ChevronDown, Users, Pencil, Ticket, Plus, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Textarea } from "@/components/ui/textarea";
+import { Spinner } from "@/components/ui/spinner";
+import { Calendar } from "@/components/ui/calendar";
+import { useRouter, useSearchParams } from "next/navigation";
 
-import { fetchAuthSession } from "aws-amplify/auth"
-import { Route } from "@/enums/Route"
-import { InterestCategory } from "@/enums/InterestCategory"
-import type { EventDetails } from "@/types/event"
-import { toast } from "sonner"
-import VenueAutocomplete from "@/components/googlemaps/VenueAutocomplete"
-import useAuthUser from "@/hooks/use-auth-user"
-import { ErrorMessageCallout } from "@/components/error-message-callout"
-import { useEventCreation } from "@/providers/event-creation-provider"
+import { fetchAuthSession } from "aws-amplify/auth";
+import { Route } from "@/enums/Route";
+import { InterestCategory } from "@/enums/InterestCategory";
+import type { EventDetails } from "@/types/event";
+import { toast } from "sonner";
+import VenueAutocomplete from "@/components/googlemaps/VenueAutocomplete";
+import useAuthUser from "@/hooks/use-auth-user";
+import { ErrorMessageCallout } from "@/components/error-message-callout";
+import { useEventCreation } from "@/providers/event-creation-provider";
 
 // Constants
-const EVENT_CREATION_FEE_CENTS = 200  // $2.00 SGD
+const EVENT_CREATION_FEE_CENTS = 200;  // $2.00 SGD
 
 export default function CreateEventPage() {
-  const router = useRouter()
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [submitting, setSubmitting] = useState(false)
-  const { setEventData } = useEventCreation()
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const { setEventData } = useEventCreation();
 
   // -----------------------
   // Form field states
   // -----------------------
-  const [title, setTitle] = useState("")
-  const [description, setDescription] = useState("")
-  const [startDate, setStartDate] = useState("")
-  const [startTime, setStartTime] = useState("")
-  const [endDate, setEndDate] = useState("")
-  const [endTime, setEndTime] = useState("")
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [startTime, setStartTime] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [endTime, setEndTime] = useState("");
 
   const [categories, setCategories] = useState<InterestCategory[]>([]);
   // const [eventType, setEventType] = useState<string>("public")
-  const [amount, setAmount] = useState(0)
-  const [currency, setCurrency] = useState("SGD")
+  const [amount, setAmount] = useState(0);
+  const [currency, setCurrency] = useState("SGD");
 
-  const [capacity, setCapacity] = useState<number | null>(null)
-  const [isUnlimited, setIsUnlimited] = useState(true)
+  const [capacity, setCapacity] = useState<number | null>(null);
+  const [isUnlimited, setIsUnlimited] = useState(true);
 
   // For image uploading: store multiple images
-  const [images, setImages] = useState<string[]>(["/eventplaceholder.png"])
-  const [mainImageIndex, setMainImageIndex] = useState(0)
+  const [images, setImages] = useState<string[]>(["/eventplaceholder.png"]);
+  const [mainImageIndex, setMainImageIndex] = useState(0);
 
   const [address, setAddress] = useState("");
   const [city, setCity] = useState("");
@@ -66,14 +66,14 @@ export default function CreateEventPage() {
   const [coordinates, setCoordinates] = useState<{ lat: number; lng: number }>({ lat: 0, lng: 0 });
 
   // Other fields
-  const [timezone, setTimezone] = useState("utc")
+  const [timezone, setTimezone] = useState("utc");
 
   const searchParams = useSearchParams();
   if (searchParams.get("canceled")) {
     console.log(
       'Event Creation Payment canceled'
       // route to cancelled page?
-    )
+    );
   }
   // -----------------------
   // Auth check on mount (DO NOT MODIFY)
@@ -81,20 +81,20 @@ export default function CreateEventPage() {
   useEffect(() => {
     async function checkSession() {
       try {
-        const session = await fetchAuthSession()
-        const token = session.tokens?.accessToken
+        const session = await fetchAuthSession();
+        const token = session.tokens?.accessToken;
         if (!token) {
-          router.replace(Route.Login)
+          router.replace(Route.Login);
         } else {
-          setIsLoading(false)
+          setIsLoading(false);
         }
       } catch (err) {
-        console.error("Session check failed:", err)
-        router.replace(Route.Login)
+        console.error("Session check failed:", err);
+        router.replace(Route.Login);
       }
     }
-    checkSession()
-  }, [router])
+    checkSession();
+  }, [router]);
 
   // Get authenticated user details
   const { user, getUserId } = useAuthUser();
@@ -104,49 +104,49 @@ export default function CreateEventPage() {
   // -----------------------
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0]
+      const file = e.target.files[0];
 
       // Create a FileReader to encode the image as base64
-      const reader = new FileReader()
+      const reader = new FileReader();
       reader.onloadend = () => {
-        const newImages = [...images]
+        const newImages = [...images];
         if (newImages[0] === "/placeholder.svg?height=200&width=200" && newImages.length === 1) {
           // Replace placeholder with actual image
-          newImages[0] = reader.result as string
+          newImages[0] = reader.result as string;
         } else {
           // Add new image
-          newImages.push(reader.result as string)
+          newImages.push(reader.result as string);
         }
-        setImages(newImages)
-        setMainImageIndex(newImages.length - 1)
-      }
-      reader.readAsDataURL(file)
+        setImages(newImages);
+        setMainImageIndex(newImages.length - 1);
+      };
+      reader.readAsDataURL(file);
     }
   }
 
   // Remove an image
   function removeImage(index: number) {
-    const newImages = [...images]
-    newImages.splice(index, 1)
+    const newImages = [...images];
+    newImages.splice(index, 1);
 
     // If we removed all images, add a placeholder back
     if (newImages.length === 0) {
-      newImages.push("/placeholder.svg?height=200&width=200")
+      newImages.push("/placeholder.svg?height=200&width=200");
     }
 
     // Update main image index if needed
     if (index === mainImageIndex) {
-      setMainImageIndex(0)
+      setMainImageIndex(0);
     } else if (index < mainImageIndex) {
-      setMainImageIndex(mainImageIndex - 1)
+      setMainImageIndex(mainImageIndex - 1);
     }
 
-    setImages(newImages)
+    setImages(newImages);
   }
 
   // Set an image as the main image
   function setAsMainImage(index: number) {
-    setMainImageIndex(index)
+    setMainImageIndex(index);
   }
 
   // Add this helper function at the top of the file, after imports
@@ -174,9 +174,9 @@ export default function CreateEventPage() {
   // Submit Handler
   // -----------------------
   async function handleCreateEvent(e: FormEvent) {
-    e.preventDefault()
-    setSubmitting(true)
-    setError(null)
+    e.preventDefault();
+    setSubmitting(true);
+    setError(null);
 
     try {
       // Validate start date and time
@@ -237,7 +237,7 @@ export default function CreateEventPage() {
           username: (user && user.username) ? user.username : "",
         },
         capacity: isUnlimited ? undefined : (capacity ?? undefined),
-      }
+      };
       
       // Store in context first
       setEventData(newEvent);
@@ -263,29 +263,29 @@ export default function CreateEventPage() {
           amount: EVENT_CREATION_FEE_CENTS,
           description: `Event creation fee for "${newEvent.title}"`
         }),
-      })
+      });
 
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(`Error creating payment session: ${errorData.error || response.statusText}`)
+        const errorData = await response.json();
+        throw new Error(`Error creating payment session: ${errorData.error || response.statusText}`);
       }
 
-      const { url } = await response.json()
+      const { url } = await response.json();
       
       if (!url) {
-        throw new Error('No checkout URL returned from payment service')
+        throw new Error('No checkout URL returned from payment service');
       }
       
       // Redirect to the Stripe Checkout page
-      window.location.href = url
+      window.location.href = url;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
-      console.error("Error preparing event creation:", err)
-      setError(err.message || "An unknown error occurred.")
-      setSubmitting(false)
+      console.error("Error preparing event creation:", err);
+      setError(err.message || "An unknown error occurred.");
+      setSubmitting(false);
       // Show error toast
-      toast.error(err.message || "An unknown error occurred.")
+      toast.error(err.message || "An unknown error occurred.");
     }
   }
 
@@ -297,7 +297,7 @@ export default function CreateEventPage() {
       <div className="flex items-center justify-center min-h-screen">
         <Spinner />
       </div>
-    )
+    );
   }
 
   return (
@@ -320,8 +320,8 @@ export default function CreateEventPage() {
                 type="button"
                 onClick={() => {
                   // Trigger the hidden file input click
-                  const fileInput = document.getElementById("image-upload")
-                  if (fileInput) fileInput.click()
+                  const fileInput = document.getElementById("image-upload");
+                  if (fileInput) fileInput.click();
                 }}
               >
                 <Plus className="mr-2 h-4 w-4" />
@@ -351,8 +351,8 @@ export default function CreateEventPage() {
                       size="icon"
                       className="absolute top-0 right-0 h-5 w-5 rounded-full p-0"
                       onClick={(e) => {
-                        e.stopPropagation()
-                        removeImage(index)
+                        e.stopPropagation();
+                        removeImage(index);
                       }}
                     >
                       <X className="h-3 w-3" />
@@ -437,8 +437,8 @@ export default function CreateEventPage() {
                           value={startTime.split(":")[0] || "12"}
                           onValueChange={(value) => {
                             // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                            const [_, minutes] = startTime.split(":")
-                            setStartTime(`${value}:${minutes || "00"}`)
+                            const [_, minutes] = startTime.split(":");
+                            setStartTime(`${value}:${minutes || "00"}`);
                           }}
                         >
                           <SelectTrigger>
@@ -455,8 +455,8 @@ export default function CreateEventPage() {
                         <Select
                           value={startTime.split(":")[1] || "00"}
                           onValueChange={(value) => {
-                            const [hours] = startTime.split(":")
-                            setStartTime(`${hours || "12"}:${value}`)
+                            const [hours] = startTime.split(":");
+                            setStartTime(`${hours || "12"}:${value}`);
                           }}
                         >
                           <SelectTrigger>
@@ -529,8 +529,8 @@ export default function CreateEventPage() {
                           value={endTime.split(":")[0] || "12"}
                           onValueChange={(value) => {
                             // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                            const [_, minutes] = endTime.split(":")
-                            setEndTime(`${value}:${minutes || "00"}`)
+                            const [_, minutes] = endTime.split(":");
+                            setEndTime(`${value}:${minutes || "00"}`);
                           }}
                         >
                           <SelectTrigger>
@@ -547,8 +547,8 @@ export default function CreateEventPage() {
                         <Select
                           value={endTime.split(":")[1] || "00"}
                           onValueChange={(value) => {
-                            const [hours] = endTime.split(":")
-                            setEndTime(`${hours || "12"}:${value}`)
+                            const [hours] = endTime.split(":");
+                            setEndTime(`${hours || "12"}:${value}`);
                           }}
                         >
                           <SelectTrigger>
@@ -765,6 +765,6 @@ export default function CreateEventPage() {
         </div>
       </form>
     </div>
-  )
+  );
 }
 

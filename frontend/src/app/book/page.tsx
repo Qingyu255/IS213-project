@@ -1,9 +1,9 @@
-"use client"
-import { ModeToggle } from '@/components/mode-toggle'
+"use client";
+import { ModeToggle } from '@/components/mode-toggle';
 import { Route } from '@/enums/Route';
 import { fetchAuthSession } from 'aws-amplify/auth';
 import { redirect, useRouter } from 'next/navigation';
-import React, { useEffect } from 'react'
+import React, { useEffect } from 'react';
 
 export default function BookingPage() {
     // Client-side route protection
@@ -24,5 +24,5 @@ export default function BookingPage() {
         <ModeToggle/>
       yooo
     </div>
-  )
+  );
 }

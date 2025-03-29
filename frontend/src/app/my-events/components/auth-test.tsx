@@ -1,28 +1,28 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { fetchAuthSession } from "aws-amplify/auth"
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { fetchAuthSession } from "aws-amplify/auth";
 
 const TICKET_SERVICE_URL =
-  process.env.NEXT_PUBLIC_TICKET_SERVICE_URL || "http://localhost:8000"
+  process.env.NEXT_PUBLIC_TICKET_SERVICE_URL || "http://localhost:8000";
 
 export function AuthTest() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [testResult, setTestResult] = useState<any>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
+  const [testResult, setTestResult] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const testAuth = async () => {
-    setLoading(true)
-    setError(null)
+    setLoading(true);
+    setError(null);
     try {
       // Get the token
-      const session = await fetchAuthSession()
-      const token = session.tokens?.idToken || session.tokens?.accessToken
+      const session = await fetchAuthSession();
+      const token = session.tokens?.idToken || session.tokens?.accessToken;
 
       if (!token) {
-        throw new Error("No auth token available")
+        throw new Error("No auth token available");
       }
 
       // Test the auth endpoint
@@ -31,20 +31,20 @@ export function AuthTest() {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-      })
+      });
 
       if (!response.ok) {
-        throw new Error(`Auth test failed: ${response.statusText}`)
+        throw new Error(`Auth test failed: ${response.statusText}`);
       }
 
-      const result = await response.json()
-      setTestResult(result)
+      const result = await response.json();
+      setTestResult(result);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to test auth")
+      setError(err instanceof Error ? err.message : "Failed to test auth");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <div className="space-y-4 p-4 border rounded-lg">
@@ -67,5 +67,5 @@ export function AuthTest() {
         </div>
       )}
     </div>
-  )
+  );
 }

@@ -18,7 +18,7 @@ export default function InterestCheckWrapper({ children }: { children: React.Rea
   useEffect(() => {
     async function fetchUserInterests() {
       if (!userId || localStorage.getItem(LocalStorageKeys.DontAskInterests) === "true" || localStorage.getItem(LocalStorageKeys.UserHasOnceSetInterests) === "true" ) {
-        return
+        return;
       };
 
       try {

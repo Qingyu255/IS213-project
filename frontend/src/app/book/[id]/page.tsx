@@ -1,16 +1,16 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { useRouter, useParams } from "next/navigation"
-import { getCurrentUser } from "aws-amplify/auth"
-import { getBearerToken } from "@/utils/auth"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { ErrorMessageCallout } from "@/components/error-message-callout"
-import { Spinner } from "@/components/ui/spinner"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { BACKEND_ROUTES } from "@/constants/backend-routes"
+import { useState, useEffect } from "react";
+import { useRouter, useParams } from "next/navigation";
+import { getCurrentUser } from "aws-amplify/auth";
+import { getBearerToken } from "@/utils/auth";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ErrorMessageCallout } from "@/components/error-message-callout";
+import { Spinner } from "@/components/ui/spinner";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { BACKEND_ROUTES } from "@/constants/backend-routes";
 
 interface BookingFormData {
   quantity: number
@@ -28,25 +28,25 @@ interface EventDetails {
 }
 
 export default function BookingPage() {
-  const router = useRouter()
-  const params = useParams()
+  const router = useRouter();
+  const params = useParams();
   const [formData, setFormData] = useState<BookingFormData>({
     quantity: 1,
     name: "",
     email: "",
-  })
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [event, setEvent] = useState<EventDetails | null>(null)
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [event, setEvent] = useState<EventDetails | null>(null);
 
   useEffect(() => {
     async function fetchEvent() {
-      if (!params?.id) return
+      if (!params?.id) return;
 
       try {
-        const bearerToken = await getBearerToken()
+        const bearerToken = await getBearerToken();
         if (!bearerToken) {
-          throw new Error("Please sign in to view event details")
+          throw new Error("Please sign in to view event details");
         }
 
         const response = await fetch(
@@ -57,34 +57,34 @@ export default function BookingPage() {
               Authorization: bearerToken,
             },
           }
-        )
+        );
         if (!response.ok) {
-          throw new Error("Failed to fetch event details")
+          throw new Error("Failed to fetch event details");
         }
-        const data = await response.json()
-        setEvent(data)
+        const data = await response.json();
+        setEvent(data);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load event")
+        setError(err instanceof Error ? err.message : "Failed to load event");
       }
     }
 
-    fetchEvent()
-  }, [params?.id])
+    fetchEvent();
+  }, [params?.id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!event || !params?.id) return
+    e.preventDefault();
+    if (!event || !params?.id) return;
 
-    setLoading(true)
-    setError(null)
+    setLoading(true);
+    setError(null);
 
     try {
       // Get the current user and bearer token
-      const user = await getCurrentUser()
-      const bearerToken = await getBearerToken()
+      const user = await getCurrentUser();
+      const bearerToken = await getBearerToken();
 
       if (!bearerToken) {
-        throw new Error("Please sign in to make a booking")
+        throw new Error("Please sign in to make a booking");
       }
 
       // 1. First create the booking record
@@ -103,18 +103,18 @@ export default function BookingPage() {
             email: formData.email,
           }),
         }
-      )
+      );
 
       if (!bookingResponse.ok) {
-        const errorData = await bookingResponse.json()
-        throw new Error(errorData.detail || "Failed to create booking")
+        const errorData = await bookingResponse.json();
+        throw new Error(errorData.detail || "Failed to create booking");
       }
 
-      const bookingData = await bookingResponse.json()
-      console.log("Booking data:", bookingData)
+      const bookingData = await bookingResponse.json();
+      console.log("Booking data:", bookingData);
 
       if (!bookingData.booking_id) {
-        throw new Error("No booking ID in response")
+        throw new Error("No booking ID in response");
       }
 
       // 2. Then create the Stripe session
@@ -130,31 +130,31 @@ export default function BookingPage() {
           quantity: formData.quantity,
           successUrl: `${window.location.origin}/book/${bookingData.booking_id}/success?session_id={CHECKOUT_SESSION_ID}`,
         }),
-      })
+      });
 
       if (!stripeResponse.ok) {
-        const errorData = await stripeResponse.json()
-        throw new Error(errorData.error || "Failed to create payment session")
+        const errorData = await stripeResponse.json();
+        throw new Error(errorData.error || "Failed to create payment session");
       }
 
-      const { url } = await stripeResponse.json()
-      router.push(url)
+      const { url } = await stripeResponse.json();
+      router.push(url);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred")
+      setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   if (!event) {
     return (
       <div className="flex justify-center items-center min-h-screen">
         <Spinner />
       </div>
-    )
+    );
   }
 
-  const totalPrice = event.price * formData.quantity
+  const totalPrice = event.price * formData.quantity;
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -251,5 +251,5 @@ export default function BookingPage() {
         </form>
       </div>
     </div>
-  )
+  );
 }

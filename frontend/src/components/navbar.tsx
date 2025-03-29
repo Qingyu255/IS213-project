@@ -1,25 +1,25 @@
-"use client"
-import { Route } from "@/enums/Route"
-import { Menu } from "lucide-react"
-import Link from "next/link"
-import React from "react"
-import { ModeToggle } from "./mode-toggle"
-import { Button } from "./ui/button"
+"use client";
+import { Route } from "@/enums/Route";
+import { Menu } from "lucide-react";
+import Link from "next/link";
+import React from "react";
+import { ModeToggle } from "./mode-toggle";
+import { Button } from "./ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator,
-} from "./ui/dropdown-menu"
-import Logo from "./logo"
-import useAuthUser from "@/hooks/use-auth-user"
-import { handleSignOut } from "@/lib/cognitoActions"
-import { Avatar, AvatarFallback } from "./ui/avatar"
+} from "./ui/dropdown-menu";
+import Logo from "./logo";
+import useAuthUser from "@/hooks/use-auth-user";
+import { handleSignOut } from "@/lib/cognitoActions";
+import { Avatar, AvatarFallback } from "./ui/avatar";
 
 export default function Navbar() {
-  const { user, getUserId } = useAuthUser()
-  console.log(user)
+  const { user, getUserId } = useAuthUser();
+  console.log(user);
   // const isLoggedIn = false;
   return (
     <div className="relative z-10 border-b bg-transparent">
@@ -134,5 +134,5 @@ export default function Navbar() {
         </div>
       </div>
     </div>
-  )
+  );
 }

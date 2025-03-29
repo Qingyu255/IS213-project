@@ -6,7 +6,10 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "lint:fix": "next lint --fix",
+    "lint:strict": "eslint --config eslint.config.mjs \"src/**/*.{ts,tsx}\"",
+    "lint:strict:fix": "eslint --config eslint.config.mjs \"src/**/*.{ts,tsx}\" --fix"
   },
   "dependencies": {
     "@aws-amplify/adapter-nextjs": "^1.5.2",

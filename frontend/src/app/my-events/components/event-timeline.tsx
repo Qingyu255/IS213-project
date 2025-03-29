@@ -1,24 +1,24 @@
-import Link from "next/link"
-import { Calendar, Ticket, ChevronDown } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-import { BookingStatus } from "@/types/booking"
+import Link from "next/link";
+import { Calendar, Ticket, ChevronDown } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { BookingStatus } from "@/types/booking";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from "@/components/ui/dropdown-menu";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from "@/components/ui/accordion"
-import { Spinner } from "@/components/ui/spinner"
-import { useState } from "react"
-import { UserEventTicketsResponse } from "@/lib/api/tickets"
+} from "@/components/ui/accordion";
+import { Spinner } from "@/components/ui/spinner";
+import { useState } from "react";
+import { UserEventTicketsResponse } from "@/lib/api/tickets";
 
 interface Booking {
   id: string
@@ -45,66 +45,66 @@ interface EventTimelineProps {
 export function EventTimeline({ events }: EventTimelineProps) {
   const [processingBookingId, setProcessingBookingId] = useState<string | null>(
     null
-  )
+  );
 
   // Group events by month
   const groupedEvents = events.reduce(
     (groups: { [key: string]: Event[] }, event) => {
-      const date = event.date
+      const date = event.date;
       const monthYear = date.toLocaleString("default", {
         month: "long",
         year: "numeric",
-      })
+      });
 
       if (!groups[monthYear]) {
-        groups[monthYear] = []
+        groups[monthYear] = [];
       }
-      groups[monthYear].push(event)
-      return groups
+      groups[monthYear].push(event);
+      return groups;
     },
     {}
-  )
+  );
 
   // Sort events within each month by date
   Object.values(groupedEvents).forEach((monthEvents) => {
-    monthEvents.sort((a, b) => b.date.getTime() - a.date.getTime())
-  })
+    monthEvents.sort((a, b) => b.date.getTime() - a.date.getTime());
+  });
 
   const getStatusBadgeVariant = (
     status: BookingStatus
   ): "default" | "destructive" | "secondary" | "outline" => {
     switch (status) {
       case BookingStatus.PENDING:
-        return "secondary"
+        return "secondary";
       case BookingStatus.CONFIRMED:
-        return "default"
+        return "default";
       case BookingStatus.CANCELED:
-        return "destructive"
+        return "destructive";
       case BookingStatus.REFUNDED:
-        return "secondary"
+        return "secondary";
       default:
-        return "default"
+        return "default";
     }
-  }
+  };
 
   const handleAction = async (
     booking: Booking,
     action: "cancel" | "refund"
   ) => {
-    setProcessingBookingId(booking.id)
+    setProcessingBookingId(booking.id);
     try {
-      await booking.onAction?.(action)
+      await booking.onAction?.(action);
     } finally {
-      setProcessingBookingId(null)
+      setProcessingBookingId(null);
     }
-  }
+  };
 
   if (events.length === 0) {
     return (
       <div className="text-center py-8">
         <p className="text-muted-foreground">No events found</p>
       </div>
-    )
+    );
   }
 
   return (
@@ -248,5 +248,5 @@ export function EventTimeline({ events }: EventTimelineProps) {
         </div>
       ))}
     </div>
-  )
+  );
 }

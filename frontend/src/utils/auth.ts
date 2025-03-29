@@ -1,4 +1,4 @@
-"use client"
+"use client";
 import { fetchAuthSession } from "aws-amplify/auth";
 
 export const getBearerToken = async (): Promise<string> => {

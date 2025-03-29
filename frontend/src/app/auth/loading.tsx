@@ -8,5 +8,5 @@ export default function loading() {
                 <Spinner size="lg" className='bg-black dark:bg-white'/>
             </div>
         </div>
-    )
+    );
 }

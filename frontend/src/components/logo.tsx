@@ -1,6 +1,6 @@
-import { siteName } from '@/constants/common'
-import { Ticket } from 'lucide-react'
-import React from 'react'
+import { siteName } from '@/constants/common';
+import { Ticket } from 'lucide-react';
+import React from 'react';
 
 export default function Logo() {
   return (
@@ -10,5 +10,5 @@ export default function Logo() {
         </div>
         <span className="text-xl font-bold tracking-tight">{siteName}</span>
     </div>
-  )
+  );
 }

@@ -1,7 +1,7 @@
-'use server'
+'use server';
 
-import { stripe } from '@/lib/stripe'
-import { BACKEND_ROUTES } from "@/constants/backend-routes"
+import { stripe } from '@/lib/stripe';
+import { BACKEND_ROUTES } from "@/constants/backend-routes";
 
 type CheckoutSessionResponse = {
   success: boolean;
@@ -57,9 +57,9 @@ export async function createBooking(eventId: string, userId: string, bearerToken
 export async function confirmBooking(bookingId: string, sessionId: string, bearerToken: string): Promise<{ success: boolean; error?: string; requiresAuth?: boolean }> {
   try {
     // Get the session details to get the payment intent ID
-    const sessionResponse = await getBookingCheckoutSession(sessionId)
+    const sessionResponse = await getBookingCheckoutSession(sessionId);
     if (!sessionResponse.success || !sessionResponse.session) {
-      throw new Error("Failed to get session details")
+      throw new Error("Failed to get session details");
     }
 
     const response = await fetch(`${process.env.NEXT_PUBLIC_BOOKING_SERVICE_URL}/api/v1/bookings/${bookingId}/confirm?session_id=${sessionId}`, {
@@ -76,7 +76,7 @@ export async function confirmBooking(bookingId: string, sessionId: string, beare
           success: false,
           error: "Please log in to confirm your booking",
           requiresAuth: true
-        }
+        };
       }
       throw new Error(`Failed to confirm booking: ${response.statusText}`);
     }
@@ -97,12 +97,12 @@ export async function getBookingCheckoutSession(sessionId: string): Promise<Chec
       return {
         success: false,
         error: 'Stripe is not initialized'
-      }
+      };
     }
     
     const session = await stripe.checkout.sessions.retrieve(sessionId, {
       expand: ['line_items', 'payment_intent']
-    })
+    });
     
     // Extract only the serializable data we need
     const serializedSession = {
@@ -119,17 +119,17 @@ export async function getBookingCheckoutSession(sessionId: string): Promise<Chec
         id: session.payment_intent.id,
         status: session.payment_intent.status
       } : undefined
-    }
+    };
     
     return {
       success: true,
       session: serializedSession
-    }
+    };
   } catch (error) {
-    console.error('Error retrieving checkout session:', error)
+    console.error('Error retrieving checkout session:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to retrieve checkout session'
-    }
+    };
   }
 } 
