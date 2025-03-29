@@ -146,11 +146,20 @@ class BookingController:
             try:
                 self.notification_service.send_booking_confirmation(
                     booking_id=booking_id,
-                    user_email=booking.get("user_email", ""),
-                    event_name=event["name"]
+                    customer_email=booking.get("email", ""),
+                    event_name=event["name"],
+                    ticket_quantity=booking["ticket_quantity"],
+                    total_amount=float(payment_confirmation.amount) / 100,
+                    user_id=booking["user_id"],
+                    event_datetime=event["datetime"],
+                    additional_info={
+                        "payment_id": payment_confirmation.payment_intent_id,
+                        "currency": payment_confirmation.currency
+                    }
                 )
+                
             except Exception as e:
-                logger.error(f"Error sending notification: {str(e)}")
+                logger.error(f"Error sending confirmation notifications: {str(e)}")
                 # Don't fail the booking if notification fails
 
             # 5. Log successful confirmation

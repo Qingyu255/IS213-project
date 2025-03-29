@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     TICKET_SERVICE_URL: str
     BILLING_SERVICE_URL: str
     LOGGING_SERVICE_URL: str
+    NOTIFICATIONS_MICROSERVICE_URL: str
     FRONTEND_URL: str
 
     # RabbitMQ
