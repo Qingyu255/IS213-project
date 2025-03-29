@@ -36,6 +36,15 @@ _jwks_cache: Dict = {}
 _jwks_cache_timestamp = 0
 JWKS_CACHE_DURATION = 3600  # Cache JWKS for 1 hour
 
+# Add Kong dependency
+async def trust_kong_jwt():
+    # Accept requests that have been verified by Kong
+    # This is a simplified approach; in production, you'd want more validation
+    auth_header = requests.request.headers.get("Authorization")
+    if not auth_header:
+        raise HTTPException(status_code=401, detail="Missing authorization header")
+    return auth_header
+
 def get_jwks() -> dict:
     """Fetch and cache the JWKS from Cognito"""
     global _jwks_cache, _jwks_cache_timestamp

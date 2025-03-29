@@ -46,6 +46,7 @@ public class SecurityConfig {
             )
             .authorizeHttpRequests(authorize ->
                     authorize.requestMatchers("/actuator/**").permitAll().anyRequest().authenticated()
+                             .requestMatchers("/api/v1/create-event").permitAll()  // Trust Kong's JWT verification
             )
             .oauth2ResourceServer(oauth2 -> oauth2
                 .jwt(jwt -> jwt.decoder(jwtDecoder()))
