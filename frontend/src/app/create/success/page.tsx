@@ -103,7 +103,7 @@ export default function Success({ searchParams }: SuccessProps) {
         
         console.log("Payment verification successful");
         setStatus('verifying');
-        setProgress(66);
+        setProgress(50);
         
         // 4. Make sure we have valid event data to proceed
         if (!eventToCreate || !eventToCreate.id) {
@@ -119,9 +119,7 @@ export default function Success({ searchParams }: SuccessProps) {
         
         // 5. Create the event with the service
         setStatus("creating");
-        setProgress(90);
-
-        const token = await getBearerToken();
+        setProgress(70);
 
         // Send the payload to the backend
         const createResponse = await fetch(
@@ -130,7 +128,7 @@ export default function Success({ searchParams }: SuccessProps) {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
+              Authorization: await getBearerToken()
             },
             body: JSON.stringify(validEventData),
           }

@@ -1,9 +1,6 @@
 package IS213.G4T7.createEventService.controllers;
 
-import IS213.G4T7.createEventService.dto.AtomicServiceEventCreationResponse;
-import IS213.G4T7.createEventService.dto.EventDetails;
-import IS213.G4T7.createEventService.dto.LogMessage;
-import IS213.G4T7.createEventService.dto.CreateEventResponse;
+import IS213.G4T7.createEventService.dto.*;
 import IS213.G4T7.createEventService.services.Impl.*;
 import IS213.G4T7.createEventService.services.Impl.exceptions.AtomicServiceEventCreationException;
 import IS213.G4T7.createEventService.services.Impl.exceptions.BillingServiceException;
@@ -24,6 +21,7 @@ public class CreateEventController {
     private final BillingServiceImpl billingServiceImpl;
     private final EventsServiceImpl eventsServiceImpl;
     private final LoggingServiceImpl loggingServiceImpl;
+    private final NotificationServiceImpl notificationServiceImpl;
     private final BroadcastingServiceImpl broadcastingServiceImpl;
 
     public CreateEventController(
@@ -36,6 +34,7 @@ public class CreateEventController {
         this.eventsServiceImpl = eventsServiceImpl;
         this.loggingServiceImpl = loggingServiceImpl;
         this.billingServiceImpl = billingServiceImpl;
+        this.notificationServiceImpl = notificationServiceImpl;
         this.broadcastingServiceImpl = broadcastingServiceImpl;
     }
 
@@ -88,6 +87,12 @@ public class CreateEventController {
             loggingServiceImpl.sendLog(eventBroadCastSuccessLogMessage);
 
             CreateEventResponse response = new CreateEventResponse("Success");
+
+            // Inform Organiser of event creation outcome:
+//            EmailData eventCreationOutcomeEmailData = new EmailData();
+//            eventCreationOutcomeEmailData.setEmail();
+//            notificationServiceImpl.sendSingleEmailNotification();
+
             return ResponseEntity.ok(response);
 
         } catch (BillingServiceException bse) {
