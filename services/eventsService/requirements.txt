@@ -7,3 +7,5 @@ python-dotenv==1.0.0
 alembic==1.11.1
 httpx==0.24.1
 asyncpg
+python-jose[cryptography]==3.3.0
+requests>=2.7.0
