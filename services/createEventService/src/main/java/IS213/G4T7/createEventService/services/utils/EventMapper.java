@@ -1,6 +1,7 @@
 package IS213.G4T7.createEventService.services.utils;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.stream.Collectors;
 
@@ -21,23 +22,17 @@ public class EventMapper {
         atomic.setTitle(eventDetails.getTitle());
         atomic.setDescription(eventDetails.getDescription());
 
-        // Parse ISO 8601 date strings
-        atomic.setStartDateTime(LocalDateTime.parse(eventDetails.getStartDateTime(), ISO_FORMATTER));
+        // Parse ISO 8601 date strings and convert to UTC
+        LocalDateTime startDateTime = LocalDateTime.parse(eventDetails.getStartDateTime(), ISO_FORMATTER);
+        atomic.setStartDateTime(startDateTime.atOffset(ZoneOffset.UTC));
+        
         if (eventDetails.getEndDateTime() != null && !eventDetails.getEndDateTime().isEmpty()) {
-            atomic.setEndDateTime(LocalDateTime.parse(eventDetails.getEndDateTime(), ISO_FORMATTER));
+            LocalDateTime endDateTime = LocalDateTime.parse(eventDetails.getEndDateTime(), ISO_FORMATTER);
+            atomic.setEndDateTime(endDateTime.atOffset(ZoneOffset.UTC));
         }
 
         atomic.setImageUrl(eventDetails.getImageUrl());
         atomic.setVenue(eventDetails.getVenue());
-        // Serialize the venue object to a JSON string if present; otherwise, use "{}"
-//        try {
-//            atomic.setVenue(eventDetails.getVenue() != null
-//                    ? objectMapper.writeValueAsString(eventDetails.getVenue())
-//                    : "{}");
-//        } catch (JsonProcessingException e) {
-//            atomic.setVenue("{}");
-//        }
-
         atomic.setPrice(eventDetails.getPrice()); // Assume is in SGD
         atomic.setCapacity(eventDetails.getCapacity() != null ? eventDetails.getCapacity() : 0);
         // KIV: allow multiple categories to be specified for each event from the frontend

@@ -1,15 +1,15 @@
 package IS213.G4T7.createEventService.services.Impl;
 
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+
 import IS213.G4T7.createEventService.dto.AtomicServiceEventCreationDetails;
 import IS213.G4T7.createEventService.dto.AtomicServiceEventCreationResponse;
 import IS213.G4T7.createEventService.services.EventsService;
 import IS213.G4T7.createEventService.services.Impl.exceptions.AtomicServiceEventCreationException;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.web.client.RestTemplateBuilder;
-import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 
 @Slf4j
 @Service
@@ -20,12 +20,11 @@ public class EventsServiceImpl implements EventsService {
 
     private final RestTemplate restTemplate;
 
-    public EventsServiceImpl(RestTemplateBuilder restTemplateBuilder) {
-        this.restTemplate = restTemplateBuilder.build();
+    public EventsServiceImpl(RestTemplate restTemplate) {
+        this.restTemplate = restTemplate;
     }
 
     public AtomicServiceEventCreationResponse createEvent(AtomicServiceEventCreationDetails event) throws AtomicServiceEventCreationException {
-
         log.info("Attempting to create event via events atomic service. AtomicServiceEventCreationDetails: {}", event);
 
         String url = eventsMicroserviceUrl + "/api/v1/events/create";

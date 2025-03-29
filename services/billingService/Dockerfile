@@ -39,10 +39,6 @@ USER appuser
 # Expose port 5001 so the service is accessible
 EXPOSE 5001
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:5001/health || exit 1
-
 # Run the application with Gunicorn with improved configuration
 CMD ["gunicorn", \
      "--bind", "0.0.0.0:5001", \

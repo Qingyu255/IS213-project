@@ -8,7 +8,6 @@ import IS213.G4T7.createEventService.services.Impl.exceptions.NotificationsServi
 import IS213.G4T7.createEventService.services.utils.EmailTemplateEnricher;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
@@ -28,13 +27,12 @@ public class BroadcastingServiceImpl implements BroadcastingService {
     private final RestTemplate restTemplate;
     private final NotificationServiceImpl notificationServiceImpl;
 
-    public BroadcastingServiceImpl(NotificationServiceImpl notificationServiceImpl, RestTemplateBuilder restTemplateBuilder) {
+    public BroadcastingServiceImpl(NotificationServiceImpl notificationServiceImpl, RestTemplate restTemplate) {
         this.notificationServiceImpl = notificationServiceImpl;
-        this.restTemplate = restTemplateBuilder.build();
+        this.restTemplate = restTemplate;
     }
 
     public void broadcastEventToUsersInterestedInCategory(String eventCategory, String eventId) throws BroadcastingServiceException {
-
         log.info("Starting broadcast for eventCategory: {} and eventId: {}", eventCategory, eventId);
 
         // 1. Query userManagementService for all users interested in the eventCategory

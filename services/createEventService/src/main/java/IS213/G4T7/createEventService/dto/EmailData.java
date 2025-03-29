@@ -5,24 +5,12 @@ import lombok.Data;
 
 @Data
 public class EmailData {
-    @JsonProperty("To")
-    private String to;
+    @JsonProperty("MainMessage")
+    private String mainMessage;
 
-    @JsonProperty("From")
-    private String from;
+    @JsonProperty("Email")
+    private String email;
 
     @JsonProperty("Subject")
     private String subject;
-
-    @JsonProperty("Body")
-    private String body;
-
-    @JsonProperty("IsHtml")
-    private boolean isHtml;
-
-    @JsonProperty("CC")
-    private String cc;
-
-    @JsonProperty("BCC")
-    private String bcc;
 }
