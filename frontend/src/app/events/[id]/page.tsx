@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { Calendar, Clock, MapPin, Users, Globe, Share2 } from "lucide-react";
+import { Calendar, Clock, MapPin, Globe, Share2, Ticket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -215,10 +215,11 @@ export default function EventPage() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center text-muted-foreground">
-                    <Users className="w-5 h-5 mr-2" />
-                    <span>Attendees</span>
+                    <Ticket className="w-5 h-5 mr-2" />
+                    <span>Tickets Remaining: </span>
                   </div>
-                  {/* <span>{event.totalAttendees}</span> */}
+                  <span>{event.capacity == 0 ? "Uncapped" : event.capacity}</span> 
+                  {/* Temporary assumption that only events that have unlimited capacity will have capacity == 0 */}
                 </div>
               </div>
               <Separator className="my-4" />

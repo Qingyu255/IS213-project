@@ -1,9 +1,6 @@
 package IS213.G4T7.createEventService.controllers;
 
-import IS213.G4T7.createEventService.dto.AtomicServiceEventCreationResponse;
-import IS213.G4T7.createEventService.dto.EventDetails;
-import IS213.G4T7.createEventService.dto.LogMessage;
-import IS213.G4T7.createEventService.dto.CreateEventResponse;
+import IS213.G4T7.createEventService.dto.*;
 import IS213.G4T7.createEventService.services.Impl.*;
 import IS213.G4T7.createEventService.services.Impl.exceptions.AtomicServiceEventCreationException;
 import IS213.G4T7.createEventService.services.Impl.exceptions.BillingServiceException;
@@ -11,6 +8,8 @@ import IS213.G4T7.createEventService.services.Impl.exceptions.BroadcastingServic
 import IS213.G4T7.createEventService.services.utils.EventMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -24,6 +23,7 @@ public class CreateEventController {
     private final BillingServiceImpl billingServiceImpl;
     private final EventsServiceImpl eventsServiceImpl;
     private final LoggingServiceImpl loggingServiceImpl;
+    private final NotificationServiceImpl notificationServiceImpl;
     private final BroadcastingServiceImpl broadcastingServiceImpl;
 
     public CreateEventController(
@@ -36,6 +36,7 @@ public class CreateEventController {
         this.eventsServiceImpl = eventsServiceImpl;
         this.loggingServiceImpl = loggingServiceImpl;
         this.billingServiceImpl = billingServiceImpl;
+        this.notificationServiceImpl = notificationServiceImpl;
         this.broadcastingServiceImpl = broadcastingServiceImpl;
     }
 
@@ -87,7 +88,37 @@ public class CreateEventController {
             log.info(eventBroadCastSuccessLogMessage.toString());
             loggingServiceImpl.sendLog(eventBroadCastSuccessLogMessage);
 
+            // 6. Send success email to the organizer
+            Jwt jwt = (Jwt) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+            String organizerEmail = jwt.getClaimAsString("email");
+            if (organizerEmail != null) {
+                EmailData eventCreationOutcomeEmailData = new EmailData();
+                eventCreationOutcomeEmailData.setEmail(organizerEmail);
+                eventCreationOutcomeEmailData.setSubject("Event Creation Success - " + eventDetails.getTitle());
+                String emailMessage = String.format(
+                    "%s, your event '%s' has been successfully created!\n\n" +
+                    "Event Details:\n" +
+                    "- Title: %s\n" +
+                    "- Start Date: %s\n" +
+                    "- Categories: %s\n\n" +
+                    "You can view and manage your event in your dashboard.\n\n" +
+                    "Best regards,\n" +
+                    "Mulan Event Team",
+                    eventDetails.getOrganizer().getUsername(),
+                    eventDetails.getTitle(),
+                    eventDetails.getTitle(),
+                    eventDetails.getStartDateTime(),
+                    String.join(", ", eventDetails.getCategories())
+                );
+                eventCreationOutcomeEmailData.setMainMessage(emailMessage);
+                notificationServiceImpl.sendSingleEmailNotification(eventCreationOutcomeEmailData);
+                log.info("Sent success email to organizer: {}", organizerEmail);
+            } else {
+                log.warn("Could not find organizer email in JWT claims");
+            }
+
             CreateEventResponse response = new CreateEventResponse("Success");
+
             return ResponseEntity.ok(response);
 
         } catch (BillingServiceException bse) {

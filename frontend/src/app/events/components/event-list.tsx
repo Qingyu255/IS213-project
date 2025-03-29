@@ -1,6 +1,6 @@
 import Image from "next/image"
 import Link from "next/link"
-import { Calendar, MapPin, Users } from "lucide-react"
+import { Calendar, MapPin } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -42,10 +42,6 @@ export function EventList({ events }: { events: EventDetails[] }) {
             <div className="flex items-center text-muted-foreground text-sm mb-2">
               <MapPin className="w-4 h-4 mr-2" />
               <span>{event.venue.address || event.venue.name}</span>
-            </div>
-            <div className="flex items-center text-muted-foreground text-sm mb-4">
-              <Users className="w-4 h-4 mr-2" />
-              <span>{event.capacity} persons</span>
             </div>
             <Link href={`/events/${event.id}`} passHref>
               <Button className="w-full bg-primary text-primary-foreground hover:bg-primary/90">View Event</Button>

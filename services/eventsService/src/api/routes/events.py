@@ -22,7 +22,7 @@ async def create_event_endpoint(event: EventCreate, db: AsyncSession = Depends(g
     """
     Create a new event.
     """
-    return await create_event(event, db, user_id)
+    return await create_event(event, db)
 
 @router.get("/{event_id}", response_model=EventRead)
 async def get_event_by_id_endpoint(event_id: UUID4, db: AsyncSession = Depends(get_db)):
