@@ -14,7 +14,6 @@ public class EventDetails {
 
     private Venue venue;
     private String imageUrl;
-    // KIV: use enum for category
     private List<String> categories;
     private double price;
     private Organizer organizer;
@@ -35,12 +34,6 @@ public class EventDetails {
             private double lng;
         }
     }
-
-//    @Data
-//    public static class Price {
-//        private double amount;
-//        private String currency;
-//    }
 
     @Data
     public static class Organizer {

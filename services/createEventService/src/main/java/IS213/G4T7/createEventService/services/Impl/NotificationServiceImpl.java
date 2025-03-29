@@ -1,17 +1,17 @@
 package IS213.G4T7.createEventService.services.Impl;
 
-import IS213.G4T7.createEventService.dto.AtomicServiceEventCreationResponse;
-import IS213.G4T7.createEventService.dto.EmailData;
-import IS213.G4T7.createEventService.services.Impl.exceptions.NotificationsServiceException;
-import IS213.G4T7.createEventService.services.NotificationService;
-import lombok.extern.slf4j.Slf4j;
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.List;
+import IS213.G4T7.createEventService.dto.EmailData;
+import IS213.G4T7.createEventService.dto.NotificationsServiceResponse;
+import IS213.G4T7.createEventService.services.Impl.exceptions.NotificationsServiceException;
+import IS213.G4T7.createEventService.services.NotificationService;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
@@ -22,18 +22,17 @@ public class NotificationServiceImpl implements NotificationService {
 
     private final RestTemplate restTemplate;
 
-    public NotificationServiceImpl(RestTemplateBuilder restTemplateBuilder) {
-        this.restTemplate = restTemplateBuilder.build();
+    public NotificationServiceImpl(RestTemplate restTemplate) {
+        this.restTemplate = restTemplate;
     }
 
     public void sendSingleEmailNotification(EmailData emailData) throws NotificationsServiceException {
-        //  TODO: Implement rest api call to Notifications Atomic service
         log.info("Attempting to send single email notification: {}", emailData);
-        String url = notificationsMicroserviceUrl + "/SendEmail";
+        String url = notificationsMicroserviceUrl;
         try {
-//            ResponseEntity<AtomicServiceEventCreationResponse> response = restTemplate.postForEntity(url, emailData, AtomicServiceEventCreationResponse.class);
-//            log.info("Received response from notifications service. Status: {} | Body: {}", response.getStatusCode(), response.getBody());
-//            log.info("Email notification sent successfully to: {}", emailData.getTo());
+            ResponseEntity<NotificationsServiceResponse> response = restTemplate.postForEntity(url, emailData, NotificationsServiceResponse.class);
+            log.info("Received response from notifications service. Status: {} | Body: {}", response.getStatusCode(), response.getBody());
+            log.info("Email notification sent successfully to: {}", emailData.getEmail());
         } catch (Exception ex) {
             log.error("Exception occurred while sending email notification: {}", ex.getMessage(), ex);
             throw new NotificationsServiceException("Exception in sendSingleEmailNotification: " + ex.getMessage());

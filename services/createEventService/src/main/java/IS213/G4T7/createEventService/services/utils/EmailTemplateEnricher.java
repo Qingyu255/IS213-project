@@ -17,23 +17,19 @@ public class EmailTemplateEnricher {
         EmailData emailData = new EmailData();
 
         // Set recipient email from BasicUserData; adjust getEmail() if needed.
-        emailData.setTo(basicUserData.getEmail());
-        emailData.setFrom("test@mulan.com"); // TODO: clarify if there is a need to pass in From as notifications service should already be aware of the qualified sender; this should not be able to be mainpulated by the caller
-        emailData.setSubject("Upcoming Event in " + eventCategory);
+        emailData.setEmail(basicUserData.getEmail());
+        emailData.setSubject("Upcoming Event in " + eventCategory + " on Mulan!");
 
         // Create a fixed template with personalization
         String body = String.format(
-                "Dear %s,\n\n" +
-                        "We noticed that you have an interest in %s events. " +
-                        "There may be an upcoming event that matches your interests. " +
-                        "Check it out here: \n" +
-                        "%s \n" +
-                        "Best regards,\n" +
-                        "Event Service Team",
+                "We noticed that you have an interest in %s events. " +
+                "There may be an upcoming event that matches your interests. " +
+                "Check it out here: \n" +
+                "%s \n" +
+                "Best regards,\n" +
+                "Event Service Team",
                 basicUserData.getUsername(), eventCategory, frontendUrl + "/events/" + eventId
         );
-        emailData.setBody(body);
-        emailData.setHtml(false);
         return emailData;
     }
 }
