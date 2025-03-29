@@ -6,12 +6,53 @@ from .config import get_settings
 
 settings = get_settings()
 
+class RabbitMQClient:
+    def __init__(self):
+        self.connection = None
+        self.channel = None
+        self.url = settings.RABBITMQ_URL
+
+    async def connect(self):
+        if not self.connection:
+            self.connection = await aio_pika.connect_robust(self.url)
+            self.channel = await self.connection.channel()
+
+    async def close(self):
+        if self.connection:
+            await self.connection.close()
+            self.connection = None
+            self.channel = None
+
+    async def publish_to_queue(self, queue_name: str, message: Dict[str, Any]):
+        """Publish a message to a specific queue"""
+        await self.connect()
+        
+        # Declare queue
+        queue = await self.channel.declare_queue(queue_name, durable=True)
+        
+        # Convert message to JSON string
+        message_body = json.dumps(message)
+        
+        # Create message
+        message = aio_pika.Message(
+            body=message_body.encode(),
+            delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
+            content_type='application/json'
+        )
+        
+        # Publish message
+        await self.channel.default_exchange.publish(
+            message,
+            routing_key=queue_name
+        )
+
 class RabbitMQConsumer:
     def __init__(self):
         self.connection = None
         self.channel = None
-        self.url = f"amqp://{settings.RABBITMQ_USER}:{settings.RABBITMQ_PASS}@{settings.RABBITMQ_HOST}:5672/"
-        self.exchange_name = "tickets"
+        self.url = settings.RABBITMQ_URL
+        self.exchange_name = "booking"
+        self.queue_name = "ticket_management"
         self.handlers: Dict[str, Callable[[Dict[str, Any]], Awaitable[None]]] = {}
 
     async def connect(self):
@@ -58,12 +99,10 @@ class RabbitMQConsumer:
         )
 
         # Create queue and bind to all relevant routing keys
-        queue = await self.channel.declare_queue("ticket_service_queue", durable=True)
+        queue = await self.channel.declare_queue(self.queue_name, durable=True)
         
         # Bind to relevant routing patterns
         routing_patterns = [
-            "booking.created",
-            "booking.status_updated",
             "booking.confirmed",
             "booking.cancelled",
             "booking.refunded"
@@ -74,4 +113,4 @@ class RabbitMQConsumer:
 
         # Start consuming
         await queue.consume(self.process_message)
-        print(" [*] Waiting for messages. To exit press CTRL+C") 
+        print(f" [*] Waiting for messages on queue {self.queue_name}. To exit press CTRL+C") 

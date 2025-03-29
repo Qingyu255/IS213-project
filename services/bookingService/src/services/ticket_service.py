@@ -1,6 +1,4 @@
 import requests
-import pika
-import json
 import time
 from typing import Dict, Any, List, Optional
 from uuid import UUID
@@ -8,6 +6,9 @@ from enum import Enum
 from datetime import datetime
 from ..core.config import get_settings
 from ..core.logging import logger
+from fastapi import HTTPException
+from .rabbitmq_service import RabbitMQService
+from .logging_service import LoggingService
 
 settings = get_settings()
 
@@ -34,56 +35,27 @@ class BookingStatus(str, Enum):
 
 class TicketService:
     def __init__(self):
-        self.base_url = f"{settings.TICKET_SERVICE_URL}/api/v1"
+        self.base_url = settings.TICKET_SERVICE_URL
         self.timeout = 10.0
         self.max_retries = 3
         self.initial_backoff = 1.0
-        # RabbitMQ setup
-        self.connection_params = pika.URLParameters(settings.RABBITMQ_URL)
-        self.exchange_name = "tickets"
+        
+        # Initialize services
+        self.rabbitmq = RabbitMQService("ticket_service", "booking")
+        self.logger = LoggingService("ticket_service")
+        
+        # Define routing keys
         self.routing_keys = {
-            BookingStatus.CONFIRMED.value: "booking.confirmed",
-            BookingStatus.CANCELED.value: "booking.cancelled",
-            BookingStatus.REFUNDED.value: "booking.refunded",
-            BookingStatus.PENDING.value: "booking.status_updated"
+            "CONFIRMED": "booking.confirmed",
+            "CANCELLED": "booking.cancelled",
+            "REFUNDED": "booking.refunded"
         }
-
-    def _get_rabbitmq_channel(self):
-        """Create a new RabbitMQ connection and channel"""
-        connection = pika.BlockingConnection(self.connection_params)
-        channel = connection.channel()
-        channel.exchange_declare(
-            exchange=self.exchange_name,
-            exchange_type='topic',
-            durable=True
-        )
-        return connection, channel
-
-    def _publish_message(self, routing_key: str, message: Dict[str, Any]) -> None:
-        """Generic method to publish messages to RabbitMQ"""
-        try:
-            connection, channel = self._get_rabbitmq_channel()
-            
-            channel.basic_publish(
-                exchange=self.exchange_name,
-                routing_key=routing_key,
-                body=json.dumps(message),
-                properties=pika.BasicProperties(
-                    delivery_mode=2,  # make message persistent
-                    content_type='application/json',
-                    timestamp=int(time.time())
-                )
-            )
-            connection.close()
-            logger.info(f"Published message with routing key {routing_key}: {message}")
-        except Exception as e:
-            logger.error(f"Failed to publish message: {str(e)}")
-            raise TicketServiceException(f"Failed to publish message: {str(e)}")
 
     def _make_request_with_retry(
         self,
         method: str,
         endpoint: str,
+        auth_token: str = None,
         **kwargs
     ) -> Dict[str, Any]:
         """Make HTTP request with retry mechanism"""
@@ -91,12 +63,19 @@ class TicketService:
         backoff = self.initial_backoff
         kwargs['timeout'] = self.timeout
 
+        if auth_token:
+            if 'headers' not in kwargs:
+                kwargs['headers'] = {}
+            if not auth_token.startswith('Bearer '):
+                auth_token = f"Bearer {auth_token}"
+            kwargs['headers']['Authorization'] = auth_token
+            logger.debug(f"Added auth token to request headers: {auth_token[:20]}...")
+
         while retries < self.max_retries:
             try:
-                response = getattr(requests, method)(
-                    f"{self.base_url}/{endpoint}",
-                    **kwargs
-                )
+                url = f"{self.base_url}/{endpoint}"
+                logger.debug(f"Making {method.upper()} request to {url}")
+                response = getattr(requests, method)(url, **kwargs)
                 response.raise_for_status()
                 return response.json()
             except requests.exceptions.ConnectionError as e:
@@ -114,108 +93,50 @@ class TicketService:
                 logger.error(f"Unexpected error: {str(e)}")
                 raise TicketServiceException(f"Unexpected error: {str(e)}")
 
-    def check_availability(self, event_id: str, ticket_quantity: int) -> Dict[str, Any]:
-        """Check ticket availability for an event"""
+    def get_booking(self, booking_id: str, auth_token: str = None) -> Dict[str, Any]:
+        """Get booking details"""
         try:
-            event_uuid = UUID(event_id)
             return self._make_request_with_retry(
                 "get",
-                f"tickets/event/{event_uuid}/available"
-            )
-        except Exception as e:
-            logger.error(f"Error checking ticket availability: {str(e)}")
-            raise TicketServiceException(f"Failed to check availability: {str(e)}")
-
-    def create_booking(
-        self,
-        event_id: str,
-        user_id: str,
-        ticket_quantity: int,
-        total_amount: float
-    ) -> Dict[str, Any]:
-        """Create a new booking"""
-        try:
-            event_uuid = UUID(event_id)
-            user_uuid = UUID(user_id)
-            
-            # First create the booking via HTTP
-            payload = {
-                "event_id": str(event_uuid),
-                "user_id": str(user_uuid),
-                "ticket_count": ticket_quantity,
-                "total_amount": total_amount
-            }
-            
-            response = self._make_request_with_retry(
-                "post",
-                "bookings/book",
-                json=payload
-            )
-            
-            # Publish initial status
-            self._publish_message(
-                self.routing_keys[BookingStatus.PENDING.value],
-                {
-                    "booking_id": response["id"],
-                    "status": BookingStatus.PENDING.value,
-                    "timestamp": datetime.utcnow().isoformat(),
-                    "metadata": {
-                        "event_id": str(event_uuid),
-                        "user_id": str(user_uuid),
-                        "ticket_count": ticket_quantity
-                    }
-                }
-            )
-            
-            return response
-        except Exception as e:
-            logger.error(f"Error creating booking: {str(e)}")
-            raise TicketServiceException(f"Failed to create booking: {str(e)}")
-
-    def update_booking_status(self, booking_id: str, status: str) -> None:
-        """Update booking status via RabbitMQ"""
-        try:
-            booking_uuid = UUID(booking_id)
-            
-            # Get current booking to validate status transition
-            current_booking = self.get_booking(booking_id)
-            current_status = current_booking["status"]
-            new_status = status.upper()
-            
-            # Validate status transition
-            if not BookingStatus.can_transition_to(current_status, new_status):
-                raise TicketServiceException(f"Cannot transition from {current_status} to {new_status}")
-            
-            # Send status update via RabbitMQ
-            routing_key = self.routing_keys.get(new_status)
-            if not routing_key:
-                raise TicketServiceException(f"Invalid status: {status}")
-            
-            # Publish status update message
-            message = {
-                "booking_id": str(booking_uuid),
-                "status": new_status,
-                "timestamp": datetime.utcnow().isoformat(),
-                "previous_status": current_status
-            }
-            
-            self._publish_message(routing_key, message)
-            
-        except Exception as e:
-            logger.error(f"Error updating booking status: {str(e)}")
-            raise TicketServiceException(f"Failed to update booking status: {str(e)}")
-
-    def get_booking(self, booking_id: str) -> Dict[str, Any]:
-        """Get booking details with tickets"""
-        try:
-            booking_uuid = UUID(booking_id)
-            return self._make_request_with_retry(
-                "get",
-                f"bookings/{booking_uuid}"
+                f"api/v1/bookings/{booking_id}",
+                auth_token=auth_token
             )
         except Exception as e:
             logger.error(f"Error getting booking details: {str(e)}")
-            raise TicketServiceException(f"Failed to get booking details: {str(e)}")
+            raise HTTPException(status_code=500, detail=str(e))
+
+    def update_booking_status(
+        self,
+        booking_id: str,
+        status: str,
+        auth_token: str = None
+    ) -> Dict[str, Any]:
+        """Update booking status"""
+        try:
+            # Map the endpoint based on the status
+            status_endpoints = {
+                BookingStatus.CONFIRMED.value: "confirm",
+                BookingStatus.CANCELED.value: "cancel",
+                BookingStatus.REFUNDED.value: "refund"
+            }
+            
+            endpoint = status_endpoints.get(status)
+            if not endpoint:
+                raise ValueError(f"Invalid status transition to {status}")
+
+            logger.debug(f"Updating booking {booking_id} to status {status} using endpoint {endpoint}")
+            
+            return self._make_request_with_retry(
+                "post",  # Changed from put to post as the endpoints use POST
+                f"api/v1/bookings/{booking_id}/{endpoint}",
+                auth_token=auth_token
+            )
+        except ValueError as e:
+            logger.error(f"Invalid status update: {str(e)}")
+            raise HTTPException(status_code=400, detail=str(e))
+        except Exception as e:
+            logger.error(f"Error updating booking status: {str(e)}")
+            raise HTTPException(status_code=500, detail=str(e))
 
     def get_user_bookings(self, user_id: str) -> List[Dict[str, Any]]:
         """Get all bookings for a user"""
@@ -223,7 +144,7 @@ class TicketService:
             user_uuid = UUID(user_id)
             return self._make_request_with_retry(
                 "get",
-                f"bookings/user/{user_uuid}"
+                f"api/v1/bookings/user/{user_uuid}"
             )
         except Exception as e:
             logger.error(f"Error getting user bookings: {str(e)}")
@@ -235,7 +156,7 @@ class TicketService:
             event_uuid = UUID(event_id)
             return self._make_request_with_retry(
                 "get",
-                f"tickets/event/{event_uuid}"
+                f"api/v1/tickets/event/{event_uuid}"
             )
         except Exception as e:
             logger.error(f"Error getting event tickets: {str(e)}")
@@ -248,8 +169,48 @@ class TicketService:
             event_uuid = UUID(event_id)
             return self._make_request_with_retry(
                 "get",
-                f"tickets/user/{user_uuid}/event/{event_uuid}"
+                f"api/v1/tickets/user/{user_uuid}/event/{event_uuid}"
             )
         except Exception as e:
             logger.error(f"Error getting user event tickets: {str(e)}")
             raise TicketServiceException(f"Failed to get user event tickets: {str(e)}")
+
+    def create_booking(
+        self,
+        event_id: str,
+        user_id: str,
+        ticket_quantity: int,
+        total_amount: float,
+        auth_token: str = None,
+        email: str = None
+    ) -> Dict[str, Any]:
+        """Create a new booking"""
+        try:
+            # Convert IDs to UUID format to validate them
+            event_uuid = UUID(event_id)
+            user_uuid = UUID(user_id)  # Validate UUID format but send as string
+
+            # Prepare request data according to BookingRequest schema
+            booking_data = {
+                "event_id": event_id,  # Send as string
+                "ticket_quantity": ticket_quantity,
+                "total_amount": total_amount
+                # user_id is optional, it will be taken from the token
+            }
+
+            # Make the request
+            return self._make_request_with_retry(
+                "post",
+                "api/v1/bookings/book",
+                auth_token=auth_token,
+                json=booking_data
+            )
+        except ValueError as e:
+            logger.error(f"Invalid UUID format: {str(e)}")
+            raise HTTPException(status_code=400, detail=f"Invalid ID format: {str(e)}")
+        except TicketServiceException as e:
+            logger.error(f"Error creating booking: {str(e)}")
+            raise HTTPException(status_code=500, detail=str(e))
+        except Exception as e:
+            logger.error(f"Unexpected error creating booking: {str(e)}")
+            raise HTTPException(status_code=500, detail=str(e))

@@ -13,6 +13,7 @@ services:
       NEXT_PUBLIC_USER_POOL_CLIENT_ID: ${AWS_COGNITO_APP_CLIENT_ID}
       NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${GOOGLE_MAPS_API_KEY}
       NEXT_PUBLIC_USER_MANAGEMENT_SERVICE_API_BASE_URL: ${USER_MANAGEMENT_SERVICE_API_BASE_URL}
+      NEXT_PUBLIC_BOOKING_SERVICE_URL: "http://booking-service:8002"
     volumes:
       - ./frontend:/app # Mount source code for hot reloading
       - /app/node_modules # Preserve container node_modules
@@ -253,6 +254,8 @@ services:
     container_name: ticket-management-service
     ports:
       - "8000:8000"
+    env_file:
+      - .env
     environment:
       DATABASE_URL: postgresql+asyncpg://${TICKET_DB_USER}:${TICKET_DB_PASSWORD}@ticket-db:5432/${TICKET_DB}
       AWS_COGNITO_REGION: ${AWS_REGION}
@@ -260,8 +263,12 @@ services:
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
       AWS_COGNITO_USER_POOL_ID: ${AWS_COGNITO_USER_POOL_ID}
       AWS_COGNITO_APP_CLIENT_ID: ${AWS_COGNITO_APP_CLIENT_ID}
+      RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@${RABBITMQ_HOST}:5672/
+      RABBITMQ_QUEUE: ${RABBITMQ_QUEUE}
     depends_on:
       ticket-db:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
 
   logging-service:
@@ -330,9 +337,10 @@ services:
     environment:
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
-      EVENT_SERVICE_URL: "http://events-service:8001"
+      EVENT_SERVICE_URL: "${EVENT_SERVICE_URL}"
       DATABASE_URL: "postgresql://${BILLING_DB_USER}:${BILLING_DB_PASSWORD}@billing-db:5432/${BILLING_DB}"
       FLASK_ENV: "development"
+      FRONTEND_URL: "${FRONTEND_URL}"
     volumes:
       - ./services/billingService:/app # Mount source code for development
       - /app/__pycache__
@@ -370,10 +378,17 @@ services:
     env_file:
       - .env
     environment:
-      EVENT_SERVICE_URL: "http://events-service:8001"
-      TICKET_SERVICE_URL: "http://ticket-management-service:8000"
-      BILLING_SERVICE_URL: "http://billing-service:5001"
-      RABBITMQ_URL: "amqp://rabbitmq:5672"
+      EVENT_SERVICE_URL: "${EVENT_SERVICE_URL}"
+      TICKET_SERVICE_URL: "${TICKET_SERVICE_URL}"
+      BILLING_SERVICE_URL: "${BILLING_SERVICE_URL}"
+      LOGGING_SERVICE_URL: "${LOGGING_SERVICE_URL}"
+      RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@${RABBITMQ_HOST}:5672/
+      FRONTEND_URL: "${FRONTEND_URL}"
+      AWS_COGNITO_REGION: ${AWS_REGION}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_COGNITO_USER_POOL_ID: ${AWS_COGNITO_USER_POOL_ID}
+      AWS_COGNITO_APP_CLIENT_ID: ${AWS_COGNITO_APP_CLIENT_ID}
     depends_on:
       rabbitmq:
         condition: service_healthy

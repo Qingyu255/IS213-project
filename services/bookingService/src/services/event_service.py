@@ -3,9 +3,10 @@ import time
 from typing import Optional, Dict, Any, List
 from uuid import UUID
 from ..core.config import get_settings
-from ..core.logging import logger
+from .logging_service import LoggingService
 
 settings = get_settings()
+logger = LoggingService("event_service")
 
 class EventServiceException(Exception):
     """Custom exception for event service errors"""
@@ -56,7 +57,7 @@ class EventService:
         try:
             # Convert string ID to UUID to match service expectation
             event_uuid = UUID(event_id)
-            return self._make_request_with_retry(f"events/{event_uuid}")
+            return self._make_request_with_retry(f"api/v1/events/{event_uuid}")
         except ValueError as e:
             logger.error(f"Invalid event ID format: {str(e)}")
             return None
@@ -71,7 +72,7 @@ class EventService:
         """Get list of events with pagination"""
         try:
             return self._make_request_with_retry(
-                "events",
+                "api/v1/events",
                 params={"skip": skip, "limit": limit}
             )
         except EventServiceException as e:

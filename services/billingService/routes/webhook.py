@@ -119,54 +119,72 @@ def handle_payment_succeeded(event):
     description = payment_intent.get('description')
     payment_method = payment_intent.get('payment_method')
     metadata = payment_intent.get('metadata', {})
+    
+    # Check if this is a booking payment or event creation payment
+    booking_id = metadata.get('booking_id')
     event_id = metadata.get('event_id')
     user_id = metadata.get('user_id')
-    organizer_id = metadata.get('organizer_id')  # Extract organizer_id from metadata
+    organizer_id = metadata.get('organizer_id')
     
-    # Extract charge information (contains receipt details)
-    charge_data = {}
-    charges = payment_intent.get('charges', {}).get('data', [])
-    if charges:
-        latest_charge = charges[0]
-        charge_data = {
-            "charge_id": latest_charge.get('id'),
-            "receipt_url": latest_charge.get('receipt_url'),
-            "receipt_number": latest_charge.get('receipt_number'),
-            "payment_method_details": latest_charge.get('payment_method_details')
-        }
-    
-    # Format payment details for storage
-    payment_verification_data = {
-        "event_type": "payment_intent.succeeded",
-        "timestamp": event.get('created'),
-        "payment_intent_id": payment_intent['id'],
-        "payment_details": {
-            "amount": amount,
-            "currency": currency,
-            "receipt_email": receipt_email,
-            "description": description,
-            "payment_method": payment_method
-        },
-        "charge_details": charge_data,
-        "metadata": metadata,
-        "event_id": event_id,
-        "user_id": user_id,
-        "organizer_id": organizer_id,  # Include organizer_id in verification data
-        "payment_status": "succeeded"
-    }
-    
-    # Log the verification data
-    logger.info(f"Payment verification data: {json.dumps(payment_verification_data)}")
-    
-    # Save verification data using the service
     try:
-        verification_result = payment_verification_service.save_verification(payment_verification_data)
-        logger.info(f"Payment verification saved: {verification_result}")
+        if booking_id:
+            # Handle booking payment
+            booking_service_url = os.getenv('BOOKING_SERVICE_URL', 'http://localhost:8002')
+            response = requests.post(
+                f"{booking_service_url}/api/v1/bookings/{booking_id}/confirm",
+                json={
+                    "payment_intent_id": payment_intent['id'],
+                    "amount": amount,
+                    "currency": currency
+                }
+            )
+            
+            if response.status_code != 200:
+                logger.error(f"Failed to update booking status: {response.text}")
+                return jsonify({"error": "Failed to update booking status"}), 500
+        elif event_id:
+            # Handle event creation payment
+            event_service_url = os.getenv('EVENT_SERVICE_URL', 'http://localhost:8001')
+            response = requests.post(
+                f"{event_service_url}/api/v1/events/{event_id}/confirm",
+                json={
+                    "payment_intent_id": payment_intent['id'],
+                    "amount": amount,
+                    "currency": currency
+                }
+            )
+            
+            if response.status_code != 200:
+                logger.error(f"Failed to update event status: {response.text}")
+                return jsonify({"error": "Failed to update event status"}), 500
+        else:
+            logger.error("No booking_id or event_id found in payment metadata")
+            return jsonify({"error": "No booking_id or event_id found"}), 400
+        
+        # Store payment verification
+        payment_verification_data = {
+            "event_type": "payment_intent.succeeded",
+            "timestamp": event.get('created'),
+            "payment_intent_id": payment_intent['id'],
+            "booking_id": booking_id,
+            "event_id": event_id,
+            "user_id": user_id,
+            "organizer_id": organizer_id,
+            "payment_details": {
+                "amount": amount,
+                "currency": currency,
+                "receipt_email": receipt_email,
+                "description": description,
+                "payment_method": payment_method
+            }
+        }
+        
+        payment_verification_service.create_verification(payment_verification_data)
+        
+        return jsonify({"status": "success"}), 200
     except Exception as e:
-        logger.error(f"Failed to save payment verification: {str(e)}")
-    
-    
-    return jsonify({"success": True}), 200
+        logger.error(f"Error processing payment success: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
 def handle_payment_failed(event):
     """Handle failed payment"""
@@ -180,52 +198,64 @@ def handle_payment_failed(event):
     
     # Extract metadata for business logic
     metadata = payment_intent.get('metadata', {})
+    booking_id = metadata.get('booking_id')
     event_id = metadata.get('event_id')
     user_id = metadata.get('user_id')
-    organizer_id = metadata.get('organizer_id')  # Extract organizer_id from metadata
+    organizer_id = metadata.get('organizer_id')
     
-    # Format payment details for storage
-    payment_verification_data = {
-        "event_type": "payment_intent.payment_failed",
-        "timestamp": event.get('created'),
-        "payment_intent_id": payment_intent['id'],
-        "payment_details": {
-            "amount": payment_intent.get('amount'),
-            "currency": payment_intent.get('currency'),
-            "error": error_message
-        },
-        "metadata": metadata,
-        "event_id": event_id,
-        "user_id": user_id,
-        "organizer_id": organizer_id,  # Include organizer_id in verification data
-        "payment_status": "failed",
-        "error_message": error_message
-    }
-    
-    # Save verification data using the service
     try:
-        verification_result = payment_verification_service.save_verification(payment_verification_data)
-        logger.info(f"Payment failure verification saved: {verification_result}")
+        if booking_id:
+            # Handle booking payment failure
+            booking_service_url = os.getenv('BOOKING_SERVICE_URL', 'http://localhost:8002')
+            response = requests.post(
+                f"{booking_service_url}/api/v1/bookings/{booking_id}/cancel",
+                json={
+                    "payment_intent_id": payment_intent['id'],
+                    "error": error_message
+                }
+            )
+            
+            if response.status_code != 200:
+                logger.error(f"Failed to update booking status: {response.text}")
+        elif event_id:
+            # Handle event creation payment failure
+            event_service_url = os.getenv('EVENT_SERVICE_URL', 'http://localhost:8001')
+            response = requests.post(
+                f"{event_service_url}/api/v1/events/{event_id}/cancel",
+                json={
+                    "payment_intent_id": payment_intent['id'],
+                    "error": error_message
+                }
+            )
+            
+            if response.status_code != 200:
+                logger.error(f"Failed to update event status: {response.text}")
+        
+        # Format payment details for storage
+        payment_verification_data = {
+            "event_type": "payment_intent.payment_failed",
+            "timestamp": event.get('created'),
+            "payment_intent_id": payment_intent['id'],
+            "booking_id": booking_id,
+            "event_id": event_id,
+            "user_id": user_id,
+            "organizer_id": organizer_id,
+            "payment_details": {
+                "amount": payment_intent.get('amount'),
+                "currency": payment_intent.get('currency'),
+                "error": error_message
+            },
+            "payment_status": "failed",
+            "error_message": error_message
+        }
+        
+        # Save verification data using the service
+        payment_verification_service.create_verification(payment_verification_data)
+        
+        return jsonify({"success": True}), 200
     except Exception as e:
-        logger.error(f"Failed to save payment failure verification: {str(e)}")
-    
-    # Notify event service about failed payment
-    try:
-        requests.post(
-            f"{Config.EVENT_SERVICE_URL}/api/events/payment-failed",
-            json={
-                "payment_id": payment_intent['id'],
-                "error": error_message,
-                "metadata": metadata,
-                "event_id": event_id,
-                "user_id": user_id,
-                "organizer_id": organizer_id  # Include organizer_id in the notification
-            }
-        )
-    except Exception as e:
-        logger.error(f"Failed to notify event service: {str(e)}")
-    
-    return jsonify({"success": True}), 200
+        logger.error(f"Error processing payment failure: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
 def handle_payment_intent_created(event):
     """Handle payment intent creation"""
@@ -318,7 +348,7 @@ def handle_dispute_created(event):
     return jsonify({"success": True}), 200
 
 def handle_checkout_completed(event):
-    """Handle completed checkout session IMPT"""
+    """Handle completed checkout session"""
     session = event['data']['object']
     logger.info(f"Checkout completed: {session['id']}")
     
@@ -330,9 +360,10 @@ def handle_checkout_completed(event):
     amount_total = session.get('amount_total')
     currency = session.get('currency', 'usd')
     metadata = session.get('metadata', {})
+    booking_id = metadata.get('booking_id')  # Get booking_id from metadata
     event_id = metadata.get('event_id')
     user_id = metadata.get('user_id')
-    organizer_id = metadata.get('organizer_id')  # Extract organizer_id from metadata
+    organizer_id = metadata.get('organizer_id')
     
     # Format payment details for storage
     payment_verification_data = {
@@ -350,9 +381,10 @@ def handle_checkout_completed(event):
             "currency": currency
         },
         "metadata": metadata,
+        "booking_id": booking_id,  # Include booking_id in verification data
         "event_id": event_id,
         "user_id": user_id,
-        "organizer_id": organizer_id  # Include organizer_id in verification data
+        "organizer_id": organizer_id
     }
     
     # Log the verification data
@@ -365,6 +397,28 @@ def handle_checkout_completed(event):
     except Exception as e:
         logger.error(f"Failed to save checkout verification: {str(e)}")
     
+    # Update booking status if this is a booking payment
+    if booking_id:
+        try:
+            booking_service_url = os.getenv('BOOKING_SERVICE_URL', 'http://localhost:8002')
+            response = requests.post(
+                f"{booking_service_url}/api/v1/bookings/{booking_id}/confirm",
+                json={
+                    "payment_intent_id": payment_intent_id,
+                    "amount": amount_total,
+                    "currency": currency
+                }
+            )
+            
+            if response.status_code != 200:
+                logger.error(f"Failed to update booking status: {response.text}")
+                return jsonify({"error": "Failed to update booking status"}), 500
+                
+            logger.info(f"Successfully updated booking status for booking {booking_id}")
+        except Exception as e:
+            logger.error(f"Error updating booking status: {str(e)}")
+            return jsonify({"error": "Error updating booking status"}), 500
+    
     # Notify event service
     try:
         requests.post(
@@ -375,9 +429,10 @@ def handle_checkout_completed(event):
                 "customer_email": customer_email,
                 "amount_total": amount_total,
                 "metadata": metadata,
+                "booking_id": booking_id,  # Include booking_id in notification
                 "event_id": event_id,
                 "user_id": user_id,
-                "organizer_id": organizer_id  # Include organizer_id in the notification
+                "organizer_id": organizer_id
             }
         )
     except Exception as e:

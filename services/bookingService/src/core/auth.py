@@ -1,4 +1,4 @@
-from fastapi import HTTPException, Security, Depends
+from fastapi import HTTPException, Security, Depends, Header
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import jwt, JWTError
 import requests
@@ -96,13 +96,18 @@ def get_key(kid: str) -> Optional[str]:
     logger.warning(f"No matching key found for kid: {kid}")
     return None
 
-async def validate_token(credentials: HTTPAuthorizationCredentials = Security(security)) -> dict:
-    """Validate the JWT token and return the claims"""
+def validate_token(authorization: str = Header(None)) -> dict:
     try:
-        token = credentials.credentials
-        logger.debug("=== Starting token validation ===")
-        logger.debug(f"Token received (first 20 chars): {token[:20]}...")
+        if not authorization:
+            raise HTTPException(
+                status_code=401,
+                detail="Missing authorization header",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
         
+        # Extract the token - handle both with and without Bearer prefix
+        token = authorization.split(" ")[-1]  # Take the last part after any spaces
+
         # First decode without verification to get the header and check format
         try:
             unverified_claims = jwt.decode(token, 'dummy_key', options={
@@ -184,31 +189,11 @@ async def validate_token(credentials: HTTPAuthorizationCredentials = Security(se
             logger.debug(f"Subject (sub): {claims.get('sub')}")
             logger.debug(f"custom:id: {claims.get('custom:id')}")
             logger.debug(f"Username: {claims.get('username') or claims.get('cognito:username')}")
+            return claims
         except Exception as e:
             logger.error(f"Error verifying token: {str(e)}")
-            # If verification fails, try to extract claims from unverified token for debugging
-            try:
-                debug_claims = jwt.decode(token, 'dummy_key', options={
-                    "verify_signature": False,
-                    "verify_aud": False,
-                    "verify_exp": False
-                })
-                logger.debug(f"Debug claims from unverified token: {debug_claims}")
-            except:
-                pass
-            raise HTTPException(status_code=401, detail=f"Token verification failed: {str(e)}")
-        
-        # Additional validations
-        current_time = time.time()
-        if claims.get("exp") and claims.get("exp") < current_time:
-            logger.error("Token has expired")
-            logger.debug(f"Token expiry: {claims.get('exp')}, Current time: {current_time}")
-            raise HTTPException(status_code=401, detail="Token has expired")
-            
-        logger.debug(f"Token claims after verification: {claims}")
-        logger.debug("Token validation successful")
-        return claims
-        
+            raise HTTPException(status_code=401, detail=f"Invalid token: {str(e)}")
+
     except HTTPException:
         raise
     except JWTError as e:
@@ -231,7 +216,7 @@ async def get_current_user_id(claims: dict = Depends(validate_token)) -> str:
         logger.debug(f"  {key}: {value}")
     
     # Only use custom:id as the user ID
-    user_id = claims.get("custom:id")
+    user_id = claims.get("custom:id") or claims.get("sub")
     logger.debug(f"Extracted custom:id: {user_id}")
     
     # Extract username and sub for better error messages
@@ -245,8 +230,8 @@ async def get_current_user_id(claims: dict = Depends(validate_token)) -> str:
     logger.debug(f"Extracted sub: {sub}")
     
     if not user_id:
-        logger.error("No custom:id found in token claims")
-        error_msg = "No custom:id found in token"
+        logger.error("No custom:id or sub found in token claims")
+        error_msg = "No custom:id or sub found in token"
         if username:
             error_msg += f" for user {username}"
         if sub:
@@ -257,7 +242,7 @@ async def get_current_user_id(claims: dict = Depends(validate_token)) -> str:
             logger.error(f"  {key}: {value}")
         raise HTTPException(status_code=401, detail=error_msg)
     
-    logger.debug(f"Using user ID (custom:id): {user_id}")
+    logger.debug(f"Using user ID (custom:id or sub): {user_id}")
     return user_id
 
 # New dependency to get the current username from the token

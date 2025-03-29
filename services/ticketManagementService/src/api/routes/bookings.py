@@ -41,8 +41,14 @@ async def create_booking(
 ):
     try:
         # Convert user_id string to UUID
+        try:
+            user_uuid = UUID(user_id)
+        except ValueError:
+            logger.error(f"Invalid user ID format: {user_id}")
+            raise HTTPException(status_code=400, detail="Invalid user ID format")
+            
         booking_data = booking.dict()
-        booking_data["user_id"] = user_id
+        booking_data["user_id"] = user_uuid
         
         # Log the booking data for debugging
         logger.debug(f"Creating booking with data: {booking_data}")
@@ -61,22 +67,28 @@ async def get_user_bookings(
     # Debug logging
     logger.debug("=== GET /bookings/user/{user_id} ===")
     logger.debug(f"Requested user_id: {user_id}")
-    logger.debug(f"Current user_id from token (custom:id): {current_user_id}")
+    logger.debug(f"Current user_id from token: {current_user_id}")
     
-    # Compare IDs directly without normalization
-    if user_id != current_user_id:
-        logger.warning(f"User {current_user_id} attempted to access bookings for user {user_id}")
-        raise HTTPException(status_code=403, detail="Cannot access other users' bookings")
+    # Convert both IDs to UUID for comparison
+    try:
+        requested_uuid = UUID(user_id)
+        current_uuid = UUID(current_user_id)
+        if requested_uuid != current_uuid:
+            logger.warning(f"User {current_user_id} attempted to access bookings for user {user_id}")
+            raise HTTPException(status_code=403, detail="Cannot access other users' bookings")
+    except ValueError:
+        logger.error(f"Invalid user ID format: {user_id} or {current_user_id}")
+        raise HTTPException(status_code=400, detail="Invalid user ID format")
     
     try:
         # First, get all bookings for the user
-        logger.debug(f"Querying database for bookings with user_id: {current_user_id}")
-        bookings_query = select(Booking).where(Booking.user_id == current_user_id)
+        logger.debug(f"Querying database for bookings with user_id: {current_uuid}")
+        bookings_query = select(Booking).where(Booking.user_id == current_uuid)
         bookings_result = await db.execute(bookings_query)
         bookings = bookings_result.scalars().all()
         
         if not bookings:
-            logger.debug(f"No bookings found for user {current_user_id}")
+            logger.debug(f"No bookings found for user {current_uuid}")
             return []
         
         # Get all tickets for these bookings in a single query
@@ -124,30 +136,114 @@ async def get_user_bookings(
 async def get_booking(
     booking_id: UUID,
     db: AsyncSession = Depends(get_db),
-    _: str = Depends(get_current_user_id)
+    current_user_id: str = Depends(get_current_user_id)
 ):
-    return await booking_service.get_booking_by_id(booking_id, db)
+    # Get the booking first
+    booking = await booking_service.get_booking_by_id(booking_id, db)
+    
+    # Add detailed logging
+    logger.debug(f"=== GET /bookings/{booking_id} ===")
+    logger.debug(f"Current user_id from token: {current_user_id}")
+    logger.debug(f"Booking user_id: {booking['user_id']}")
+    
+    # Convert both IDs to UUID for comparison
+    try:
+        current_user_uuid = UUID(current_user_id)
+        booking_user_uuid = UUID(booking["user_id"])
+        logger.debug(f"Current user UUID: {current_user_uuid}")
+        logger.debug(f"Booking user UUID: {booking_user_uuid}")
+        logger.debug(f"UUIDs match: {current_user_uuid == booking_user_uuid}")
+        
+        if booking_user_uuid != current_user_uuid:
+            logger.warning(f"User {current_user_id} attempted to access booking {booking_id} owned by user {booking['user_id']}")
+            raise HTTPException(status_code=403, detail="Cannot access other users' bookings")
+    except ValueError as e:
+        logger.error(f"Invalid user ID format: {current_user_id} or {booking['user_id']}")
+        logger.error(f"Error details: {str(e)}")
+        raise HTTPException(status_code=400, detail="Invalid user ID format")
+    
+    return booking
 
 @router.post("/bookings/{booking_id}/confirm")
 async def confirm_booking(
     booking_id: UUID,
     db: AsyncSession = Depends(get_db),
-    _: str = Depends(get_current_user_id)
+    current_user_id: str = Depends(get_current_user_id)
 ):
-    return await booking_service.update_booking_status(booking_id, BookingStatus.CONFIRMED, db)
+    # Get the booking first to check ownership
+    booking = await booking_service.get_booking_by_id(booking_id, db)
+    
+    # Add detailed logging
+    logger.debug(f"=== POST /bookings/{booking_id}/confirm ===")
+    logger.debug(f"Current user_id from token: {current_user_id}")
+    logger.debug(f"Booking user_id: {booking['user_id']}")
+    logger.debug(f"Current booking status: {booking.get('status')}")
+    
+    # If booking is already confirmed, return success response
+    if booking.get('status') == BookingStatus.CONFIRMED:
+        logger.info(f"Booking {booking_id} is already confirmed")
+        return {"message": "Booking already confirmed", "status": BookingStatus.CONFIRMED}
+    
+    # Convert both IDs to UUID for comparison
+    try:
+        current_user_uuid = UUID(current_user_id)
+        booking_user_uuid = UUID(booking["user_id"])
+        logger.debug(f"Current user UUID: {current_user_uuid}")
+        logger.debug(f"Booking user UUID: {booking_user_uuid}")
+        logger.debug(f"UUIDs match: {current_user_uuid == booking_user_uuid}")
+        
+        if booking_user_uuid != current_user_uuid:
+            logger.warning(f"User {current_user_id} attempted to confirm booking {booking_id} owned by user {booking['user_id']}")
+            raise HTTPException(status_code=403, detail="Cannot confirm other users' bookings")
+    except ValueError as e:
+        logger.error(f"Invalid user ID format: {current_user_id} or {booking['user_id']}")
+        logger.error(f"Error details: {str(e)}")
+        raise HTTPException(status_code=400, detail="Invalid user ID format")
+    
+    try:
+        return await booking_service.update_booking_status(booking_id, BookingStatus.CONFIRMED, db)
+    except Exception as e:
+        logger.error(f"Error confirming booking: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/bookings/{booking_id}/cancel")
 async def cancel_booking(
     booking_id: UUID,
     db: AsyncSession = Depends(get_db),
-    _: str = Depends(get_current_user_id)
+    current_user_id: str = Depends(get_current_user_id)
 ):
+    # Get the booking first to check ownership
+    booking = await booking_service.get_booking_by_id(booking_id, db)
+    
+    # Convert current_user_id to UUID for comparison
+    try:
+        current_user_uuid = UUID(current_user_id)
+        if booking["user_id"] != str(current_user_uuid):
+            logger.warning(f"User {current_user_id} attempted to cancel booking {booking_id} owned by user {booking['user_id']}")
+            raise HTTPException(status_code=403, detail="Cannot cancel other users' bookings")
+    except ValueError:
+        logger.error(f"Invalid user ID format: {current_user_id}")
+        raise HTTPException(status_code=400, detail="Invalid user ID format")
+    
     return await booking_service.update_booking_status(booking_id, BookingStatus.CANCELED, db)
 
 @router.post("/bookings/{booking_id}/refund")
 async def refund_booking(
     booking_id: UUID,
     db: AsyncSession = Depends(get_db),
-    _: str = Depends(get_current_user_id)
+    current_user_id: str = Depends(get_current_user_id)
 ):
+    # Get the booking first to check ownership
+    booking = await booking_service.get_booking_by_id(booking_id, db)
+    
+    # Convert current_user_id to UUID for comparison
+    try:
+        current_user_uuid = UUID(current_user_id)
+        if booking["user_id"] != str(current_user_uuid):
+            logger.warning(f"User {current_user_id} attempted to refund booking {booking_id} owned by user {booking['user_id']}")
+            raise HTTPException(status_code=403, detail="Cannot refund other users' bookings")
+    except ValueError:
+        logger.error(f"Invalid user ID format: {current_user_id}")
+        raise HTTPException(status_code=400, detail="Invalid user ID format")
+    
     return await booking_service.update_booking_status(booking_id, BookingStatus.REFUNDED, db)

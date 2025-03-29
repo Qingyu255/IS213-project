@@ -10,6 +10,7 @@ from typing import List, Dict, Any
 from enum import Enum
 from uuid import UUID
 from .logging_service import LoggingService
+from sqlalchemy.orm import selectinload
 
 class TicketFilterType(str, Enum):
     USER = "user_id"
@@ -38,8 +39,6 @@ class BookingService(BaseService):
                 booking = Booking(
                     event_id=UUID(booking_data["event_id"]),
                     user_id=booking_data["user_id"],
-                    ticket_quantity=booking_data["ticket_quantity"],
-                    total_amount=booking_data["total_amount"],
                     status=BookingStatus.PENDING
                 )
                 db.add(booking)
@@ -48,8 +47,7 @@ class BookingService(BaseService):
                 # 2. Create ticket records in the same transaction
                 tickets = [
                     Ticket(
-                        booking_id=booking.booking_id,
-                        status="PENDING"  # Initial ticket status
+                        booking_id=booking.booking_id
                     )
                     for _ in range(booking_data["ticket_quantity"])
                 ]
@@ -66,11 +64,20 @@ class BookingService(BaseService):
             return {
                 "booking_id": str(booking.booking_id),
                 "event_id": str(booking.event_id),
-                "user_id": booking.user_id,
-                "ticket_quantity": booking.ticket_quantity,
-                "total_amount": booking.total_amount,
+                "user_id": str(booking.user_id),  # Convert UUID to string
+                "ticket_quantity": len(tickets),
+                "total_amount": booking_data.get("total_amount", 0),  # Keep for API compatibility
                 "status": booking.status,
-                "tickets": [{"ticket_id": str(ticket.ticket_id), "status": ticket.status} for ticket in tickets],
+                "created_at": booking.created_at,
+                "updated_at": booking.updated_at,
+                "tickets": [
+                    {
+                        "ticket_id": str(ticket.ticket_id),
+                        "booking_id": str(ticket.booking_id),
+                        "created_at": ticket.created_at
+                    } for ticket in tickets
+                ],
+                "payment_url": f"/payment/{booking.booking_id}",  # Add payment URL
                 "message": "Booking created successfully"
             }
 
@@ -87,14 +94,14 @@ class BookingService(BaseService):
         Handle asynchronous booking status updates via RabbitMQ.
         This method is truly asynchronous as it:
         1. Receives messages from queue
-        2. Updates booking and ticket statuses
+        2. Updates booking status
         3. Can handle retries and failures
         """
         try:
             booking_id = UUID(data["booking_id"])
             new_status = data["status"]
             
-            # Get booking with tickets
+            # Get booking
             query = select(Booking).where(Booking.booking_id == booking_id)
             result = await db.execute(query)
             booking = result.scalar_one_or_none()
@@ -119,21 +126,6 @@ class BookingService(BaseService):
             async with db.begin():
                 # Update booking status
                 booking.status = new_status
-                
-                # Handle status-specific logic
-                if new_status == BookingStatus.CONFIRMED:
-                    # Update tickets status to confirmed
-                    ticket_query = select(Ticket).where(Ticket.booking_id == booking_id)
-                    tickets = (await db.execute(ticket_query)).scalars().all()
-                    for ticket in tickets:
-                        ticket.status = "CONFIRMED"
-                    
-                elif new_status == BookingStatus.CANCELLED:
-                    # Update tickets status to cancelled
-                    ticket_query = select(Ticket).where(Ticket.booking_id == booking_id)
-                    tickets = (await db.execute(ticket_query)).scalars().all()
-                    for ticket in tickets:
-                        ticket.status = "CANCELLED"
             
             await self.logger.send_log(
                 "INFO",
@@ -169,44 +161,78 @@ class BookingService(BaseService):
         return {
             "booking_id": str(booking.booking_id),
             "event_id": str(booking.event_id),
-            "user_id": booking.user_id,
-            "ticket_quantity": booking.ticket_quantity,
-            "total_amount": booking.total_amount,
+            "user_id": str(booking.user_id),  # Convert UUID to string
+            "ticket_quantity": len(tickets),  # Calculate from actual tickets
+            "total_amount": 0,  # This will be updated by the booking service
             "status": booking.status,
             "created_at": booking.created_at,
             "updated_at": booking.updated_at,
             "tickets": [
                 {
                     "ticket_id": str(ticket.ticket_id),
-                    "status": ticket.status
+                    "booking_id": str(ticket.booking_id),
+                    "created_at": ticket.created_at
                 } for ticket in tickets
             ]
         }
 
     async def get_booking_by_id(self, booking_id: UUID4, db: AsyncSession) -> Dict[str, Any]:
-        booking = await self.get_by_id(db, booking_id, "booking_id")
+        # Get booking with tickets relationship loaded
+        query = (
+            select(Booking)
+            .options(selectinload(Booking.tickets))
+            .where(Booking.booking_id == booking_id)
+        )
+        result = await db.execute(query)
+        booking = result.scalar_one_or_none()
+        
         if not booking:
             self.raise_not_found("Booking not found")
         
-        tickets = (await db.execute(
-            select(Ticket).where(Ticket.booking_id == booking_id)
-        )).scalars().all()
-        
-        return {
-            **booking.to_dict(),
-            'tickets': [ticket.to_dict() for ticket in tickets]
+        # Create the response dict with consistent UUID handling
+        booking_dict = {
+            "booking_id": str(booking.booking_id),
+            "user_id": str(booking.user_id),  # Ensure user_id is a string
+            "event_id": str(booking.event_id),
+            "status": booking.status.value if booking.status else None,
+            "created_at": booking.created_at,
+            "updated_at": booking.updated_at,
+            "tickets": [
+                {
+                    "ticket_id": str(ticket.ticket_id),
+                    "booking_id": str(ticket.booking_id),
+                    "created_at": ticket.created_at
+                } for ticket in booking.tickets
+            ]
         }
+        
+        # Add required fields
+        booking_dict['ticket_quantity'] = len(booking.tickets)
+        booking_dict['total_amount'] = 0  # This will be updated by the booking service
+        
+        return booking_dict
 
     async def update_booking_status(self, booking_id: UUID4, new_status: BookingStatus, db: AsyncSession) -> Dict[str, str]:
         """Update booking status with validation."""
-        booking = await self.get_by_id(db, booking_id, "booking_id")
+        # Get booking with tickets relationship loaded in a single query
+        query = (
+            select(Booking)
+            .options(selectinload(Booking.tickets))
+            .where(Booking.booking_id == booking_id)
+        )
+        result = await db.execute(query)
+        booking = result.scalar_one_or_none()
+        
         if not booking:
             self.raise_not_found("Booking not found")
 
         if not BookingStatus.can_transition_to(booking.status, new_status):
             self.raise_validation_error(f"Cannot transition from {booking.status} to {new_status}")
 
-        await self.update(db, booking, {"status": new_status})
+        # Update the status in the same transaction
+        booking.status = new_status
+        await db.commit()
+        
         return {"message": f"Booking {new_status} successfully"}
 
     async def get_tickets(self, filter_value, filter_type: TicketFilterType, db: AsyncSession) -> List[Dict[str, Any]]:

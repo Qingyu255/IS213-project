@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
-from .api.routes import bookings, tickets
+from .api.endpoints.booking import router as booking_router
 import asyncio
 import logging
 
@@ -28,8 +28,7 @@ app.add_middleware(
 )
 
 # Include router
-app.include_router(bookings.router, prefix="/api/v1")  # Bookings endpoints
-app.include_router(tickets.router, prefix="/api/v1")  # Tickets endpoints
+app.include_router(booking_router, prefix="/api/v1")  # Bookings endpoints
 
 @app.get("/")
 async def root():

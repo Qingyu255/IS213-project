@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, DateTime, ForeignKey, Enum, TypeDecorator
+from sqlalchemy import Column, String, DateTime, ForeignKey, Enum, TypeDecorator, Integer, Float
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -15,13 +15,16 @@ class BookingStatusType(TypeDecorator):
         if value is None:
             return None
         if isinstance(value, BookingStatus):
-            return value.value
-        return str(value).upper()
+            return value.value.upper()
+        # If it's a string, remove any prefix and convert to uppercase
+        return str(value).split('.')[-1].upper()
 
     def process_result_value(self, value, dialect):
         if value is None:
             return None
         try:
+            # Remove any prefix if it exists (e.g., "BOOKINGSTATUS.")
+            value = value.split('.')[-1]
             return BookingStatus(str(value).upper())
         except ValueError:
             return None
@@ -46,6 +49,5 @@ class Booking(Base):
             "event_id": str(self.event_id),
             "status": self.status.value if self.status else None,
             "created_at": self.created_at,
-            "updated_at": self.updated_at,
-            "tickets": [str(ticket.ticket_id) for ticket in self.tickets]
+            "updated_at": self.updated_at
         } 
