@@ -5,8 +5,8 @@ import { ErrorMessageCallout } from "@/components/error-message-callout";
 import { EventList } from "./components/event-list";
 import { Pagination } from "@/components/pagination";
 import { Badge } from "@/components/ui/badge";
-import { BrowseByCategory } from "./components/browse-by-category";
-import { BrowseByLocation } from "./components/browse-by-location";
+// import { BrowseByCategory } from "./components/browse-by-category";
+// import { BrowseByLocation } from "./components/browse-by-location";
 import { Separator } from "@/components/ui/separator";
 import { BACKEND_ROUTES } from "@/constants/backend-routes";
 import { EventDetails } from "@/types/event";
@@ -106,10 +106,10 @@ export default function EventsPage() {
             experience.
           </p>
         </div>
-        <div className="flex flex-col md:flex-row gap-5">
+        {/* <div className="flex flex-col md:flex-row gap-5">
           <BrowseByCategory />
           <BrowseByLocation />
-        </div>
+        </div> */}
         <Separator className="my-4" />
         <EventList events={eventsData.events} />
         <Pagination

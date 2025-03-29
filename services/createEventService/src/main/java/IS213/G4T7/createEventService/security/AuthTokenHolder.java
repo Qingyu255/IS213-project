@@ -1,17 +1,17 @@
 package IS213.G4T7.createEventService.security;
 
 public class AuthTokenHolder {
-    private static final ThreadLocal<String> authToken = new ThreadLocal<>();
+    private static String authToken;
 
-    public static void setToken(String token) {
-        authToken.set(token);
+    public static synchronized void setToken(String token) {
+        authToken = token;
     }
 
-    public static String getToken() {
-        return authToken.get();
+    public static synchronized String getToken() {
+        return authToken;
     }
 
-    public static void clear() {
-        authToken.remove();
+    public static synchronized void clear() {
+        authToken = null;
     }
 }
