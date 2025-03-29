@@ -1,10 +1,10 @@
-import Image from "next/image"
-import Link from "next/link"
-import { Calendar, MapPin } from "lucide-react"
-import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { EventDetails } from "@/types/event"
+import Image from "next/image";
+import Link from "next/link";
+import { Calendar, MapPin } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { EventDetails } from "@/types/event";
 
 
 export function EventList({ events }: { events: EventDetails[] }) {
@@ -29,7 +29,7 @@ export function EventList({ events }: { events: EventDetails[] }) {
                   <Badge key={i} className="mb-4 bg-primary/10 text-primary hover:bg-primary/20 border-0">
                     {category as string}
                   </Badge>
-                )
+                );
               })}
             </>
           </div>
@@ -50,5 +50,5 @@ export function EventList({ events }: { events: EventDetails[] }) {
         </Card>
       ))}
     </div>
-  )
+  );
 }

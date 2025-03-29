@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, DateTime, ForeignKey, Enum, TypeDecorator
+from sqlalchemy import Column, String, DateTime, ForeignKey, Enum, TypeDecorator, Integer, Float
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -15,13 +15,16 @@ class BookingStatusType(TypeDecorator):
         if value is None:
             return None
         if isinstance(value, BookingStatus):
-            return value.value
-        return str(value).upper()
+            return value.value.upper()
+        # If it's a string, remove any prefix and convert to uppercase
+        return str(value).split('.')[-1].upper()
 
     def process_result_value(self, value, dialect):
         if value is None:
             return None
         try:
+            # Remove any prefix if it exists (e.g., "BOOKINGSTATUS.")
+            value = value.split('.')[-1]
             return BookingStatus(str(value).upper())
         except ValueError:
             return None
@@ -30,7 +33,7 @@ class Booking(Base):
     __tablename__ = "bookings"
 
     booking_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(UUID(as_uuid=True), nullable=False)
+    user_id = Column(String, nullable=False)
     event_id = Column(UUID(as_uuid=True), nullable=False)
     status = Column(BookingStatusType, nullable=False, default=BookingStatus.PENDING)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -42,10 +45,9 @@ class Booking(Base):
     def to_dict(self):
         return {
             "booking_id": str(self.booking_id),
-            "user_id": str(self.user_id),
+            "user_id": self.user_id,
             "event_id": str(self.event_id),
             "status": self.status.value if self.status else None,
             "created_at": self.created_at,
-            "updated_at": self.updated_at,
-            "tickets": [str(ticket.ticket_id) for ticket in self.tickets]
+            "updated_at": self.updated_at
         } 

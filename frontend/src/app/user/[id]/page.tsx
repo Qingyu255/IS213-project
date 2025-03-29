@@ -152,10 +152,10 @@ export default function ViewEditUserPage() {
     } finally {
       setLoading(false);
     }
-  }
+  };
 
   if (loading) {
-    return <UserDetailsSkeleton />
+    return <UserDetailsSkeleton />;
   };
 
   if (error) {
@@ -163,11 +163,11 @@ export default function ViewEditUserPage() {
       <div className="p-4">
         <ErrorMessageCallout errorMessage={error} />
       </div>
-    )
+    );
   };
 
   if (!user) {
-    return <div>User not found</div>
+    return <div>User not found</div>;
   };
 
   return (

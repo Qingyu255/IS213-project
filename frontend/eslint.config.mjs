@@ -11,6 +11,13 @@ const compat = new FlatCompat({
 
 const eslintConfig = [
   ...compat.extends("next/core-web-vitals", "next/typescript"),
+  {
+    rules: {
+      "semi": ["error", "always"],
+      "semi-spacing": ["error", { "before": false, "after": true }],
+      "semi-style": ["error", "last"]
+    }
+  }
 ];
 
 export default eslintConfig;

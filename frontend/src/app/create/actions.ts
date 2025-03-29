@@ -1,6 +1,6 @@
-'use server'
+'use server';
 
-import { stripe } from '@/lib/stripe'
+import { stripe } from '@/lib/stripe';
 
 type CheckoutSessionResponse = {
   success: boolean;
@@ -28,12 +28,12 @@ export async function getCheckoutSession(sessionId: string): Promise<CheckoutSes
       return {
         success: false,
         error: 'Stripe is not initialized'
-      }
+      };
     }
     
     const session = await stripe.checkout.sessions.retrieve(sessionId, {
       expand: ['line_items', 'payment_intent']
-    })
+    });
     
     // Extract only the serializable data we need
     const serializedSession = {
@@ -46,17 +46,17 @@ export async function getCheckoutSession(sessionId: string): Promise<CheckoutSes
         name: session.customer_details?.name
       },
       metadata: session.metadata
-    }
+    };
     
     return {
       success: true,
       session: serializedSession
-    }
+    };
   } catch (error) {
-    console.error('Error retrieving checkout session:', error)
+    console.error('Error retrieving checkout session:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to retrieve checkout session'
-    }
+    };
   }
 } 

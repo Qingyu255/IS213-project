@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-"use client"
+"use client";
 
-import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react'
-import type { EventDetails } from '@/types/event'
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import type { EventDetails } from '@/types/event';
 
 // Context type definition
 interface EventCreationContextType {
@@ -16,17 +16,17 @@ const EventCreationContext = createContext<EventCreationContextType>({
   eventData: null,
   setEventData: () => {},
   clearEventData: () => {}
-})
+});
 
 // Custom hook to use the context
 export function useEventCreation() {
-  return useContext(EventCreationContext)
+  return useContext(EventCreationContext);
 }
 
 // Provider component
 export function EventCreationProvider({ children }: { children: ReactNode }) {
-  const [eventData, setEventDataState] = useState<EventDetails | null>(null)
-  const [initialized, setInitialized] = useState(false)
+  const [eventData, setEventDataState] = useState<EventDetails | null>(null);
+  const [initialized, setInitialized] = useState(false);
 
   // Initialize from localStorage on client-side mount
   useEffect(() => {
@@ -35,7 +35,7 @@ export function EventCreationProvider({ children }: { children: ReactNode }) {
     
     try {
       // Try to restore from localStorage - this helps with page refreshes
-      const storedData = localStorage.getItem('pending_event_data')
+      const storedData = localStorage.getItem('pending_event_data');
       
       if (!storedData) {
         setInitialized(true);
@@ -43,22 +43,22 @@ export function EventCreationProvider({ children }: { children: ReactNode }) {
       }
       
       try {
-        const parsedData = JSON.parse(storedData)
+        const parsedData = JSON.parse(storedData);
         console.log("Restored event data from localStorage, ID:", parsedData.id);
         
         // Set the data in our context
-        setEventDataState(parsedData)
+        setEventDataState(parsedData);
       } catch (e) {
-        console.error("Error parsing saved data:", e)
+        console.error("Error parsing saved data:", e);
         // If we can't parse the data, clear it to avoid future errors
-        localStorage.removeItem('pending_event_data')
+        localStorage.removeItem('pending_event_data');
       }
     } catch (e) {
-      console.error("Error during initialization:", e)
+      console.error("Error during initialization:", e);
     } finally {
-      setInitialized(true)
+      setInitialized(true);
     }
-  }, [])
+  }, []);
 
   // Synchronize with localStorage when it changes elsewhere
   useEffect(() => {
@@ -88,27 +88,27 @@ export function EventCreationProvider({ children }: { children: ReactNode }) {
     console.log("Setting event data in context, ID:", data.id);
     
     // Update context state - this is the PRIMARY storage
-    setEventDataState(data)
+    setEventDataState(data);
     
     // Sync with localStorage as backup
     try {
       localStorage.setItem('pending_event_data', JSON.stringify(data));
     } catch (e) {
-      console.error("Error saving to localStorage:", e)
+      console.error("Error saving to localStorage:", e);
     }
-  }
+  };
 
   const clearEventData = () => {
     // Clear primary storage (context)
-    setEventDataState(null)
+    setEventDataState(null);
     
     // Also clear backup
     try {
-      localStorage.removeItem('pending_event_data')
+      localStorage.removeItem('pending_event_data');
     } catch (e) {
-      console.error("Error clearing localStorage:", e)
+      console.error("Error clearing localStorage:", e);
     }
-  }
+  };
 
   return (
     <EventCreationContext.Provider
@@ -120,5 +120,5 @@ export function EventCreationProvider({ children }: { children: ReactNode }) {
     >
       {children}
     </EventCreationContext.Provider>
-  )
+  );
 } 

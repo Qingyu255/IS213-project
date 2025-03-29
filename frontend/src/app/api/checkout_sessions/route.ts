@@ -1,13 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { NextResponse } from 'next/server'
-import { headers } from 'next/headers'
+import { NextResponse } from 'next/server';
+import { headers } from 'next/headers';
 
-import { stripe } from '../../../lib/stripe'
+import { stripe } from '../../../lib/stripe';
 
 export async function POST() {
   try {
-    const headersList = await headers()
-    const origin = headersList.get('origin')
+    const headersList = await headers();
+    const origin = headersList.get('origin');
 
     // Create Checkout Sessions from body params.
     const session = await stripe.checkout.sessions.create({
@@ -34,11 +34,11 @@ export async function POST() {
       throw new Error('Failed to create checkout session URL');
     }
     
-    return NextResponse.redirect(session.url, 303)
+    return NextResponse.redirect(session.url, 303);
   } catch (err: any) {
     return NextResponse.json(
       { error: err.message },
       { status: err.statusCode || 500 }
-    )
+    );
   }
 }

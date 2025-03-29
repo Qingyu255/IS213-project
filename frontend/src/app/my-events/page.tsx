@@ -67,6 +67,8 @@ export default function MyEventsPage() {
         return
       }
 
+      console.log("=== Debug Info ===")
+      console.log("User object:", user)
       console.log("Fetching bookings for user ID (custom:id):", userId)
       console.log("Username:", username)
 
@@ -79,11 +81,7 @@ export default function MyEventsPage() {
 
         console.log("Making API call to get user bookings...")
         const bookings = await getUserBookings(userId)
-        console.log(
-          "Bookings fetched successfully:",
-          bookings.length,
-          "bookings"
-        )
+        console.log("Bookings API Response:", bookings)
 
         // Group bookings by event ID
         const bookingsByEvent = bookings.reduce(

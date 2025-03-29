@@ -1,5 +1,5 @@
-import { Spinner } from "@/components/ui/spinner"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { Spinner } from "@/components/ui/spinner";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 
 export default function SuccessLoading() {
   return (
@@ -26,5 +26,5 @@ export default function SuccessLoading() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 } 

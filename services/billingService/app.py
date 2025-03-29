@@ -9,6 +9,7 @@ from config import Config
 from routes.refund import refund_bp
 from routes.webhook import webhook_bp
 from routes.events import events_bp
+from routes.payments import payments_bp
 from models import init_db
 
 def setup_logging():
@@ -25,6 +26,7 @@ def register_blueprints(app):
     app.register_blueprint(refund_bp, url_prefix="/api/refund")
     app.register_blueprint(webhook_bp, url_prefix="/api/webhook")
     app.register_blueprint(events_bp, url_prefix="/api/events")
+    app.register_blueprint(payments_bp, url_prefix="/api/payments")
 
 def create_app(config_class=Config):
     """Application factory function"""

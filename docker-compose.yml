@@ -13,6 +13,7 @@ services:
       NEXT_PUBLIC_USER_POOL_CLIENT_ID: ${AWS_COGNITO_APP_CLIENT_ID}
       NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${GOOGLE_MAPS_API_KEY}
       NEXT_PUBLIC_USER_MANAGEMENT_SERVICE_API_BASE_URL: ${USER_MANAGEMENT_SERVICE_API_BASE_URL}
+      NEXT_PUBLIC_BOOKING_SERVICE_URL: "http://booking-service:8002"
     volumes:
       - ./frontend:/app # Mount source code for hot reloading
       - /app/node_modules # Preserve container node_modules
@@ -34,10 +35,7 @@ services:
       - users-db-data:/var/lib/postgresql/data
     healthcheck:
       test:
-        [
-          "CMD-SHELL",
-          "pg_isready -p 5432 -U ${USERS_DB_USER} -d ${USERS_DB}",
-        ]
+        ["CMD-SHELL", "pg_isready -p 5432 -U ${USERS_DB_USER} -d ${USERS_DB}"]
       interval: 1s
       timeout: 10s
       retries: 10
@@ -81,7 +79,10 @@ services:
       - logging-db-data:/var/lib/postgresql/data
     healthcheck:
       test:
-        ["CMD-SHELL", "pg_isready -p 5432 -U ${LOGGING_DB_USER} -d ${LOGGING_DB}"]
+        [
+          "CMD-SHELL",
+          "pg_isready -p 5432 -U ${LOGGING_DB_USER} -d ${LOGGING_DB}",
+        ]
       interval: 1s
       timeout: 10s
       retries: 10
@@ -123,7 +124,10 @@ services:
       - billing-db-data:/var/lib/postgresql/data
     healthcheck:
       test:
-        ["CMD-SHELL", "pg_isready -p 5432 -U ${BILLING_DB_USER} -d ${BILLING_DB}"]
+        [
+          "CMD-SHELL",
+          "pg_isready -p 5432 -U ${BILLING_DB_USER} -d ${BILLING_DB}",
+        ]
       interval: 1s
       timeout: 10s
       retries: 10
@@ -188,7 +192,7 @@ services:
     depends_on:
       events-db:
         condition: service_healthy
-        
+
   # Billing service flyway migrations
   billing-db-migrations:
     image: flyway/flyway:11.3.4
@@ -250,6 +254,8 @@ services:
     container_name: ticket-management-service
     ports:
       - "8000:8000"
+    env_file:
+      - .env
     environment:
       DATABASE_URL: postgresql+asyncpg://${TICKET_DB_USER}:${TICKET_DB_PASSWORD}@ticket-db:5432/${TICKET_DB}
       AWS_COGNITO_REGION: ${AWS_REGION}
@@ -257,10 +263,14 @@ services:
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
       AWS_COGNITO_USER_POOL_ID: ${AWS_COGNITO_USER_POOL_ID}
       AWS_COGNITO_APP_CLIENT_ID: ${AWS_COGNITO_APP_CLIENT_ID}
+      RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@${RABBITMQ_HOST}:5672/
+      RABBITMQ_QUEUE: ${RABBITMQ_QUEUE}
     depends_on:
       ticket-db:
         condition: service_healthy
-  
+      rabbitmq:
+        condition: service_healthy
+
   logging-service:
     build: ./services/loggingService
     container_name: logging-service
@@ -313,7 +323,7 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
-        
+
   billing-service:
     build:
       context: ./services/billingService
@@ -327,9 +337,10 @@ services:
     environment:
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
-      EVENT_SERVICE_URL: "http://events-service:8001"
+      EVENT_SERVICE_URL: "${EVENT_SERVICE_URL}"
       DATABASE_URL: "postgresql://${BILLING_DB_USER}:${BILLING_DB_PASSWORD}@billing-db:5432/${BILLING_DB}"
       FLASK_ENV: "development"
+      FRONTEND_URL: "${FRONTEND_URL}"
     volumes:
       - ./services/billingService:/app # Mount source code for development
       - /app/__pycache__
@@ -367,7 +378,41 @@ services:
       - .env
     depends_on:
       - billing-service
-    network_mode: "host"  # Use host network to access localhost services
+    network_mode: "host" # Use host network to access localhost services
+
+  booking-service:
+    build:
+      context: ./services/bookingService
+      dockerfile: Dockerfile
+    container_name: booking-service
+    restart: always
+    ports:
+      - "8002:8002"
+    env_file:
+      - .env
+    environment:
+      EVENT_SERVICE_URL: "${EVENT_SERVICE_URL}"
+      TICKET_SERVICE_URL: "${TICKET_SERVICE_URL}"
+      BILLING_SERVICE_URL: "${BILLING_SERVICE_URL}"
+      LOGGING_SERVICE_URL: "${LOGGING_SERVICE_URL}"
+      RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@${RABBITMQ_HOST}:5672/
+      FRONTEND_URL: "${FRONTEND_URL}"
+      AWS_COGNITO_REGION: ${AWS_REGION}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_COGNITO_USER_POOL_ID: ${AWS_COGNITO_USER_POOL_ID}
+      AWS_COGNITO_APP_CLIENT_ID: ${AWS_COGNITO_APP_CLIENT_ID}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      events-service:
+        condition: service_started
+      ticket-management-service:
+        condition: service_started
+      billing-service:
+        condition: service_started
+    networks:
+      - default
 
 volumes:
   users-db-data:

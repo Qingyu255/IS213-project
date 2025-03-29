@@ -1,10 +1,10 @@
-import { AlertCircle } from "lucide-react"
+import { AlertCircle } from "lucide-react";
 
 import {
   Alert,
   AlertDescription,
   AlertTitle,
-} from "@/components/ui/alert"
+} from "@/components/ui/alert";
 
 type ErrorMessageCalloutProps = {
     errorHeader?: string
@@ -25,5 +25,5 @@ export function ErrorMessageCallout(props: ErrorMessageCalloutProps) {
                 {errorMessage}
             </AlertDescription>
         </Alert>
-    )
+    );
 }

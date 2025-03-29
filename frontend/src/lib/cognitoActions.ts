@@ -36,7 +36,7 @@ export async function handleSignOut() {
   } catch (error) {
     console.log(getErrorMessage(error));
   }
-  console.debug("User logged out")
+  console.debug("User logged out");
   redirect(Route.BrowseEvents);
 }
 
