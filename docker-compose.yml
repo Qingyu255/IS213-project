@@ -112,65 +112,20 @@ services:
     
   # Kong Bootstrap
   kong-bootstrap:
-    image: curlimages/curl
-    depends_on:
-      kong:
-        condition: service_healthy
-    volumes:
-      - ./kong/config:/config
-    command: >
-      sh -c "
-        echo 'Waiting for Kong to be ready...' &&
-        sleep 20 &&
-        
-        # Create services only if they don't exist
-        for SERVICE in 'user-management-service:user-management-service:8080' 'ticket-management-service:ticket-management-service:8000' 'events-service:events-service:8001' 'billing-service:billing-service:5001' 'create-event-service:create-event-service:8070'; do
-          IFS=':' read -r NAME HOST PORT <<< \"$SERVICE\"
-          if ! curl -s http://kong:8001/services/$NAME | grep -q 'id'; then
-            echo \"Creating service: $NAME\"
-            curl -s -X POST http://kong:8001/services -d \"name=$NAME\" -d \"url=http://$HOST:$PORT\"
-          else
-            echo \"Service already exists: $NAME\"
-          fi
-        done &&
-        
-        # Create routes with strip_path=false
-        # user-management-service routes
-        if ! curl -s http://kong:8001/services/user-management-service/routes | grep -qF '\"paths\":[\"/api/users\"'; then
-          curl -s -X POST http://kong:8001/services/user-management-service/routes -d 'paths[]=/api/users' -d 'paths[]=/api/users/' -d 'paths[]=/api/userinterests' -d 'paths[]=/api/userinterests/' -d 'strip_path=false'
-        fi &&
-        
-        # ticket-management-service routes
-        if ! curl -s http://kong:8001/services/ticket-management-service/routes | grep -qF '\"paths\":[\"/api/v1/bookings\"'; then
-          curl -s -X POST http://kong:8001/services/ticket-management-service/routes -d 'paths[]=/api/v1/bookings' -d 'paths[]=/api/v1/tickets' -d 'strip_path=false'
-        fi &&
-        
-        # events-service routes
-        if ! curl -s http://kong:8001/services/events-service/routes | grep -qF '\"paths\":[\"/api/v1/events\"'; then
-          curl -s -X POST http://kong:8001/services/events-service/routes -d 'paths[]=/api/v1/events' -d 'strip_path=false'
-        fi &&
-        
-        # billing-service routes
-        if ! curl -s http://kong:8001/services/billing-service/routes | grep -qF '\"paths\":[\"/api/refund\"'; then
-          curl -s -X POST http://kong:8001/services/billing-service/routes -d 'paths[]=/api/refund' -d 'paths[]=/api/events' -d 'strip_path=false'
-        fi &&
-        
-        # create-event-service routes
-        if ! curl -s http://kong:8001/services/create-event-service/routes | grep -qF '\"paths\":[\"/api/v1/create-event\"'; then
-          curl -s -X POST http://kong:8001/services/create-event-service/routes -d 'paths[]=/api/v1/create-event' -d 'strip_path=false'
-        fi &&
-        
-        # Create plugins if they don't exist
-        if ! curl -s http://kong:8001/plugins | grep -q '\"name\":\"cors\"'; then
-          curl -s -X POST http://kong:8001/plugins -d 'name=cors' -d 'config.origins=http://localhost:3000' -d 'config.methods=GET,POST,PUT,DELETE,OPTIONS,PATCH' -d 'config.headers=Accept,Accept-Version,Content-Length,Content-MD5,Content-Type,Date,X-Auth-Token,Authorization' -d 'config.exposed_headers=X-Auth-Token' -d 'config.credentials=true' -d 'config.max_age=3600' -d 'config.preflight_continue=false'
-        fi &&
-        
-        if ! curl -s http://kong:8001/plugins | grep -q '\"name\":\"jwt\"'; then
-          curl -s -X POST http://kong:8001/plugins -d 'name=jwt' -d 'config.secret_is_base64=false' -d 'config.claims_to_verify=exp' 
-        fi
-      "
-    networks:
-      - default 
+      image: curlimages/curl
+      depends_on:
+        kong:
+          condition: service_healthy
+      volumes:
+        - ./scripts/kong-config.sh:/script.sh
+      command: ["sh", "/script.sh"]
+      environment:
+        - AWS_REGION=${AWS_REGION}
+        - USER_POOL_ID=${AWS_COGNITO_USER_POOL_ID}
+        - JWT_SECRET=${JWT_SECRET}
+      networks:
+        - default
+
   # Ticket Management Database
   ticket-db:
     image: postgres:16.2
