@@ -16,8 +16,18 @@ curl -s -X POST http://kong:8001/services/auth-public/routes -d 'paths[]=/api/us
 
 # Add JWT plugin to all services EXCEPT auth-public
 # This configuration skips the JWT plugin for auth-public
-curl -s -X POST http://kong:8001/plugins -d name=jwt -d 'config.secret_is_base64=false' -d 'config.claims_to_verify=exp' -d 'config.run_on_preflight=true'
-
+# curl -s -X POST http://kong:8001/plugins -d name=jwt -d 'config.secret_is_base64=false' -d 'config.claims_to_verify=exp' -d 'config.run_on_preflight=true'
+#Include JWKS URI
+curl -s -X POST http://kong:8001/plugins \
+  -d name=jwt \
+  -d 'config.secret_is_base64=false' \
+  -d 'config.claims_to_verify=exp' \
+  -d 'config.run_on_preflight=true' \
+  -d "config.key_claim_name=kid" 
+  # -d "config.jwks_uri=https://cognito-idp.${AWS_REGION}.amazonaws.com/${AWS_COGNITO_USER_POOL_ID}/.well-known/jwks.json"
+  
+curl -X PATCH http://localhost:10001/plugins/$JWT_PLUGIN_ID \
+  -d "config.jwks_uri==https://cognito-idp.${AWS_REGION}.amazonaws.com/${AWS_COGNITO_USER_POOL_ID}/.well-known/jwks.json"
 # Add CORS plugin globally
 curl -s -X POST http://kong:8001/plugins -d name=cors -d 'config.origins=http://localhost:3000' -d 'config.methods=GET,POST,PUT,DELETE,OPTIONS,PATCH' -d 'config.headers=Accept,Accept-Version,Content-Length,Content-MD5,Content-Type,Date,X-Auth-Token,Authorization' -d 'config.exposed_headers=X-Auth-Token' -d 'config.credentials=true' -d 'config.max_age=3600' -d 'config.preflight_continue=false'
 
