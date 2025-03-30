@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Get these values from your terraform output
+# Get these values from terraform output
 AWS_REGION="${AWS_REGION:-ap-southeast-1}"
 USER_POOL_ID="${AWS_COGNITO_USER_POOL_ID}"
 

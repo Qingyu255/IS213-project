@@ -30,7 +30,7 @@ services:
           secret_key_names:
             - aud
             - clientId
-          jwks_uri: https://cognito-idp.${AWS_REGION}.amazonaws.com/${USER_POOL_ID}/.well-known/jwks.json
+          jwks_uri: https://cognito-idp.${AWS_REGION}.amazonaws.com/${AWS_COGNITO_USER_POOL_ID}/.well-known/jwks.json
   
   - name: ticket-management-service
     url: http://ticket-management-service:8000
@@ -54,7 +54,7 @@ services:
           secret_key_names:
             - aud
             - clientId
-          jwks_uri: https://cognito-idp.${AWS_REGION}.amazonaws.com/${USER_POOL_ID}/.well-known/jwks.json
+          jwks_uri: https://cognito-idp.${AWS_REGION}.amazonaws.com/${AWS_COGNITO_USER_POOL_ID}/.well-known/jwks.json
   
   - name: events-service
     url: http://events-service:8001
@@ -77,7 +77,7 @@ services:
           secret_key_names:
             - aud
             - clientId
-          jwks_uri: https://cognito-idp.${AWS_REGION}.amazonaws.com/${USER_POOL_ID}/.well-known/jwks.json
+          jwks_uri: https://cognito-idp.${AWS_REGION}.amazonaws.com/${AWS_COGNITO_USER_POOL_ID}/.well-known/jwks.json
   
   - name: billing-service
     url: http://billing-service:5001
@@ -101,7 +101,7 @@ services:
           secret_key_names:
             - aud
             - clientId
-          jwks_uri: https://cognito-idp.${AWS_REGION}.amazonaws.com/${USER_POOL_ID}/.well-known/jwks.json
+          jwks_uri: https://cognito-idp.${AWS_REGION}.amazonaws.com/${AWS_COGNITO_USER_POOL_ID}/.well-known/jwks.json
   
   - name: create-event-service
     url: http://create-event-service:8070
@@ -124,7 +124,7 @@ services:
           secret_key_names:
             - aud
             - clientId
-          jwks_uri: https://cognito-idp.${AWS_REGION}.amazonaws.com/${USER_POOL_ID}/.well-known/jwks.json
+          jwks_uri: https://cognito-idp.${AWS_REGION}.amazonaws.com/${AWS_COGNITO_USER_POOL_ID}/.well-known/jwks.json
 
 consumers:
   - username: frontend-app
