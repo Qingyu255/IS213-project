@@ -11,7 +11,6 @@ public class UserInterestsController : ControllerBase
     private readonly IUserInterestRepository _userInterestRepository;
     private readonly IUserRepository _userRepository;
 
-
     public UserInterestsController(IUserInterestRepository userInterestRepository, IUserRepository userRepository)
     {
         _userInterestRepository = userInterestRepository;
@@ -35,7 +34,6 @@ public class UserInterestsController : ControllerBase
         return Ok(interests);
     }
 
-    // Upsert user interests (as list of strings)
     [Authorize]
     [HttpPost("user/{userId}")]
     public async Task<IActionResult> UpsertUserInterests(

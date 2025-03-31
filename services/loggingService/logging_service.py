@@ -13,8 +13,6 @@ from flask import Flask, request, jsonify
 from flasgger import Swagger 
 
 
-
-# Load environment variables
 load_dotenv(dotenv_path="../../.env", override=True)
 
 POSTGRES_HOST=os.getenv("LOGGING_DB_HOST")

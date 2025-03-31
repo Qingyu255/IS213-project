@@ -14,7 +14,6 @@ from typing import List
 import uuid
 from ...services.booking_service import BookingService, TicketFilterType
 
-# Create main router
 router = APIRouter(tags=["bookings"])
 booking_service = BookingService()
 

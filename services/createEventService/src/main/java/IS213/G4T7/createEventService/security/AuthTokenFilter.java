@@ -26,7 +26,6 @@ public class AuthTokenFilter extends OncePerRequestFilter {
                 log.info("Received Authorization header");
                 log.debug("Raw token: {}", token);
                 
-                // Ensure token starts with "Bearer "
                 if (!token.startsWith("Bearer ")) {
                     token = "Bearer " + token;
                     log.debug("Added 'Bearer ' prefix to token");

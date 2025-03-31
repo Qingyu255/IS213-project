@@ -160,7 +160,6 @@ class BookingController:
                 
             except Exception as e:
                 logger.error(f"Error sending confirmation notifications: {str(e)}")
-                # Don't fail the booking if notification fails
 
             # 5. Log successful confirmation
             self.logging_service.send_log(

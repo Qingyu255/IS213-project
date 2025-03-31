@@ -6,7 +6,6 @@ from src.services.refund_service import RefundService
 
 router = APIRouter()
 
-# Initialize the refund service
 refund_service = RefundService()
 
 @router.post("/refund", response_model=RefundResponse)
