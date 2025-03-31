@@ -3,7 +3,7 @@ name: Build and Push Next.js Frontend Docker Image to AWS ECR
 on:
   push:
     branches:
-      - master
+      - main
     paths:
       - 'frontend/**'
 

@@ -3,7 +3,7 @@ name: Build and Push loggingService Docker Image to AWS ECR
 on:
   push:
     branches:
-      - master
+      - main
     paths:
       - 'services/loggingService/**'
 
@@ -36,10 +36,10 @@ jobs:
 
       - name: Build and Tag Docker Image
         run: |
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:interactionAuditService-latest ./services/interactionAuditService
-          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:interactionAuditService-latest $ECR_REGISTRY/$ECR_REPOSITORY:interactionAuditService-${{ github.sha }}
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:loggingService-latest ./services/loggingService
+          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:loggingService-latest $ECR_REGISTRY/$ECR_REPOSITORY:loggingService-${{ github.sha }}
 
       - name: Push Images to AWS ECR
         run: |
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:interactionAuditService-latest
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:interactionAuditService-${{ github.sha }}
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:loggingService-latest
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:loggingService-${{ github.sha }}
