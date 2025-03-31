@@ -3,8 +3,7 @@ name: Build and Push refundService Docker Image to AWS ECR
 on:
   push:
     branches:
-      - master
-      - its-66-cms-cicd
+      - main
     paths:
       - 'services/refundService/**'
 
@@ -22,7 +21,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: services/clientManagementService/demo
+        working-directory: services/refundService/demo
 
     steps:
       - name: Checkout Code
@@ -62,11 +61,11 @@ jobs:
 
       - name: Build and Tag Docker Image
         run: |
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:clientManagementService-latest ./services/clientManagementService
-          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:clientManagementService-latest $ECR_REGISTRY/$ECR_REPOSITORY:clientManagementService-${{ github.sha }}
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:refundService-latest ./services/refundService
+          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:refundService-latest $ECR_REGISTRY/$ECR_REPOSITORY:refundService-${{ github.sha }}
 
       - name: Push Images to AWS ECR
         run: |
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:clientManagementService-latest
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:clientManagementService-${{ github.sha }}
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:refundService-latest
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:refundService-${{ github.sha }}
 

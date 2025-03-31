@@ -3,7 +3,7 @@ name: Build and Push userManagementService Docker Image to AWS ECR
 on:
   push:
     branches:
-      - master
+      - main
     paths:
       - 'services/userManagementService/**'
 
