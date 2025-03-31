@@ -1,12 +1,5 @@
 package IS213.G4T7.createEventService.controllers;
 
-import IS213.G4T7.createEventService.dto.*;
-import IS213.G4T7.createEventService.services.Impl.*;
-import IS213.G4T7.createEventService.services.Impl.exceptions.AtomicServiceEventCreationException;
-import IS213.G4T7.createEventService.services.Impl.exceptions.BillingServiceException;
-import IS213.G4T7.createEventService.services.Impl.exceptions.BroadcastingServiceException;
-import IS213.G4T7.createEventService.services.utils.EventMapper;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -14,6 +7,22 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import IS213.G4T7.createEventService.dto.AtomicServiceEventCreationResponse;
+import IS213.G4T7.createEventService.dto.CreateEventResponse;
+import IS213.G4T7.createEventService.dto.EmailData;
+import IS213.G4T7.createEventService.dto.EventDetails;
+import IS213.G4T7.createEventService.dto.LogMessage;
+import IS213.G4T7.createEventService.services.Impl.BillingServiceImpl;
+import IS213.G4T7.createEventService.services.Impl.BroadcastingServiceImpl;
+import IS213.G4T7.createEventService.services.Impl.EventsServiceImpl;
+import IS213.G4T7.createEventService.services.Impl.LoggingServiceImpl;
+import IS213.G4T7.createEventService.services.Impl.NotificationServiceImpl;
+import IS213.G4T7.createEventService.services.Impl.exceptions.AtomicServiceEventCreationException;
+import IS213.G4T7.createEventService.services.Impl.exceptions.BillingServiceException;
+import IS213.G4T7.createEventService.services.Impl.exceptions.BroadcastingServiceException;
+import IS213.G4T7.createEventService.services.utils.EventMapper;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @RestController
@@ -88,7 +97,7 @@ public class CreateEventController {
             log.info(eventBroadCastSuccessLogMessage.toString());
             loggingServiceImpl.sendLog(eventBroadCastSuccessLogMessage);
 
-            // 6. Send success email to the organizer
+            // 6. Send success email to the organizer.
             Jwt jwt = (Jwt) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
             String organizerEmail = jwt.getClaimAsString("email");
             if (organizerEmail != null) {

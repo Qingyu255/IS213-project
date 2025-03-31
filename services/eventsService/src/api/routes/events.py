@@ -48,6 +48,6 @@ async def update_event_endpoint(event_id: UUID4, event: EventUpdate, db: AsyncSe
 @router.delete("/delete/{event_id}")
 async def delete_event_endpoint(event_id: UUID4, db: AsyncSession = Depends(get_db), user_id: str = Depends(get_current_user_id) ):
     """
-    Delete an event by its ID
+    Delete an event by its ID.
     """
     return await delete_event(event_id, db, user_id)

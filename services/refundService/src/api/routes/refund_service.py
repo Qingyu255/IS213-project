@@ -5,7 +5,6 @@ from src.models.refund_models import RefundRequest, RefundResponse
 from src.services.refund_service import RefundService
 
 router = APIRouter()
-
 refund_service = RefundService()
 
 @router.post("/refund", response_model=RefundResponse)
@@ -15,7 +14,7 @@ def process_refund(refund_request: RefundRequest):
     
     - **refund_request**: A JSON body conforming to RefundRequest model.
     
-    Returns a RefundResponse with the status and message.
+    Returns a RefundResponse with the status and message
     """
     try:
         response = refund_service.process_refund(refund_request)
