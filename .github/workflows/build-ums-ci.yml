@@ -1,0 +1,49 @@
+name: Build and Push userManagementService Docker Image to AWS ECR
+  
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'services/userManagementService/**'
+
+  workflow_dispatch: # This enables the manual run button 
+
+env:
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
+  ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+
+jobs:
+  build-and-push:
+    name: Build & Push Docker Images
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '8.0'
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to AWS ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build and Tag Docker Image
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:userManagementService-latest ./services/userManagementService
+          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:userManagementService-latest $ECR_REGISTRY/$ECR_REPOSITORY:userManagementService-${{ github.sha }}
+
+      - name: Push Images to AWS ECR
+        run: |
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:userManagementService-latest
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:userManagementService-${{ github.sha }}
