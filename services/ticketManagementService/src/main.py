@@ -9,6 +9,9 @@ from .services.booking_service import BookingService
 from .core.database import get_db, engine
 from sqlalchemy.ext.asyncio import AsyncSession
 from .core.config import get_settings
+from prometheus_client import make_asgi_app, Counter, Histogram
+import time
+from starlette.middleware.base import BaseHTTPMiddleware
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -17,12 +20,54 @@ logger = logging.getLogger(__name__)
 # Get settings
 settings = get_settings()
 
+# Create Prometheus metrics
+REQUEST_COUNT = Counter(
+    'http_requests_total', 
+    'Total HTTP Requests Count', 
+    ['method', 'endpoint', 'status_code']
+)
+REQUEST_LATENCY = Histogram(
+    'http_request_duration_seconds', 
+    'HTTP Request Latency', 
+    ['method', 'endpoint']
+)
+
+# Create middleware for metrics collection
+class PrometheusMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        start_time = time.time()
+        
+        # Process the request
+        response = await call_next(request)
+        
+        # Record metrics
+        duration = time.time() - start_time
+        REQUEST_LATENCY.labels(
+            method=request.method, 
+            endpoint=request.url.path
+        ).observe(duration)
+        
+        REQUEST_COUNT.labels(
+            method=request.method, 
+            endpoint=request.url.path,
+            status_code=response.status_code
+        ).inc()
+        
+        return response
+
 # Create FastAPI app
 app = FastAPI(
     title="Ticket Management Service",
     description="Service for managing event bookings and tickets",
     version="1.0.0"
 )
+
+# Add Prometheus middleware
+app.add_middleware(PrometheusMiddleware)
+
+# Create metrics endpoint
+metrics_app = make_asgi_app()
+app.mount("/metrics", metrics_app)
 
 # Configure CORS
 app.add_middleware(

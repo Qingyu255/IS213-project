@@ -3,3 +3,4 @@ uvicorn==0.22.0
 requests>=2.7.0
 python-dotenv==1.0.0
 pika
+prometheus_client==0.14.1

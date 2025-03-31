@@ -25,3 +25,4 @@ openapi-schema-pydantic>=1.2.4
 prometheus-client>=0.11.0
 structlog>=21.1.0
 slowapi>=0.1.4
+prometheus_client==0.14.1

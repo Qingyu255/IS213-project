@@ -1,9 +1,11 @@
 from http import HTTPStatus
 import logging
 import os
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 from config import Config
+import time
+from prometheus_client import Counter, Histogram, start_http_server
 
 # Import routes
 from routes.refund import refund_bp
@@ -11,6 +13,18 @@ from routes.webhook import webhook_bp
 from routes.events import events_bp
 from routes.payments import payments_bp
 from models import init_db
+
+# Create Prometheus metrics
+REQUEST_COUNT = Counter(
+    'http_requests_total', 
+    'Total HTTP Requests Count', 
+    ['method', 'endpoint', 'status_code']
+)
+REQUEST_LATENCY = Histogram(
+    'http_request_duration_seconds', 
+    'HTTP Request Latency', 
+    ['method', 'endpoint']
+)
 
 def setup_logging():
     """Configure application logging"""
@@ -49,6 +63,27 @@ def create_app(config_class=Config):
     
     # Register blueprints
     register_blueprints(app)
+
+    # Add Prometheus middleware
+    @app.before_request
+    def before_request():
+        request.start_time = time.time()
+
+    @app.after_request
+    def after_request(response):
+        request_latency = time.time() - request.start_time
+        REQUEST_LATENCY.labels(
+            method=request.method,
+            endpoint=request.path
+        ).observe(request_latency)
+        
+        REQUEST_COUNT.labels(
+            method=request.method,
+            endpoint=request.path,
+            status_code=response.status_code
+        ).inc()
+        
+        return response
     
     # Register error handlers
     @app.errorhandler(HTTPStatus.BAD_REQUEST)
@@ -73,6 +108,14 @@ def create_app(config_class=Config):
 # Initialize logging
 logger = setup_logging()
 
+# Start Prometheus metrics server on a different port
+metrics_port = int(os.getenv('METRICS_PORT', '9101'))
+try:
+    start_http_server(metrics_port)
+    logger.info(f"Prometheus metrics server started on port {metrics_port}")
+except Exception as e:
+    logger.error(f"Error starting Prometheus metrics server: {str(e)}")
+
 # Create the application instance
 app = create_app()
 
@@ -95,5 +138,7 @@ def health_check():
 
 if __name__ == '__main__':
     logger.info("Starting Billing Service...")
-    port = int(os.getenv('PORT', HTTPStatus.INTERNAL_SERVER_ERROR1))
+    
+    # Start the Flask app
+    port = int(os.getenv('PORT', '5001'))
     app.run(host='0.0.0.0', port=port)

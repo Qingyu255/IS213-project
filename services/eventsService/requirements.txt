@@ -9,3 +9,4 @@ httpx==0.24.1
 asyncpg
 python-jose[cryptography]==3.3.0
 requests>=2.7.0
+prometheus_client==0.14.1

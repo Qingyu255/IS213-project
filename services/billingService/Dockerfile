@@ -11,6 +11,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     FLASK_ENV=production \
     PYTHONPATH=/app \
     PORT=5001 \
+    METRICS_PORT=9101 \
     LOG_LEVEL=INFO
 
 # Required environment variables (will be overridden at runtime)
@@ -36,8 +37,8 @@ RUN adduser --disabled-password --gecos "" appuser && \
     chown -R appuser:appuser /app
 USER appuser
 
-# Expose port 5001 so the service is accessible
-EXPOSE 5001
+# Expose application port and Prometheus metrics port
+EXPOSE 5001 9101
 
 # Run the application with Gunicorn with improved configuration
 CMD ["gunicorn", \

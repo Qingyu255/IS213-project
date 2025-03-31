@@ -3,3 +3,4 @@ Flask
 psycopg2-binary
 pika
 flasgger
+prometheus_client==0.14.1

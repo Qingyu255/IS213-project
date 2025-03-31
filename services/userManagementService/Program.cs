@@ -7,6 +7,7 @@ using user_management_service.Constants;
 using user_management_service.Repositories;
 using user_management_service.Repository;
 using user_management_service.Services;
+using Prometheus; 
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -135,7 +136,10 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseCors("AllowSpecificOrigins");
 
-app.MapControllers();
+// Use Prometheus metrics collection
+app.UseMetricServer();
+app.UseHttpMetrics();
 
+app.MapControllers();
 
 app.Run();
