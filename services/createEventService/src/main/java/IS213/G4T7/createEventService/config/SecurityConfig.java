@@ -39,14 +39,16 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http.csrf(csrf -> csrf.disable())
+        http.securityMatcher("/**")
+            .csrf(csrf -> csrf.disable())
             .cors(cors -> cors.configure(http))
             .sessionManagement(session ->
                     session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
-            .authorizeHttpRequests(authorize ->
-                    authorize.requestMatchers("/actuator/**").permitAll().anyRequest().authenticated()
-            )
+            .authorizeHttpRequests(authorize ->{
+                    authorize.requestMatchers("/actuator/prometheus").permitAll();
+                    authorize.anyRequest().authenticated();
+            })
             .oauth2ResourceServer(oauth2 -> oauth2
                 .jwt(jwt -> jwt.decoder(jwtDecoder()))
             );

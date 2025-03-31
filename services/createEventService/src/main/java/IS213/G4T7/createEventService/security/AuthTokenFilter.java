@@ -21,6 +21,8 @@ public class AuthTokenFilter extends OncePerRequestFilter {
         FilterChain filterChain
     ) throws ServletException, IOException {
         try {
+            String requestPath = request.getRequestURI();
+            boolean isPublicEndpoint = requestPath.startsWith("/actuator/prometheus");
             String token = request.getHeader("Authorization");
             if (token != null) {
                 log.info("Received Authorization header");
@@ -34,8 +36,8 @@ public class AuthTokenFilter extends OncePerRequestFilter {
                 AuthTokenHolder.setToken(token);
                 log.info("Stored bearer token in AuthTokenHolder");
                 log.debug("Token format: {}", token.startsWith("Bearer ") ? "Correct" : "Incorrect");
-            } else {
-                log.warn("No Authorization header found in request");
+            } else if (!isPublicEndpoint) {
+                log.warn("No Authorization header found in request" + requestPath);
             }
             filterChain.doFilter(request, response);
         } catch (Exception e) {

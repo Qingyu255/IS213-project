@@ -1,0 +1,46 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'user_management_service'
+    static_configs:
+      - targets: ['user-management-service:8080']
+    metrics_path: '/metrics'
+
+  - job_name: 'ticket_management_service'
+    static_configs:
+      - targets: ['ticket-management-service:8000']
+    metrics_path: '/metrics/'
+
+  - job_name: 'booking_service'
+    static_configs:
+      - targets: ['booking-service:8002']
+    metrics_path: '/metrics/'
+
+  - job_name: 'billing_service'
+    static_configs:
+      - targets: ['billing-service:9101']
+
+  - job_name: 'refund_service'
+    static_configs:
+      - targets: ['refund-composite-service:8880']
+    metrics_path: '/metrics/'
+
+  - job_name: 'events_service'
+    static_configs:
+      - targets: ['events-service:8001']
+    metrics_path: '/metrics/'
+
+  - job_name: 'create_event_service'
+    static_configs:
+      - targets: ['create-event-service:8070']
+    metrics_path: '/actuator/prometheus'
+
+  - job_name: 'logging_service'
+    static_configs:
+      - targets: ['logging-service:9000']
+    metrics_path: '/metrics'

@@ -5,6 +5,10 @@ WORKDIR /app
 # Install system dependencies (only gcc is needed here)
 RUN apt-get update && apt-get install -y gcc && rm -rf /var/lib/apt/lists/*
 
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
 # Copy requirements first to leverage Docker cache
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
@@ -16,7 +20,7 @@ COPY . .
 RUN useradd -m appuser && chown -R appuser:appuser /app
 USER appuser
 
-# Expose the port the app runs on
+# Expose the application port
 EXPOSE 8880
 
 # Command to run the application using Uvicorn

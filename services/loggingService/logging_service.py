@@ -10,7 +10,8 @@ from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify
-from flasgger import Swagger 
+from flasgger import Swagger
+from prometheus_client import Counter, Histogram, generate_latest
 
 
 load_dotenv(dotenv_path="../../.env", override=True)
@@ -26,6 +27,26 @@ RABBITMQ_QUEUE = os.getenv("RABBITMQ_QUEUE")
 
 RABBITMQ_USER = os.getenv("RABBITMQ_USER")
 RABBITMQ_PASS = os.getenv("RABBITMQ_PASS")
+
+# Create Prometheus metrics
+REQUEST_COUNT = Counter(
+    'http_requests_total', 
+    'Total HTTP Requests Count', 
+    ['method', 'endpoint', 'status_code']
+)
+REQUEST_LATENCY = Histogram(
+    'http_request_duration_seconds', 
+    'HTTP Request Latency', 
+    ['method', 'endpoint']
+)
+LOGS_PROCESSED = Counter(
+    'logs_processed_total',
+    'Total number of logs processed from RabbitMQ'
+)
+RABBITMQ_CONNECTION_ERRORS = Counter(
+    'rabbitmq_connection_errors_total',
+    'Total number of RabbitMQ connection errors'
+)
 
 
 def get_db_connection():
@@ -71,6 +92,9 @@ def on_message(ch, method, properties, body):
         cur.close()
         conn.close()
         print("Log entry stored in DB.")
+        
+        # Increment the counter for processed logs
+        LOGS_PROCESSED.inc()
 
     except json.JSONDecodeError:
         print("Error decoding JSON message.")
@@ -139,19 +163,24 @@ def run_rabbitmq_consumer():
                     
             except pika.exceptions.AMQPConnectionError as e:
                 print(f"AMQP Connection Error during connection attempt: {e}")
+                RABBITMQ_CONNECTION_ERRORS.inc()
                 time.sleep(5)
             except pika.exceptions.ConnectionClosedByBroker as e:
                 print(f"Connection closed by broker: {e}")
+                RABBITMQ_CONNECTION_ERRORS.inc()
                 time.sleep(5)
             except pika.exceptions.ConnectionWrongStateError as e:
                 print(f"Connection wrong state: {e}")
+                RABBITMQ_CONNECTION_ERRORS.inc()
                 time.sleep(5)
             except Exception as e:
                 print(f"Unexpected error during connection attempt: {type(e).__name__}: {e}")
+                RABBITMQ_CONNECTION_ERRORS.inc()
                 time.sleep(5)
                 
         except Exception as e:
             print(f"Outer exception: {type(e).__name__}: {e}")
+            RABBITMQ_CONNECTION_ERRORS.inc()
             time.sleep(5)
 
 # Flask API
@@ -159,6 +188,31 @@ def run_rabbitmq_consumer():
 
 app = Flask(__name__)
 swagger = Swagger(app)
+
+# Add Prometheus middleware
+@app.before_request
+def before_request():
+    request.start_time = time.time()
+
+@app.after_request
+def after_request(response):
+    request_latency = time.time() - request.start_time
+    REQUEST_LATENCY.labels(
+        method=request.method,
+        endpoint=request.path
+    ).observe(request_latency)
+    
+    REQUEST_COUNT.labels(
+        method=request.method,
+        endpoint=request.path,
+        status_code=response.status_code
+    ).inc()
+    
+    return response
+
+@app.route('/metrics')
+def metrics():
+    return generate_latest()
 
 @app.route('/logs/getall', methods=['GET'])
 def get_logs():

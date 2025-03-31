@@ -322,6 +322,8 @@ services:
       - "8070:8070"
     env_file:
       - .env
+    environment:
+      SPRING_PROFILES_ACTIVE: "docker"
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -334,6 +336,7 @@ services:
     restart: always
     ports:
       - "5001:5001"
+      - "9101:9101"
     env_file:
       - .env
     environment:
@@ -343,6 +346,7 @@ services:
       DATABASE_URL: "postgresql://${BILLING_DB_USER}:${BILLING_DB_PASSWORD}@billing-db:5432/${BILLING_DB}"
       FLASK_ENV: "development"
       FRONTEND_URL: "${FRONTEND_URL}"
+      METRICS_PORT: "9101"
     volumes:
       - ./services/billingService:/app # Mount source code for development
       - /app/__pycache__
@@ -416,12 +420,38 @@ services:
     networks:
       - default
 
+  prometheus:
+    image: prom/prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    networks:
+      - default
+
+  grafana:
+    image: grafana/grafana
+    ports:
+      - "3001:3000" # Changed to 3001 to avoid conflict with frontend
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    depends_on:
+      - prometheus
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
+      - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+    networks:
+      - default
+
 volumes:
   users-db-data:
   ticket-db-data:
   logging-db-data:
   events-db-data:
   billing-db-data:
+  grafana-data:
 
 networks:
   default:
