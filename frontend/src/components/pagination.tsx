@@ -32,10 +32,10 @@ export function Pagination({
       >
         <ChevronLeft className="h-4 w-4 mr-2" /> Previous
       </Button>
-      <span className="text-muted-foreground">
+      <div className="text-muted-foreground px-2">
         Page {currentPage}
         {totalPages && `of ${totalPages}`}
-      </span>
+      </div>
       <Button
         variant="outline"
         onClick={() => onPageChange(currentPage + 1)}

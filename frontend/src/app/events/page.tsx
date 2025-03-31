@@ -97,7 +97,7 @@ export default function EventsPage() {
           <Badge className="mb-4 bg-accent text-accent-foreground hover:bg-accent/80 border-0">
             Discover Amazing Events
           </Badge>
-          <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-cyan-400 to-blue-400">
+          <h1 className="py-3 text-4xl md:text-5xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-cyan-400 to-blue-400">
             Upcoming Events
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
