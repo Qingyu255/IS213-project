@@ -60,8 +60,8 @@ public class UserInterestsController : ControllerBase
         }
     }
 
+    [Authorize]
     [HttpGet("getusers/{interest}")] // TODO: Authorisation here must check if its from the composite servivce role
-    [AllowAnonymous] // For testing; TODO: enforce authorisation when create events composite has auth up
     public async Task<IActionResult> GetUsersByInterest([FromRoute] string interest)
     {
         var users = await _userInterestRepository.GetUsersByInterestAsync(interest);
