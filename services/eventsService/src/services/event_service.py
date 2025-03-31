@@ -128,7 +128,7 @@ async def get_event_by_id(event_id: UUID4, db: AsyncSession):
 # Get all events along with their categories and organizers
 async def get_all_events(db: AsyncSession, skip: int = 0, limit: int = 100):
     # Fetch all events with pagination
-    result = await db.execute(select(Event).offset(skip).limit(limit))
+    result = await db.execute(select(Event).order_by(Event.created_at.desc()).offset(skip).limit(limit))
     events = result.scalars().all()
 
     # Prepare list of events with categories and organizers

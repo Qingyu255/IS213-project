@@ -1,42 +1,42 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import Image from "next/image"
-import { Calendar, Clock, MapPin, Users, Globe, Share2 } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Separator } from "@/components/ui/separator"
-import { EventMap } from "./components/event-map"
-import { EventDetails } from "@/types/event"
-import { BACKEND_ROUTES } from "@/constants/backend-routes"
-import { getBearerIdToken } from "@/utils/auth"
-import { ErrorMessageCallout } from "@/components/error-message-callout"
-import { Spinner } from "@/components/ui/spinner"
-import { useParams, useRouter } from "next/navigation"
-import useAuthUser from "@/hooks/use-auth-user"
+import { useEffect, useState } from "react";
+import Image from "next/image";
+import { Calendar, Clock, MapPin, Users, Globe, Share2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Separator } from "@/components/ui/separator";
+import { EventMap } from "./components/event-map";
+import { EventDetails } from "@/types/event";
+import { BACKEND_ROUTES } from "@/constants/backend-routes";
+import { getBearerIdToken } from "@/utils/auth";
+import { ErrorMessageCallout } from "@/components/error-message-callout";
+import { Spinner } from "@/components/ui/spinner";
+import { useParams, useRouter } from "next/navigation";
+import useAuthUser from "@/hooks/use-auth-user";
 
 export default function EventPage() {
-  const { id } = useParams()
-  const [event, setEvent] = useState<EventDetails | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const router = useRouter()
-  const { getUserId } = useAuthUser()
-  const userId = getUserId()
-  const [loading, setLoading] = useState(false)
+  const { id } = useParams();
+  const [event, setEvent] = useState<EventDetails | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+  const { getUserId } = useAuthUser();
+  const userId = getUserId();
+  const [loading, setLoading] = useState(false);
 
   const handleRefundClick = () => {
-    router.push(`/events/${id}/refund`)
-  }
+    router.push(`/events/${id}/refund`);
+  };
 
   const handleBooking = async () => {
     if (!userId) {
-      router.push("/auth/signin")
-      return
+      router.push("/auth/signin");
+      return;
     }
-    router.push(`/book/${id}`)
-  }
+    router.push(`/book/${id}`);
+  };
 
   // Fetch event details on component mount
   useEffect(() => {
@@ -50,29 +50,29 @@ export default function EventPage() {
               Authorization: await getBearerIdToken(),
             },
           }
-        )
+        );
         if (!res.ok) {
-          throw new Error(`Failed to fetch event details: ${res.statusText}`)
+          throw new Error(`Failed to fetch event details: ${res.statusText}`);
         }
-        const data: EventDetails = await res.json()
-        console.log(data)
-        setEvent(data)
+        const data: EventDetails = await res.json();
+        console.log(data);
+        setEvent(data);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (err: any) {
-        setError(err.message || "An error occurred")
+        setError(err.message || "An error occurred");
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
       }
     }
-    fetchEvent()
-  }, [id])
+    fetchEvent();
+  }, [id]);
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-5">
         <Spinner size="sm" className="bg-black dark:bg-white" />
       </div>
-    )
+    );
   }
 
   if (error) {
@@ -80,7 +80,7 @@ export default function EventPage() {
       <div className="flex items-center justify-center p-5">
         <ErrorMessageCallout errorMessage={error} />
       </div>
-    )
+    );
   }
 
   if (!event) {
@@ -88,7 +88,7 @@ export default function EventPage() {
       <div className="flex items-center justify-center min-h-screen">
         <p>No event found.</p>
       </div>
-    )
+    );
   }
 
   return (
@@ -119,7 +119,7 @@ export default function EventPage() {
                     >
                       {category as string}
                     </Badge>
-                  )
+                  );
                 })}
               </>
               <h1 className="text-4xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-blue-400">
@@ -198,9 +198,11 @@ export default function EventPage() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center text-muted-foreground">
                     <Users className="w-5 h-5 mr-2" />
-                    <span>Attendees</span>
+                    <span>Tickets Remaining</span>
                   </div>
-                  {/* <span>{event.totalAttendees}</span> */}
+                  <span>
+                    {event.capacity == 0 ? "No Capacity" : event.capacity}
+                  </span>
                 </div>
               </div>
               <Separator className="my-4" />
@@ -235,5 +237,5 @@ export default function EventPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }
