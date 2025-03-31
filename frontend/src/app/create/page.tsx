@@ -1,16 +1,34 @@
 "use client";
 import { useEffect, useState, type FormEvent } from "react";
 import type React from "react";
-import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuidv4 } from "uuid";
 
 import Image from "next/image";
-import { Calendar as CalendarIcon, Clock, ChevronDown, Users, Pencil, Ticket, Plus, X } from "lucide-react";
+import {
+  Calendar as CalendarIcon,
+  Clock,
+  ChevronDown,
+  Users,
+  Pencil,
+  Ticket,
+  Upload,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
 import { Spinner } from "@/components/ui/spinner";
 import { Calendar } from "@/components/ui/calendar";
@@ -27,7 +45,7 @@ import { ErrorMessageCallout } from "@/components/error-message-callout";
 import { useEventCreation } from "@/providers/event-creation-provider";
 
 // Constants
-const EVENT_CREATION_FEE_CENTS = 200;  // $2.00 SGD
+const EVENT_CREATION_FEE_CENTS = 200; // $2.00 SGD
 
 export default function CreateEventPage() {
   const router = useRouter();
@@ -47,23 +65,24 @@ export default function CreateEventPage() {
   const [endTime, setEndTime] = useState("");
 
   const [categories, setCategories] = useState<InterestCategory[]>([]);
-  // const [eventType, setEventType] = useState<string>("public")
   const [amount, setAmount] = useState(0);
   const [currency, setCurrency] = useState("SGD");
 
   const [capacity, setCapacity] = useState<number | null>(null);
   const [isUnlimited, setIsUnlimited] = useState(true);
 
-  // For image uploading: store multiple images
-  const [images, setImages] = useState<string[]>(["/eventplaceholder.png"]);
-  const [mainImageIndex, setMainImageIndex] = useState(0);
+  const [imageUrl, setImageUrl] = useState<string>("/eventplaceholder.png");
+  const [isUploading, setIsUploading] = useState(false);
 
   const [address, setAddress] = useState("");
   const [city, setCity] = useState("");
   const [stateValue, setStateValue] = useState("");
   const [venueName, setVenueName] = useState("");
   const [additionalDetails, setAdditionalDetails] = useState("");
-  const [coordinates, setCoordinates] = useState<{ lat: number; lng: number }>({ lat: 0, lng: 0 });
+  const [coordinates, setCoordinates] = useState<{ lat: number; lng: number }>({
+    lat: 0,
+    lng: 0,
+  });
 
   // Other fields
   const [timezone, setTimezone] = useState("utc");
@@ -71,7 +90,7 @@ export default function CreateEventPage() {
   const searchParams = useSearchParams();
   if (searchParams.get("canceled")) {
     console.log(
-      'Event Creation Payment canceled'
+      "Event Creation Payment canceled"
       // route to cancelled page?
     );
   }
@@ -100,79 +119,106 @@ export default function CreateEventPage() {
   const { user, getUserId } = useAuthUser();
 
   // -----------------------
-  // Handle image file change
+  // Handle image file upload to S3
   // -----------------------
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
 
-      // Create a FileReader to encode the image as base64
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const newImages = [...images];
-        if (newImages[0] === "/placeholder.svg?height=200&width=200" && newImages.length === 1) {
-          // Replace placeholder with actual image
-          newImages[0] = reader.result as string;
-        } else {
-          // Add new image
-          newImages.push(reader.result as string);
+      // Validate file type
+      if (!file.type.startsWith("image/")) {
+        toast.error("Please upload an image file");
+        return;
+      }
+
+      // Validate file size (5MB max)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("Image size should be less than 5MB");
+        return;
+      }
+
+      try {
+        setIsUploading(true);
+
+        // Create FormData to send file
+        const formData = new FormData();
+        formData.append("file", file);
+
+        console.log(
+          `Uploading file: ${file.name}, size: ${file.size}, type: ${file.type}`
+        );
+
+        // Upload to S3 via our API route
+        const response = await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        // Log the response status for debugging
+        console.log(`Upload response status: ${response.status}`);
+
+        // Try to get response as text first for debugging
+        const responseText = await response.text();
+        console.log(`Response text: ${responseText}`);
+
+        // Parse the response if it's valid JSON
+        let data;
+        try {
+          data = JSON.parse(responseText);
+        } catch (jsonError) {
+          console.error("Error parsing response as JSON:", jsonError);
+          throw new Error("Invalid response format from server");
         }
-        setImages(newImages);
-        setMainImageIndex(newImages.length - 1);
-      };
-      reader.readAsDataURL(file);
+
+        if (!response.ok) {
+          throw new Error(
+            data.error || `Upload failed with status: ${response.status}`
+          );
+        }
+
+        if (!data.url) {
+          throw new Error("No URL returned from server");
+        }
+
+        console.log(`File uploaded successfully. URL: ${data.url}`);
+        setImageUrl(data.url);
+        toast.success("Image uploaded successfully");
+      } catch (err) {
+        console.error("Image upload error:", err);
+        toast.error(
+          err instanceof Error ? err.message : "Failed to upload image"
+        );
+      } finally {
+        setIsUploading(false);
+      }
     }
   }
 
-  // Remove an image
-  function removeImage(index: number) {
-    const newImages = [...images];
-    newImages.splice(index, 1);
-
-    // If we removed all images, add a placeholder back
-    if (newImages.length === 0) {
-      newImages.push("/placeholder.svg?height=200&width=200");
-    }
-
-    // Update main image index if needed
-    if (index === mainImageIndex) {
-      setMainImageIndex(0);
-    } else if (index < mainImageIndex) {
-      setMainImageIndex(mainImageIndex - 1);
-    }
-
-    setImages(newImages);
-  }
-
-  // Set an image as the main image
-  function setAsMainImage(index: number) {
-    setMainImageIndex(index);
-  }
-
-  // Add this helper function at the top of the file, after imports
+  // Helper function to convert to UTC
   function convertToUTC(date: Date, timezone: string): Date {
     const localDate = new Date(date);
     let offset = 0;
-    
+
     switch (timezone) {
-      case 'est':
+      case "est":
         offset = 5 * 60; // EST is UTC-5
         break;
-      case 'pst':
+      case "pst":
         offset = 8 * 60; // PST is UTC-8
         break;
-      case 'utc':
+      case "utc":
       default:
         offset = 0;
     }
-    
+
     // Add the offset to convert to UTC
-    return new Date(localDate.getTime() + (offset * 60000));
+    return new Date(localDate.getTime() + offset * 60000);
   }
 
   // -----------------------
   // Submit Handler
   // -----------------------
+  const eventUuid = uuidv4();
   async function handleCreateEvent(e: FormEvent) {
     e.preventDefault();
     setSubmitting(true);
@@ -181,21 +227,26 @@ export default function CreateEventPage() {
     try {
       // Validate start date and time
       if (!startDate || !startTime) {
-        setError("Please select both a start date and start time for your event");
+        setError(
+          "Please select both a start date and start time for your event"
+        );
         setSubmitting(false);
         return;
       }
 
       // Validate end date and time (if one is provided, both must be provided)
       if ((endDate && !endTime) || (!endDate && endTime)) {
-        setError("Please provide both end date and end time, or leave both empty");
+        setError(
+          "Please provide both end date and end time, or leave both empty"
+        );
         setSubmitting(false);
         return;
       }
 
       // Create Date objects from the selected date and time
       const startDateObj = new Date(`${startDate}T${startTime}`);
-      const endDateObj = endDate && endTime ? new Date(`${endDate}T${endTime}`) : undefined;
+      const endDateObj =
+        endDate && endTime ? new Date(`${endDate}T${endTime}`) : undefined;
 
       // Validate that end datetime is after start datetime if provided
       if (endDateObj && endDateObj <= startDateObj) {
@@ -206,11 +257,12 @@ export default function CreateEventPage() {
 
       // Convert dates to UTC based on selected timezone
       const startDateTimeUTC = convertToUTC(startDateObj, timezone);
-      const endDateTimeUTC = endDateObj ? convertToUTC(endDateObj, timezone) : undefined;
+      const endDateTimeUTC = endDateObj
+        ? convertToUTC(endDateObj, timezone)
+        : undefined;
 
       // Generate a proper UUID that's compatible with Java UUID format
-      const eventUuid = uuidv4();
-      
+
       // Get the organizer ID (user ID)
       const organizerId = getUserId();
 
@@ -227,59 +279,63 @@ export default function CreateEventPage() {
           city: city,
           state: stateValue,
           coordinates: coordinates,
-          additionalDetails: additionalDetails
+          additionalDetails: additionalDetails,
         },
-        imageUrl: images[mainImageIndex],
+        imageUrl: imageUrl, // Use S3 image URL
         categories,
         price: amount,
         organizer: {
           id: organizerId,
-          username: (user && user.username) ? user.username : "",
+          username: user && user.username ? user.username : "",
         },
-        capacity: isUnlimited ? undefined : (capacity ?? undefined),
+        capacity: isUnlimited ? undefined : capacity ?? undefined,
       };
-      
+
       // Store in context first
       setEventData(newEvent);
-      
+
       // Also save in localStorage for redundancy
       try {
-        localStorage.setItem('pending_event_data', JSON.stringify(newEvent));
+        localStorage.setItem("pending_event_data", JSON.stringify(newEvent));
         console.log("Stored event data in localStorage:", newEvent);
       } catch (err) {
         // Just log the error but continue - we're using context as primary
         console.warn("Failed to use localStorage as backup:", err);
       }
-      
+
       // Create a payment session with Stripe
-      const response = await fetch('/api/stripe', {
-        method: 'POST',
+      const response = await fetch("/api/stripe", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           eventId: newEvent.id,
           organizerId: organizerId, // Include the organizer ID for verification
           amount: EVENT_CREATION_FEE_CENTS,
-          description: `Event creation fee for "${newEvent.title}"`
+          description: `Event creation fee for "${newEvent.title}"`,
         }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(`Error creating payment session: ${errorData.error || response.statusText}`);
+        throw new Error(
+          `Error creating payment session: ${
+            errorData.error || response.statusText
+          }`
+        );
       }
 
       const { url } = await response.json();
-      
+
       if (!url) {
-        throw new Error('No checkout URL returned from payment service');
+        throw new Error("No checkout URL returned from payment service");
       }
-      
+
       // Redirect to the Stripe Checkout page
       window.location.href = url;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       console.error("Error preparing event creation:", err);
       setError(err.message || "An unknown error occurred.");
@@ -302,63 +358,63 @@ export default function CreateEventPage() {
 
   return (
     <div className="min-h-screen">
-      <form onSubmit={handleCreateEvent} className="container mx-auto px-4 py-8">
+      <form
+        onSubmit={handleCreateEvent}
+        className="container mx-auto px-4 py-8"
+      >
         <div className="max-w-2xl mx-auto">
           {/* HEADER IMAGE WITH FILE UPLOAD */}
           <div className="mb-8 space-y-4">
+            <Label className="font-bold">Event Image</Label>
             {/* Main image display */}
             <div className="relative min-h-[400px] max-h-[700px] bg-primary-foreground dark:bg-secondary border border-1 rounded-lg">
               <Image
-                src={images[mainImageIndex] || "/placeholder.svg"}
+                src={imageUrl}
                 alt="Event Image"
                 fill
                 className="rounded-lg object-contain"
+              />
+              <div className="absolute bottom-4 right-4 flex gap-2">
+                <Button
+                  variant="outline"
+                  className="relative"
+                  type="button"
+                  disabled={isUploading}
+                  onClick={() => {
+                    // Trigger the hidden file input click
+                    const fileInput = document.getElementById("image-upload");
+                    if (fileInput) fileInput.click();
+                  }}
+                >
+                  {isUploading ? (
+                    <Spinner className="mr-2 h-4 w-4" />
+                  ) : (
+                    <Upload className="mr-2 h-4 w-4" />
+                  )}
+                  {isUploading ? "Uploading..." : "Upload Cover Image"}
+                </Button>
+                <input
+                  id="image-upload"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleFileChange}
                 />
-              <Button
-                variant="outline"
-                className="absolute bottom-4 right-4"
-                type="button"
-                onClick={() => {
-                  // Trigger the hidden file input click
-                  const fileInput = document.getElementById("image-upload");
-                  if (fileInput) fileInput.click();
-                }}
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Add Image
-              </Button>
-              <input id="image-upload" type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+                <input
+                  id="event-id"
+                  type="text"
+                  className="hidden"
+                  value={eventUuid}
+                />
+              </div>
             </div>
-            {/* Image thumbnails */}
-            {images.length > 0 && (
-              <div className="flex flex-row flex-wrap gap-2 sm:flex-nowrap overflow-x-auto pb-2">
-                {images.map((img, index) => (
-                  <div
-                    key={index}
-                    className={`relative h-20 w-20 flex-shrink-0 cursor-pointer rounded-md overflow-hidden border-2 ${
-                      index === mainImageIndex ? "border-primary" : "border-border"
-                    }`}
-                    onClick={() => setAsMainImage(index)}
-                  >
-                    <Image
-                      src={img || "/placeholder.svg"}
-                      alt={`Event Image ${index + 1}`}
-                      fill
-                      className="object-cover"
-                    />
-                    <Button
-                      variant="destructive"
-                      size="icon"
-                      className="absolute top-0 right-0 h-5 w-5 rounded-full p-0"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        removeImage(index);
-                      }}
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  </div>
-                ))}
+            {/* Show the image URL in a smaller text below the image for verification */}
+            {imageUrl !== "/eventplaceholder.png" && (
+              <div className="mt-2">
+                <p className="text-xs text-muted-foreground break-all">
+                  {imageUrl.includes("s3.amazonaws.com") &&
+                    "Image Uploaded successfully"}
+                </p>
               </div>
             )}
           </div>
@@ -396,9 +452,11 @@ export default function CreateEventPage() {
               <div className="flex flex-col sm:flex-row gap-4">
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button 
-                      variant="outline" 
-                      className={`w-full justify-start text-left font-normal ${!startDate ? "border-red-200 dark:border-red-800" : ""}`}
+                    <Button
+                      variant="outline"
+                      className={`w-full justify-start text-left font-normal ${
+                        !startDate ? "border-red-200 dark:border-red-800" : ""
+                      }`}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
                       {startDate ? startDate : <span>Pick a date</span>}
@@ -411,8 +469,10 @@ export default function CreateEventPage() {
                       onSelect={(date) => {
                         if (date) {
                           // Adjust the date to account for timezone offset
-                          const localDate = new Date(date.getTime() - (date.getTimezoneOffset() * 60000));
-                          setStartDate(localDate.toISOString().split('T')[0]);
+                          const localDate = new Date(
+                            date.getTime() - date.getTimezoneOffset() * 60000
+                          );
+                          setStartDate(localDate.toISOString().split("T")[0]);
                         }
                       }}
                       disabled={{ before: new Date() }} // disables all dates before today
@@ -422,9 +482,11 @@ export default function CreateEventPage() {
                 </Popover>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button 
-                      variant="outline" 
-                      className={`w-full justify-start text-left font-normal ${!startTime ? "border-red-200 dark:border-red-800" : ""}`}
+                    <Button
+                      variant="outline"
+                      className={`w-full justify-start text-left font-normal ${
+                        !startTime ? "border-red-200 dark:border-red-800" : ""
+                      }`}
                     >
                       <Clock className="mr-2 h-4 w-4" />
                       {startTime ? startTime : <span>Set time</span>}
@@ -446,7 +508,10 @@ export default function CreateEventPage() {
                           </SelectTrigger>
                           <SelectContent>
                             {Array.from({ length: 24 }).map((_, i) => (
-                              <SelectItem key={i} value={i.toString().padStart(2, "0")}>
+                              <SelectItem
+                                key={i}
+                                value={i.toString().padStart(2, "0")}
+                              >
                                 {i.toString().padStart(2, "0")}
                               </SelectItem>
                             ))}
@@ -464,7 +529,10 @@ export default function CreateEventPage() {
                           </SelectTrigger>
                           <SelectContent>
                             {Array.from({ length: 12 }).map((_, i) => (
-                              <SelectItem key={i} value={(i * 5).toString().padStart(2, "0")}>
+                              <SelectItem
+                                key={i}
+                                value={(i * 5).toString().padStart(2, "0")}
+                              >
                                 {(i * 5).toString().padStart(2, "0")}
                               </SelectItem>
                             ))}
@@ -475,18 +543,23 @@ export default function CreateEventPage() {
                   </PopoverContent>
                 </Popover>
               </div>
-              <p className="text-sm text-muted-foreground">Both start date and time are required.</p>
+              <p className="text-sm text-muted-foreground">
+                Both start date and time are required.
+              </p>
             </div>
 
+            {/* Rest of the form fields remain the same */}
             <div className="space-y-2">
               <Label>End Date & Time (Optional)</Label>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       className={`w-full justify-start text-left font-normal ${
-                        endTime && !endDate ? "border-red-200 dark:border-red-800" : ""
+                        endTime && !endDate
+                          ? "border-red-200 dark:border-red-800"
+                          : ""
                       }`}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
@@ -500,8 +573,10 @@ export default function CreateEventPage() {
                       onSelect={(date) => {
                         if (date) {
                           // Adjust the date to account for timezone offset
-                          const localDate = new Date(date.getTime() - (date.getTimezoneOffset() * 60000));
-                          setEndDate(localDate.toISOString().split('T')[0]);
+                          const localDate = new Date(
+                            date.getTime() - date.getTimezoneOffset() * 60000
+                          );
+                          setEndDate(localDate.toISOString().split("T")[0]);
                         }
                       }}
                       disabled={{ before: new Date() }}
@@ -512,10 +587,12 @@ export default function CreateEventPage() {
 
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       className={`w-full justify-start text-left font-normal ${
-                        endDate && !endTime ? "border-red-200 dark:border-red-800" : ""
+                        endDate && !endTime
+                          ? "border-red-200 dark:border-red-800"
+                          : ""
                       }`}
                     >
                       <Clock className="mr-2 h-4 w-4" />
@@ -538,7 +615,10 @@ export default function CreateEventPage() {
                           </SelectTrigger>
                           <SelectContent>
                             {Array.from({ length: 24 }).map((_, i) => (
-                              <SelectItem key={i} value={i.toString().padStart(2, "0")}>
+                              <SelectItem
+                                key={i}
+                                value={i.toString().padStart(2, "0")}
+                              >
                                 {i.toString().padStart(2, "0")}
                               </SelectItem>
                             ))}
@@ -556,7 +636,10 @@ export default function CreateEventPage() {
                           </SelectTrigger>
                           <SelectContent>
                             {Array.from({ length: 12 }).map((_, i) => (
-                              <SelectItem key={i} value={(i * 5).toString().padStart(2, "0")}>
+                              <SelectItem
+                                key={i}
+                                value={(i * 5).toString().padStart(2, "0")}
+                              >
                                 {(i * 5).toString().padStart(2, "0")}
                               </SelectItem>
                             ))}
@@ -567,16 +650,21 @@ export default function CreateEventPage() {
                   </PopoverContent>
                 </Popover>
               </div>
-              <p className="text-sm text-muted-foreground">If setting an end time, both date and time must be provided. End time must be after start time.</p>
+              <p className="text-sm text-muted-foreground">
+                If setting an end time, both date and time must be provided. End
+                time must be after start time.
+              </p>
             </div>
 
             {/* Timezone */}
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant="outline" className="w-full justify-between">
-                  {timezone === 'utc' ? 'GMT+00:00 UTC' : 
-                   timezone === 'est' ? 'GMT-05:00 EST' : 
-                   'GMT-08:00 PST'}
+                  {timezone === "utc"
+                    ? "GMT+00:00 UTC"
+                    : timezone === "est"
+                    ? "GMT-05:00 EST"
+                    : "GMT-08:00 PST"}
                   <ChevronDown className="ml-2 h-4 w-4 opacity-50" />
                 </Button>
               </PopoverTrigger>
@@ -586,7 +674,10 @@ export default function CreateEventPage() {
                     <h4 className="font-medium leading-none">Timezone</h4>
                     <p className="text-sm">Set the timezone for your event.</p>
                   </div>
-                  <Select onValueChange={(val) => setTimezone(val)} value={timezone}>
+                  <Select
+                    onValueChange={(val) => setTimezone(val)}
+                    value={timezone}
+                  >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select timezone" />
                     </SelectTrigger>
@@ -600,13 +691,15 @@ export default function CreateEventPage() {
               </PopoverContent>
             </Popover>
 
-           {/* Event Categories */}
+            {/* Event Categories */}
             <div className="space-y-2">
               <Label className="font-bold">Event Categories:</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button variant="outline" className="w-full text-left">
-                    {categories.length > 0 ? categories.join(", ") : "Select categories"}
+                    {categories.length > 0
+                      ? categories.join(", ")
+                      : "Select categories"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-80 p-4">
@@ -622,7 +715,9 @@ export default function CreateEventPage() {
                             if (e.target.checked) {
                               setCategories((prev) => [...prev, cat]);
                             } else {
-                              setCategories((prev) => prev.filter((c) => c !== cat));
+                              setCategories((prev) =>
+                                prev.filter((c) => c !== cat)
+                              );
                             }
                           }}
                           className="w-4 h-4"
@@ -635,19 +730,6 @@ export default function CreateEventPage() {
               </Popover>
             </div>
 
-            {/* Visibility */}
-            {/* <div className="space-y-2">
-              <Label className="font-bold">Event Type:</Label>
-              <Select onValueChange={(val) => setEventType(val)} defaultValue={eventType}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Visibility" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="public">Public</SelectItem>
-                  <SelectItem value="private">Private</SelectItem>
-                </SelectContent>
-              </Select>
-            </div> */}
             <div className="space-y-2">
               <Label className="font-bold">Venue:</Label>
               <VenueAutocomplete
@@ -682,16 +764,25 @@ export default function CreateEventPage() {
                         <div className="grid gap-4">
                           <div className="space-y-2">
                             <h4 className="font-medium leading-none">Price</h4>
-                            <p className="text-sm text-muted-foreground">Set the price for your event.</p>
+                            <p className="text-sm text-muted-foreground">
+                              Set the price for your event.
+                            </p>
                           </div>
                           <div className="grid grid-cols-2 gap-2">
                             <Input
                               type="number"
                               placeholder="0"
                               value={amount}
-                              onChange={(e) => setAmount(Number.parseFloat(e.target.value) || 0)}
+                              onChange={(e) =>
+                                setAmount(
+                                  Number.parseFloat(e.target.value) || 0
+                                )
+                              }
                             />
-                            <Select value={currency} onValueChange={setCurrency}>
+                            <Select
+                              value={currency}
+                              onValueChange={setCurrency}
+                            >
                               <SelectTrigger>
                                 <SelectValue placeholder="Currency" />
                               </SelectTrigger>
@@ -714,7 +805,7 @@ export default function CreateEventPage() {
                     <span>Capacity</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span>{isUnlimited ? "Unlimited" : (capacity ?? 0)}</span>
+                    <span>{isUnlimited ? "Unlimited" : capacity ?? 0}</span>
                     <Popover>
                       <PopoverTrigger asChild>
                         <Button variant="ghost" size="icon">
@@ -724,19 +815,33 @@ export default function CreateEventPage() {
                       <PopoverContent className="w-80">
                         <div className="grid gap-4">
                           <div className="space-y-2">
-                            <h4 className="font-medium leading-none">Capacity</h4>
-                            <p className="text-sm text-muted-foreground">Set the maximum number of attendees.</p>
+                            <h4 className="font-medium leading-none">
+                              Capacity
+                            </h4>
+                            <p className="text-sm text-muted-foreground">
+                              Set the maximum number of attendees.
+                            </p>
                           </div>
                           <div className="flex items-center space-x-2">
-                            <Switch id="unlimited-capacity" checked={isUnlimited} onCheckedChange={setIsUnlimited} />
-                            <Label htmlFor="unlimited-capacity">Unlimited</Label>
+                            <Switch
+                              id="unlimited-capacity"
+                              checked={isUnlimited}
+                              onCheckedChange={setIsUnlimited}
+                            />
+                            <Label htmlFor="unlimited-capacity">
+                              Unlimited
+                            </Label>
                           </div>
                           {!isUnlimited && (
                             <Input
                               type="number"
                               placeholder="Number of spots"
                               value={capacity ?? ""}
-                              onChange={(e) => setCapacity(Number.parseInt(e.target.value, 10) || 0)}
+                              onChange={(e) =>
+                                setCapacity(
+                                  Number.parseInt(e.target.value, 10) || 0
+                                )
+                              }
                             />
                           )}
                         </div>
@@ -755,11 +860,16 @@ export default function CreateEventPage() {
             )}
 
             {/* Submit Button */}
-            <Button className="w-full" type="submit" disabled={submitting}>
+            <Button
+              className="w-full"
+              type="submit"
+              disabled={submitting || isUploading}
+            >
               {submitting ? "Processing..." : `Create Event ($2 SGD Fee)`}
             </Button>
             <p className="text-sm text-muted-foreground text-center mt-2">
-              A $2 SGD fee applies to all event listings. You&apos;ll be directed to payment after clicking the button.
+              A $2 SGD fee applies to all event listings. You&apos;ll be
+              directed to payment after clicking the button.
             </p>
           </div>
         </div>
@@ -767,4 +877,3 @@ export default function CreateEventPage() {
     </div>
   );
 }
-

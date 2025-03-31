@@ -216,6 +216,8 @@ services:
     ports:
       - "5672:5672"
       - "15672:15672"
+    environment:
+      RABBITMQ_ERLANG_COOKIE: "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"
     healthcheck:
       test: ["CMD", "rabbitmqctl", "status"]
       interval: 10s

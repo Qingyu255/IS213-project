@@ -28,3 +28,10 @@ variable "logout_urls" {
   description = "List of logout URLs for the user pool client"
   type        = list(string)
 }
+
+## S3 ##
+variable "cors_allowed_origins" {
+  description = "List of allowed origins for CORS in S3"
+  type        = list(string)
+  default     = ["http://localhost:3000"]
+}

@@ -13,3 +13,17 @@ module "cognito" {
   logout_urls = var.logout_urls
   project_name = var.project_name
 }
+
+module "ecr" {
+  source       = "./ecr"
+  aws_region   = var.aws_region
+  project_name = var.project_name
+  environment  = var.environment
+}
+
+module "s3" {
+  source              = "./s3"
+  project_name        = var.project_name
+  environment         = var.environment
+  cors_allowed_origins = var.cors_allowed_origins
+}
