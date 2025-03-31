@@ -65,6 +65,10 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                     {
                         // Manually check the "client_id" claim.
                         var clientId = jwt.Claims.FirstOrDefault(c => c.Type == "client_id")?.Value;
+                        if (clientId == null) {
+                            // Fallback to "aud" claim if "client_id" is not present (for ID tokens)
+                            clientId = jwt.Claims.FirstOrDefault(c => c.Type == "aud")?.Value;
+                        }
                         if (clientId != awsCognitoAppClientId)
                         {
                             context.Fail("Invalid Cognito ClientId: client_id mismatch");
