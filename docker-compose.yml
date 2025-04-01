@@ -524,11 +524,19 @@ services:
       - "8102:8002" # Kong admin GUI
       - "8443:8443" # Kong proxy SSL port
       - "8444:8444" # Kong admin SSL port
+    volumes:
+      - ./restore-kong.sh:/restore-kong.sh
+      - ./kong:/kong
     healthcheck:
       test: ["CMD", "kong", "health"]
       interval: 10s
       timeout: 10s
       retries: 5
+    command: >
+      bash -c 'kong start && 
+      chmod +x /restore-kong.sh && 
+      sleep 30 && 
+      /restore-kong.sh'
 
 volumes:
   users-db-data:
