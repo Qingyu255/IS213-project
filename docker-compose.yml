@@ -499,8 +499,22 @@ services:
       KONG_ADMIN_ACCESS_LOG: /dev/stdout
       KONG_PROXY_ERROR_LOG: /dev/stderr
       KONG_ADMIN_ERROR_LOG: /dev/stderr
-      KONG_ADMIN_LISTEN: 0.0.0.0:8101
+      KONG_ADMIN_LISTEN: 0.0.0.0:8001 # This is important - internal port
       KONG_ADMIN_GUI_URL: http://localhost:8102
+      # Add these lines to ensure Admin API is accessible
+      KONG_ADMIN_GUI_LISTEN: 0.0.0.0:8002 # Internal port
+      KONG_ADMIN_GUI_ACCESS_LOG: /dev/stdout
+      KONG_ADMIN_GUI_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_GUI: "on"
+      KONG_ADMIN_GUI_API_URL: "http://localhost:8101"
+      KONG_ADMIN_GUI_FLAGS: "null"
+      KONG_ADMIN_CORS_ORIGINS: "*"
+      KONG_ADMIN_CORS_METHODS: "GET, POST, PUT, PATCH, DELETE"
+      KONG_ADMIN_CORS_HEADERS: "Content-Type, Authorization"
+      KONG_ADMIN_CORS_EXPOSED_HEADERS: "X-Kong-Admin-Request-ID"
+      KONG_ADMIN_CORS_CREDENTIALS: "true"
+      KONG_ADMIN_CORS_MAX_AGE: "3600"
+
     depends_on:
       kong-migration:
         condition: service_completed_successfully
