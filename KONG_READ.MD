@@ -11,7 +11,7 @@ Admin GUI: 8102 (was 8002)
 
 
 ## Restore Configuration Script
-### The restore-kong.sh script allows you to restore your Kong configuration from exported JSON files.
+The restore-kong.sh script allows you to restore your Kong configuration from exported JSON files.
 Prerequisites
 
 jq must be installed (for JSON processing)
@@ -22,12 +22,13 @@ Configuration files must be in kong/config/ directory
 
 ### Make sure Kong is running:
 
-bashCopydocker-compose up -d
+` docker-compose up -d `
 
 ### Run the restoration script:
 
-`bashCopychmod +x restore-kong.sh
-./restore-kong.sh`
+` chmod +x restore-kong.sh
+./restore-kong.sh `
+
 ### What the Script Does
 The script performs the following operations:
 
@@ -38,7 +39,7 @@ Restores all plugins from kong/config/kong-plugins.json
 It automatically removes fields like id, created_at, and updated_at which should not be included in POST requests.
 Troubleshooting
 If you get errors about jq not being found, install it:
-` bashCopy# For Ubuntu/Debian
+`# For Ubuntu/Debian
 sudo apt-get install jq `
 
 # For Windows (with Git Bash)
