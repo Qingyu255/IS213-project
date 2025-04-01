@@ -7,6 +7,10 @@ from config import Config
 import os
 import datetime
 from services.payment_verification_service import PaymentVerificationService
+import hmac
+import hashlib
+from models import get_session
+from models.booking_payment import BookingPayment
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +35,7 @@ def handle_webhook():
     Body:
       - Raw payload from Stripe
     """
+    logger.info("Received webhook event")
     payload = request.get_data(as_text=True)
     sig_header = request.headers.get('Stripe-Signature')
     webhook_secret = Config.STRIPE_WEBHOOK_SECRET
@@ -60,9 +65,12 @@ def handle_webhook():
         try:
             # Verify webhook signature
             event = stripe.Webhook.construct_event(
-                payload, sig_header, webhook_secret
+                payload=request.data,
+                sig_header=request.headers['STRIPE-SIGNATURE'],
+                secret=Config.STRIPE_WEBHOOK_SECRET
             )
-            logger.info(f"Webhook received: {event['type']}")
+            logger.info(f"Webhook event type: {event.type}")
+            logger.info(f"Event data: {event.data}")
         except stripe.error.SignatureVerificationError as e:
             logger.error(f"Invalid signature: {str(e)}")
             return jsonify({"error": "Invalid signature"}), 400
@@ -129,9 +137,15 @@ def handle_payment_succeeded(event):
     try:
         if booking_id:
             # Handle booking payment
-            booking_service_url = os.getenv('BOOKING_SERVICE_URL', 'http://localhost:8002')
+            booking_service_url = os.getenv('BOOKING_SERVICE_URL', 'http://booking-service:8002')
             response = requests.post(
                 f"{booking_service_url}/api/v1/bookings/{booking_id}/confirm",
+                params={
+                    "session_id": payment_intent['id']
+                },
+                headers={
+                    "Authorization": Config.STRIPE_SECRET_KEY
+                },
                 json={
                     "payment_intent_id": payment_intent['id'],
                     "amount": amount,
@@ -347,6 +361,15 @@ def handle_dispute_created(event):
     
     return jsonify({"success": True}), 200
 
+def generate_webhook_token(event_id: str, booking_id: str) -> str:
+    """Generate a secure token for webhook authentication"""
+    message = f"{event_id}:{booking_id}"
+    return hmac.new(
+        Config.WEBHOOK_SECRET.encode(),
+        message.encode(),
+        hashlib.sha256
+    ).hexdigest()
+
 def handle_checkout_completed(event):
     """Handle completed checkout session"""
     session = event['data']['object']
@@ -381,7 +404,7 @@ def handle_checkout_completed(event):
             "currency": currency
         },
         "metadata": metadata,
-        "booking_id": booking_id,  # Include booking_id in verification data
+        "booking_id": booking_id,
         "event_id": event_id,
         "user_id": user_id,
         "organizer_id": organizer_id
@@ -396,29 +419,26 @@ def handle_checkout_completed(event):
         logger.info(f"Checkout verification saved: {verification_result}")
     except Exception as e:
         logger.error(f"Failed to save checkout verification: {str(e)}")
-    
-    # Update booking status if this is a booking payment
-    if booking_id:
+
+    # Store in booking_payments only if it's a booking payment
+    if booking_id and payment_intent_id:
         try:
-            booking_service_url = os.getenv('BOOKING_SERVICE_URL', 'http://localhost:8002')
-            response = requests.post(
-                f"{booking_service_url}/api/v1/bookings/{booking_id}/confirm",
-                json={
-                    "payment_intent_id": payment_intent_id,
-                    "amount": amount_total,
-                    "currency": currency
-                }
-            )
-            
-            if response.status_code != 200:
-                logger.error(f"Failed to update booking status: {response.text}")
-                return jsonify({"error": "Failed to update booking status"}), 500
-                
-            logger.info(f"Successfully updated booking status for booking {booking_id}")
+            with get_session() as db_session:
+                booking_payment = BookingPayment(
+                    booking_id=booking_id,
+                    payment_intent_id=payment_intent_id,
+                    amount=amount_total,
+                    currency=currency,
+                    status='paid',
+                    customer_email=customer_email,
+                    customer_name=customer_name
+                )
+                db_session.add(booking_payment)
+                db_session.commit()
+                logger.info(f"Saved to booking_payments: {booking_payment.to_dict()}")
         except Exception as e:
-            logger.error(f"Error updating booking status: {str(e)}")
-            return jsonify({"error": "Error updating booking status"}), 500
-    
+            logger.error(f"Failed to save booking payment: {str(e)}")
+
     # Notify event service
     try:
         requests.post(
@@ -429,7 +449,7 @@ def handle_checkout_completed(event):
                 "customer_email": customer_email,
                 "amount_total": amount_total,
                 "metadata": metadata,
-                "booking_id": booking_id,  # Include booking_id in notification
+                "booking_id": booking_id,
                 "event_id": event_id,
                 "user_id": user_id,
                 "organizer_id": organizer_id
@@ -437,7 +457,7 @@ def handle_checkout_completed(event):
         )
     except Exception as e:
         logger.error(f"Failed to notify event service: {str(e)}")
-    
+
     return jsonify({"success": True}), 200
 
 def handle_checkout_expired(event):

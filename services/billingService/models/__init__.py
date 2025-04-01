@@ -24,5 +24,7 @@ def get_session():
 # Create tables
 def init_db():
     """Initialize the database by creating tables"""
+    from .payment_verification import PaymentVerification
+    from .booking_payment import BookingPayment
     engine = create_db_engine()
     Base.metadata.create_all(engine) 

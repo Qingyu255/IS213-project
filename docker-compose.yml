@@ -13,7 +13,7 @@ services:
       NEXT_PUBLIC_USER_POOL_CLIENT_ID: ${AWS_COGNITO_APP_CLIENT_ID}
       NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${GOOGLE_MAPS_API_KEY}
       NEXT_PUBLIC_USER_MANAGEMENT_SERVICE_API_BASE_URL: ${USER_MANAGEMENT_SERVICE_API_BASE_URL}
-      NEXT_PUBLIC_BOOKING_SERVICE_URL: "http://booking-service:8002"
+      NEXT_PUBLIC_BOOKING_SERVICE_URL: ${BOOKING_SERVICE_URL}
     volumes:
       - ./frontend:/app # Mount source code for hot reloading
       - /app/node_modules # Preserve container node_modules
@@ -347,6 +347,7 @@ services:
       FLASK_ENV: "development"
       FRONTEND_URL: "${FRONTEND_URL}"
       METRICS_PORT: "9101"
+      BOOKING_SERVICE_URL: http://booking-service:8002
     volumes:
       - ./services/billingService:/app # Mount source code for development
       - /app/__pycache__
@@ -444,28 +445,28 @@ services:
       - ./grafana/dashboards:/var/lib/grafana/dashboards
     networks:
       - default
-  
+
   #Kong Database
   kong-database:
     image: postgres:16.2
     container_name: kong-database
     restart: always
     environment:
-        POSTGRES_DB: kong
-        POSTGRES_USER: kong
-        POSTGRES_PASSWORD: kongpass
+      POSTGRES_DB: kong
+      POSTGRES_USER: kong
+      POSTGRES_PASSWORD: kongpass
     ports:
-        - "5438:5432"
+      - "5438:5432"
     healthcheck:
-        test: ["CMD", "pg_isready", "-U", "kong"]
-        interval: 10s
-        timeout: 5s
-        retries: 5
+      test: ["CMD", "pg_isready", "-U", "kong"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     volumes:
-          - kong-data:/var/lib/postgresql/data
+      - kong-data:/var/lib/postgresql/data
     networks:
       - default
-  
+
   #Kong Migration
   kong-migration:
     image: kong:3.5
@@ -482,7 +483,7 @@ services:
     depends_on:
       kong-database:
         condition: service_healthy
-  
+
   #Kong Gateway
   kong:
     image: kong:3.5
@@ -545,7 +546,7 @@ volumes:
   events-db-data:
   billing-db-data:
   grafana-data:
-  kong-data: 
+  kong-data:
 networks:
   default:
     name: IS213-project-default
