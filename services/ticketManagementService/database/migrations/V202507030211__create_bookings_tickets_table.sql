@@ -3,7 +3,7 @@
 -- =========================
 CREATE TABLE IF NOT EXISTS bookings (
     booking_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL,
+    user_id VARCHAR(36) NOT NULL,
     event_id UUID NOT NULL,
     status VARCHAR(20) NOT NULL CHECK (status IN ('PENDING', 'CONFIRMED', 'CANCELED', 'REFUNDED')),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
