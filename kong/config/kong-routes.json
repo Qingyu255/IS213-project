@@ -1,0 +1,236 @@
+{
+  "next": null,
+  "data": [
+    {
+      "paths": [
+        "/api/v1/events"
+      ],
+      "methods": [
+        "GET"
+      ],
+      "sources": null,
+      "destinations": null,
+      "regex_priority": 0,
+      "headers": null,
+      "service": {
+        "id": "48b9d12a-1038-40de-95f8-27f7944d21c8"
+      },
+      "preserve_host": false,
+      "hosts": null,
+      "id": "0a4bd428-a650-4211-b555-0c41591bb0d4",
+      "tags": [],
+      "snis": null,
+      "protocols": [
+        "http",
+        "https"
+      ],
+      "name": "events-listings-routes",
+      "path_handling": "v0",
+      "strip_path": true,
+      "https_redirect_status_code": 426,
+      "created_at": 1743413366,
+      "updated_at": 1743431104,
+      "request_buffering": true,
+      "response_buffering": true
+    },
+    {
+      "paths": [
+        "/api/v1/events/create"
+      ],
+      "methods": [
+        "POST"
+      ],
+      "sources": null,
+      "destinations": null,
+      "regex_priority": 0,
+      "headers": null,
+      "service": {
+        "id": "48b9d12a-1038-40de-95f8-27f7944d21c8"
+      },
+      "preserve_host": false,
+      "hosts": null,
+      "id": "212ad981-d735-40a6-919c-9bb5b3818ff8",
+      "tags": [],
+      "snis": null,
+      "protocols": [
+        "http",
+        "https"
+      ],
+      "name": "event-creation-route",
+      "path_handling": "v0",
+      "strip_path": true,
+      "https_redirect_status_code": 426,
+      "created_at": 1743415407,
+      "updated_at": 1743415407,
+      "request_buffering": true,
+      "response_buffering": true
+    },
+    {
+      "paths": [
+        "/api/users"
+      ],
+      "methods": [
+        "GET",
+        "PUT",
+        "POST",
+        "DELETE"
+      ],
+      "sources": null,
+      "destinations": null,
+      "regex_priority": 0,
+      "headers": null,
+      "service": {
+        "id": "e635a7ac-19ba-4698-8b84-3fc61d024843"
+      },
+      "preserve_host": false,
+      "hosts": null,
+      "id": "28f012dd-8b65-4c69-aee0-e26f6deddcc4",
+      "tags": [],
+      "snis": null,
+      "protocols": [
+        "http",
+        "https"
+      ],
+      "name": "user-management-routes",
+      "path_handling": "v0",
+      "strip_path": true,
+      "https_redirect_status_code": 426,
+      "created_at": 1743413265,
+      "updated_at": 1743413265,
+      "request_buffering": true,
+      "response_buffering": true
+    },
+    {
+      "paths": [
+        "/api/v1/events/update"
+      ],
+      "methods": [
+        "PUT"
+      ],
+      "sources": null,
+      "destinations": null,
+      "regex_priority": 0,
+      "headers": null,
+      "service": {
+        "id": "48b9d12a-1038-40de-95f8-27f7944d21c8"
+      },
+      "preserve_host": false,
+      "hosts": null,
+      "id": "2e229287-f91e-40fc-84ea-49d098802e48",
+      "tags": [],
+      "snis": null,
+      "protocols": [
+        "http",
+        "https"
+      ],
+      "name": "events-update-route",
+      "path_handling": "v0",
+      "strip_path": true,
+      "https_redirect_status_code": 426,
+      "created_at": 1743431147,
+      "updated_at": 1743431241,
+      "request_buffering": true,
+      "response_buffering": true
+    },
+    {
+      "paths": [
+        "/api/users/create"
+      ],
+      "methods": [
+        "POST"
+      ],
+      "sources": null,
+      "destinations": null,
+      "regex_priority": 0,
+      "headers": null,
+      "service": {
+        "id": "e635a7ac-19ba-4698-8b84-3fc61d024843"
+      },
+      "preserve_host": false,
+      "hosts": null,
+      "id": "a2eacead-193f-4aca-8478-bd7659b54354",
+      "tags": [],
+      "snis": null,
+      "protocols": [
+        "http",
+        "https"
+      ],
+      "name": "user-creation-route",
+      "path_handling": "v0",
+      "strip_path": true,
+      "https_redirect_status_code": 426,
+      "created_at": 1743415030,
+      "updated_at": 1743415030,
+      "request_buffering": true,
+      "response_buffering": true
+    },
+    {
+      "paths": [
+        "/api/events/delete"
+      ],
+      "methods": [
+        "DELETE"
+      ],
+      "sources": null,
+      "destinations": null,
+      "regex_priority": 0,
+      "headers": null,
+      "service": {
+        "id": "48b9d12a-1038-40de-95f8-27f7944d21c8"
+      },
+      "preserve_host": false,
+      "hosts": null,
+      "id": "af3e0207-080b-4cc6-9f3a-bb1c3bd75f69",
+      "tags": [],
+      "snis": null,
+      "protocols": [
+        "http",
+        "https"
+      ],
+      "name": "event-delete-route",
+      "path_handling": "v0",
+      "strip_path": true,
+      "https_redirect_status_code": 426,
+      "created_at": 1743431272,
+      "updated_at": 1743431272,
+      "request_buffering": true,
+      "response_buffering": true
+    },
+    {
+      "paths": [
+        "/api/v1/tickets",
+        "/api/v1/bookings"
+      ],
+      "methods": [
+        "GET",
+        "PUT",
+        "POST",
+        "DELETE"
+      ],
+      "sources": null,
+      "destinations": null,
+      "regex_priority": 0,
+      "headers": null,
+      "service": {
+        "id": "23da0efd-3424-4582-958a-a522b1ca2b66"
+      },
+      "preserve_host": false,
+      "hosts": null,
+      "id": "b2d1cf6e-292e-4032-857c-85641293ad16",
+      "tags": [],
+      "snis": null,
+      "protocols": [
+        "http",
+        "https"
+      ],
+      "name": "ticket-management-routes",
+      "path_handling": "v0",
+      "strip_path": true,
+      "https_redirect_status_code": 426,
+      "created_at": 1743413322,
+      "updated_at": 1743413322,
+      "request_buffering": true,
+      "response_buffering": true
+    }
+  ]
+}
