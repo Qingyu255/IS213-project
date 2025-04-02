@@ -7,6 +7,7 @@ from config import Config
 import os
 import datetime
 from services.payment_verification_service import PaymentVerificationService
+from models.booking_payment import BookingPayment
 
 logger = logging.getLogger(__name__)
 
@@ -112,79 +113,102 @@ def handle_payment_succeeded(event):
     payment_intent = event['data']['object']
     logger.info(f"Payment succeeded: {payment_intent['id']}")
     
-    # Extract detailed payment information for verification
-    amount = payment_intent.get('amount')
-    currency = payment_intent.get('currency')
-    receipt_email = payment_intent.get('receipt_email')
-    description = payment_intent.get('description')
-    payment_method = payment_intent.get('payment_method')
+    # Extract payment info...
     metadata = payment_intent.get('metadata', {})
-    
-    # Check if this is a booking payment or event creation payment
     booking_id = metadata.get('booking_id')
     event_id = metadata.get('event_id')
-    user_id = metadata.get('user_id')
-    organizer_id = metadata.get('organizer_id')
     
     try:
         if booking_id:
-            # Handle booking payment
-            booking_service_url = os.getenv('BOOKING_SERVICE_URL', 'http://localhost:8002')
-            response = requests.post(
-                f"{booking_service_url}/api/v1/bookings/{booking_id}/confirm",
-                json={
-                    "payment_intent_id": payment_intent['id'],
-                    "amount": amount,
-                    "currency": currency
-                }
-            )
-            
-            if response.status_code != 200:
-                logger.error(f"Failed to update booking status: {response.text}")
-                return jsonify({"error": "Failed to update booking status"}), 500
+            return handle_booking_payment_success(payment_intent, metadata)
         elif event_id:
-            # Handle event creation payment
-            event_service_url = os.getenv('EVENT_SERVICE_URL', 'http://localhost:8001')
-            response = requests.post(
-                f"{event_service_url}/api/v1/events/{event_id}/confirm",
-                json={
-                    "payment_intent_id": payment_intent['id'],
-                    "amount": amount,
-                    "currency": currency
-                }
-            )
-            
-            if response.status_code != 200:
-                logger.error(f"Failed to update event status: {response.text}")
-                return jsonify({"error": "Failed to update event status"}), 500
+            return handle_event_payment_success(payment_intent, metadata)
         else:
             logger.error("No booking_id or event_id found in payment metadata")
             return jsonify({"error": "No booking_id or event_id found"}), 400
-        
-        # Store payment verification
-        payment_verification_data = {
-            "event_type": "payment_intent.succeeded",
-            "timestamp": event.get('created'),
-            "payment_intent_id": payment_intent['id'],
-            "booking_id": booking_id,
-            "event_id": event_id,
-            "user_id": user_id,
-            "organizer_id": organizer_id,
-            "payment_details": {
-                "amount": amount,
-                "currency": currency,
-                "receipt_email": receipt_email,
-                "description": description,
-                "payment_method": payment_method
-            }
-        }
-        
-        payment_verification_service.create_verification(payment_verification_data)
-        
-        return jsonify({"status": "success"}), 200
+            
     except Exception as e:
         logger.error(f"Error processing payment success: {str(e)}")
         return jsonify({"error": str(e)}), 500
+
+def handle_booking_payment_success(payment_intent: dict, metadata: dict):
+    """Handle successful booking payment"""
+    amount = payment_intent.get('amount')
+    currency = payment_intent.get('currency')
+    booking_id = metadata.get('booking_id')
+    
+    # Handle booking payment
+    booking_service_url = os.getenv('BOOKING_SERVICE_URL', 'http://booking-service:8002')
+    response = requests.post(
+        f"{booking_service_url}/api/v1/bookings/{booking_id}/confirm",
+        params={
+            "session_id": payment_intent['id']
+        },
+        headers={
+            "Authorization": Config.STRIPE_SECRET_KEY  # Keep Stripe auth for booking service
+        },
+        json={
+            "payment_intent_id": payment_intent['id'],
+            "amount": amount,
+            "currency": currency
+        }
+    )
+    
+    if response.status_code != 200:
+        logger.error(f"Failed to update booking status: {response.text}")
+        return jsonify({"error": "Failed to update booking status"}), 500
+        
+    # Store payment verification...
+    store_payment_verification(payment_intent, metadata)
+    
+    return jsonify({"status": "success"}), 200
+
+def handle_event_payment_success(payment_intent: dict, metadata: dict):
+    """Handle successful event payment"""
+    amount = payment_intent.get('amount')
+    currency = payment_intent.get('currency')
+    event_id = metadata.get('event_id')
+    
+    # Handle event creation payment
+    event_service_url = os.getenv('EVENT_SERVICE_URL', 'http://event-service:8001')
+    response = requests.post(
+        f"{event_service_url}/api/v1/events/{event_id}/confirm",
+        json={
+            "payment_intent_id": payment_intent['id'],
+            "amount": amount,
+            "currency": currency
+        }
+    )
+    
+    if response.status_code != 200:
+        logger.error(f"Failed to update event status: {response.text}")
+        return jsonify({"error": "Failed to update event status"}), 500
+        
+    # Store payment verification...
+    store_payment_verification(payment_intent, metadata)
+    
+    return jsonify({"status": "success"}), 200
+
+def store_payment_verification(payment_intent: dict, metadata: dict):
+    """Store payment verification data"""
+    payment_verification_data = {
+        "event_type": "payment_intent.succeeded",
+        "timestamp": datetime.datetime.now().isoformat(),
+        "payment_intent_id": payment_intent['id'],
+        "booking_id": metadata.get('booking_id'),
+        "event_id": metadata.get('event_id'),
+        "user_id": metadata.get('user_id'),
+        "organizer_id": metadata.get('organizer_id'),
+        "payment_details": {
+            "amount": payment_intent.get('amount'),
+            "currency": payment_intent.get('currency'),
+            "receipt_email": payment_intent.get('receipt_email'),
+            "description": payment_intent.get('description'),
+            "payment_method": payment_intent.get('payment_method')
+        }
+    }
+    
+    payment_verification_service.create_verification(payment_verification_data)
 
 def handle_payment_failed(event):
     """Handle failed payment"""

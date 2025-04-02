@@ -2,6 +2,7 @@
 
 import { stripe } from '@/lib/stripe';
 import { BACKEND_ROUTES } from "@/constants/backend-routes";
+import Stripe from 'stripe';
 
 type CheckoutSessionResponse = {
   success: boolean;
@@ -18,7 +19,7 @@ type CheckoutSessionResponse = {
     payment_intent?: {
       id: string;
       status: string;
-    };
+    } | null;
   };
   error?: string;
 }
@@ -115,10 +116,10 @@ export async function getBookingCheckoutSession(sessionId: string): Promise<Chec
         name: session.customer_details?.name
       },
       metadata: session.metadata,
-      payment_intent: session.payment_intent ? {
+      payment_intent: session.payment_intent && typeof session.payment_intent !== 'string' ? {
         id: session.payment_intent.id,
         status: session.payment_intent.status
-      } : undefined
+      } : null
     };
     
     return {

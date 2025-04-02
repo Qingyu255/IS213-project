@@ -6,6 +6,7 @@ from ..core.config import get_settings
 from ..core.logging import logger
 from .rabbitmq_service import RabbitMQService
 from .logging_service import LoggingService
+from fastapi import HTTPException
 
 settings = get_settings()
 
@@ -15,7 +16,7 @@ class BillingServiceException(Exception):
 
 class BillingService:
     def __init__(self):
-        self.base_url = f"{settings.BILLING_SERVICE_URL}/api"
+        self.base_url = settings.BILLING_SERVICE_URL
         self.timeout = 10.0
         self.max_retries = 3
         self.initial_backoff = 1.0  # 1 second
@@ -24,85 +25,55 @@ class BillingService:
         self.rabbitmq = RabbitMQService("billing_service")
         self.logger = LoggingService("billing_service")
 
-    def _make_request_with_retry(
-        self,
-        method: str,
-        endpoint: str,
-        **kwargs
-    ) -> Dict[str, Any]:
-        """Make HTTP request with retry mechanism"""
-        retries = 0
-        backoff = self.initial_backoff
-        kwargs['timeout'] = self.timeout
-
-        while retries < self.max_retries:
-            try:
-                url = f"{self.base_url}/{endpoint}"
-                logger.debug(f"Making {method.upper()} request to {url}")
-                response = getattr(requests, method)(url, **kwargs)
-                response.raise_for_status()
-                return response.json()
-            except requests.exceptions.ConnectionError as e:
-                retries += 1
-                if retries == self.max_retries:
-                    self.logger.log_error(
-                        message=f"Network error after {retries} retries: {str(e)}",
-                        context={"url": url, "method": method}
-                    )
-                    raise BillingServiceException(f"Network error: {str(e)}")
-                logger.warning(f"Network error (attempt {retries}/{self.max_retries}): {str(e)}")
-                time.sleep(backoff)
-                backoff *= 2
-            except requests.exceptions.HTTPError as e:
-                self.logger.log_error(
-                    message=f"HTTP error: {str(e)}",
-                    context={"url": url, "method": method, "response": getattr(e.response, 'text', None)}
-                )
-                raise BillingServiceException(f"HTTP error: {str(e)}")
-            except Exception as e:
-                self.logger.log_error(
-                    message=f"Unexpected error: {str(e)}",
-                    context={"url": url, "method": method}
-                )
-                raise BillingServiceException(f"Unexpected error: {str(e)}")
-
-    def create_payment_session(
-        self,
-        booking_id: str,
-        amount: float,
-        currency: str,
-        customer_email: str
-    ) -> Dict[str, Any]:
-        """Create a payment session for the booking"""
+    def _make_request(self, method: str, endpoint: str, **kwargs) -> Dict[str, Any]:
+        """Make HTTP request to billing service"""
+        url = f"{self.base_url}/{endpoint.lstrip('/')}"
         try:
-            frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:3000')
-            
-            payload = {
-                "booking_id": booking_id,
-                "amount": amount,
-                "currency": currency.lower(),
-                "customer_email": customer_email,
-                "success_url": f"{frontend_url}/bookings/{booking_id}/success",
-                "cancel_url": f"{frontend_url}/bookings/{booking_id}/cancel"
-            }
-            
-            # Log payment session creation
-            self.logger.log_info(
-                message=f"Creating payment session for booking {booking_id}",
-                context={"amount": amount, "currency": currency}
-            )
-            
-            result = self._make_request_with_retry(
-                "post",
-                "payments/create-session",
-                json=payload
-            )
-            
-            return result
-            
-        except Exception as e:
-            logger.error(f"Error creating payment session: {str(e)}")
-            raise BillingServiceException(f"Failed to create payment session: {str(e)}")
+            response = requests.request(method, url, **kwargs)
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Billing service error: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Billing service error: {str(e)}")
+
+    def create_payment_session(self, booking_id: str, amount: float, event_title: str, quantity: int) -> Dict[str, Any]:
+        """Create a Stripe checkout session"""
+        endpoint = "api/payments/create-session"
+        data = {
+            "booking_id": booking_id,
+            "amount": amount,
+            "event_title": event_title,
+            "quantity": quantity
+        }
+        return self._make_request("POST", endpoint, json=data)
+
+    def store_payment_intent(
+        self, 
+        booking_id: str, 
+        payment_intent_id: str, 
+        session_id: str,
+        amount: int,
+        currency: str,
+        customer_email: str = None,
+        customer_name: str = None
+    ) -> Dict[str, Any]:
+        """Store payment intent information for a booking"""
+        endpoint = "api/payments/store-intent-booking"
+        data = {
+            "booking_id": booking_id,
+            "payment_intent_id": payment_intent_id,
+            "session_id": session_id,
+            "amount": amount,
+            "currency": currency,
+            "customer_email": customer_email,
+            "customer_name": customer_name
+        }
+        return self._make_request("POST", endpoint, json=data)
+
+    def get_payment_intent(self, booking_id: str) -> Dict[str, Any]:
+        """Get payment intent information for a booking"""
+        endpoint = f"api/payments/intent/{booking_id}"
+        return self._make_request("GET", endpoint)
 
     def verify_webhook(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         """Verify and process payment webhook"""
@@ -116,7 +87,7 @@ class BillingService:
                 context={"event_type": event_type, "booking_id": booking_id}
             )
             
-            result = self._make_request_with_retry(
+            result = self._make_request(
                 "post",
                 "payments/webhook",
                 json=payload
@@ -131,7 +102,7 @@ class BillingService:
     def get_payment_status(self, booking_id: str) -> Optional[str]:
         """Get payment status for a booking"""
         try:
-            response = self._make_request_with_retry(
+            response = self._make_request(
                 "get",
                 f"payments/{booking_id}/status"
             )
@@ -153,7 +124,7 @@ class BillingService:
                 context={"amount": amount}
             )
             
-            result = self._make_request_with_retry(
+            result = self._make_request(
                 "post",
                 f"payments/{booking_id}/refund",
                 json=payload
@@ -168,7 +139,7 @@ class BillingService:
     def verify_payment_completed(self, booking_id: str) -> Tuple[bool, Optional[str]]:
         """Verify if payment for a booking has been completed"""
         try:
-            response = self._make_request_with_retry(
+            response = self._make_request(
                 "get",
                 f"payments/{booking_id}/verify"
             )

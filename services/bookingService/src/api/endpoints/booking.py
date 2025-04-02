@@ -4,15 +4,18 @@ import uuid
 from ...schemas.booking import BookingCreate, BookingResponse, BookingStatus
 from ...services.event_service import EventService
 from ...services.ticket_service import TicketService
-from ...services.billing_service import BillingService
+from ...services.billing_service import BillingService, BillingServiceException
 from ...services.notification_service import NotificationService
 from ...services.logging_service import LoggingService
 from ...core.logging import logger
 from ...core.auth import validate_token
 from datetime import datetime
 from pydantic import BaseModel
+from ...core.config import get_settings
 
 router = APIRouter()
+
+settings = get_settings()
 
 class PaymentConfirmation(BaseModel):
     payment_intent_id: str
@@ -180,10 +183,26 @@ class BookingController:
 
         except HTTPException:
             raise
+        except BillingServiceException as be:
+            logger.error(f"Billing service error: {str(be)}")
+            raise HTTPException(status_code=400, detail=str(be))
         except Exception as e:
             logger.error(f"Error confirming booking: {str(e)}")
             raise HTTPException(status_code=500, detail=str(e))
 
+    def create_payment_session(self, booking_id: str, event: dict, quantity: int) -> dict:
+        """Create a payment session for a booking"""
+        amount = float(event["price"]) * quantity
+        return self.billing_service.create_payment_session(
+            booking_id=booking_id,
+            amount=amount,
+            event_title=event["name"],
+            quantity=quantity
+        )
+
+    def verify_payment(self, booking_id: str) -> tuple[bool, Optional[str]]:
+        """Verify payment status for a booking"""
+        return self.billing_service.verify_payment_completed(booking_id)
 
 # Dependency Injection
 def get_booking_controller():
@@ -313,6 +332,22 @@ def confirm_booking(
             currency="sgd"
         )
 
+        # Verify payment completion before confirming
+        is_paid, error = booking_controller.verify_payment(booking_id)
+        if not is_paid:
+            raise HTTPException(status_code=400, detail=f"Payment verification failed: {error}")
+
+        # Store payment intent information
+        booking_controller.billing_service.store_payment_intent(
+            booking_id=booking_id,
+            payment_intent_id=session_id,  # This might need to be retrieved from Stripe
+            session_id=session_id,
+            amount=total_amount,
+            currency="sgd",
+            customer_email=booking.get("email"),
+            customer_name=claims.get("name")  # Assuming name is in the claims
+        )
+
         # Call the controller's confirm_booking method
         result = booking_controller.confirm_booking(
             booking_id=booking_id,
@@ -325,6 +360,9 @@ def confirm_booking(
     except HTTPException as he:
         logger.error(f"HTTP error in confirm_booking: {str(he)}")
         raise
+    except BillingServiceException as be:
+        logger.error(f"Billing service error: {str(be)}")
+        raise HTTPException(status_code=400, detail=str(be))
     except Exception as e:
         logger.error(f"Error confirming booking: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e)) 
