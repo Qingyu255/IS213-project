@@ -1,9 +1,9 @@
-"use client";
-import { useEffect, useState, type FormEvent } from "react";
-import type React from "react";
-import { v4 as uuidv4 } from "uuid";
+"use client"
+import { useEffect, useState, type FormEvent } from "react"
+import type React from "react"
+import { v4 as uuidv4 } from "uuid"
 
-import Image from "next/image";
+import Image from "next/image"
 import {
   Calendar as CalendarIcon,
   Clock,
@@ -12,87 +12,87 @@ import {
   Pencil,
   Ticket,
   Upload,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
+} from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/components/ui/select"
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover";
-import { Textarea } from "@/components/ui/textarea";
-import { Spinner } from "@/components/ui/spinner";
-import { Calendar } from "@/components/ui/calendar";
-import { useRouter, useSearchParams } from "next/navigation";
+} from "@/components/ui/popover"
+import { Textarea } from "@/components/ui/textarea"
+import { Spinner } from "@/components/ui/spinner"
+import { Calendar } from "@/components/ui/calendar"
+import { useRouter, useSearchParams } from "next/navigation"
 
-import { fetchAuthSession } from "aws-amplify/auth";
-import { Route } from "@/enums/Route";
-import { InterestCategory } from "@/enums/InterestCategory";
-import type { EventDetails } from "@/types/event";
-import { toast } from "sonner";
-import VenueAutocomplete from "@/components/googlemaps/VenueAutocomplete";
-import useAuthUser from "@/hooks/use-auth-user";
-import { ErrorMessageCallout } from "@/components/error-message-callout";
-import { useEventCreation } from "@/providers/event-creation-provider";
+import { fetchAuthSession } from "aws-amplify/auth"
+import { Route } from "@/enums/Route"
+import { InterestCategory } from "@/enums/InterestCategory"
+import type { EventDetails } from "@/types/event"
+import { toast } from "sonner"
+import VenueAutocomplete from "@/components/googlemaps/VenueAutocomplete"
+import useAuthUser from "@/hooks/use-auth-user"
+import { ErrorMessageCallout } from "@/components/error-message-callout"
+import { useEventCreation } from "@/providers/event-creation-provider"
 
 // Constants
-const EVENT_CREATION_FEE_CENTS = 200; // $2.00 SGD
+const EVENT_CREATION_FEE_CENTS = 200 // $2.00 SGD
 
 export default function CreateEventPage() {
-  const router = useRouter();
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-  const { setEventData } = useEventCreation();
+  const router = useRouter()
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+  const { setEventData } = useEventCreation()
 
   // -----------------------
   // Form field states
   // -----------------------
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [startTime, setStartTime] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [endTime, setEndTime] = useState("");
+  const [title, setTitle] = useState("")
+  const [description, setDescription] = useState("")
+  const [startDate, setStartDate] = useState("")
+  const [startTime, setStartTime] = useState("")
+  const [endDate, setEndDate] = useState("")
+  const [endTime, setEndTime] = useState("")
 
-  const [categories, setCategories] = useState<InterestCategory[]>([]);
-  const [amount, setAmount] = useState(0);
-  const [currency, setCurrency] = useState("SGD");
+  const [categories, setCategories] = useState<InterestCategory[]>([])
+  const [amount, setAmount] = useState(0)
+  const [currency, setCurrency] = useState("SGD")
 
-  const [capacity, setCapacity] = useState<number | null>(null);
-  const [isUnlimited, setIsUnlimited] = useState(true);
+  const [capacity, setCapacity] = useState<number | null>(null)
+  const [isUnlimited, setIsUnlimited] = useState(true)
 
-  const [imageUrl, setImageUrl] = useState<string>("/eventplaceholder.png");
-  const [isUploading, setIsUploading] = useState(false);
+  const [imageUrl, setImageUrl] = useState<string>("/eventplaceholder.png")
+  const [isUploading, setIsUploading] = useState(false)
 
-  const [address, setAddress] = useState("");
-  const [city, setCity] = useState("");
-  const [stateValue, setStateValue] = useState("");
-  const [venueName, setVenueName] = useState("");
-  const [additionalDetails, setAdditionalDetails] = useState("");
+  const [address, setAddress] = useState("")
+  const [city, setCity] = useState("")
+  const [stateValue, setStateValue] = useState("")
+  const [venueName, setVenueName] = useState("")
+  const [additionalDetails, setAdditionalDetails] = useState("")
   const [coordinates, setCoordinates] = useState<{ lat: number; lng: number }>({
     lat: 0,
     lng: 0,
-  });
+  })
 
   // Other fields
-  const [timezone, setTimezone] = useState("utc");
+  const [timezone, setTimezone] = useState("utc")
 
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams()
   if (searchParams.get("canceled")) {
     console.log(
       "Event Creation Payment canceled"
       // route to cancelled page?
-    );
+    )
   }
   // -----------------------
   // Auth check on mount (DO NOT MODIFY)
@@ -100,171 +100,171 @@ export default function CreateEventPage() {
   useEffect(() => {
     async function checkSession() {
       try {
-        const session = await fetchAuthSession();
-        const token = session.tokens?.accessToken;
+        const session = await fetchAuthSession()
+        const token = session.tokens?.accessToken
         if (!token) {
-          router.replace(Route.Login);
+          router.replace(Route.Login)
         } else {
-          setIsLoading(false);
+          setIsLoading(false)
         }
       } catch (err) {
-        console.error("Session check failed:", err);
-        router.replace(Route.Login);
+        console.error("Session check failed:", err)
+        router.replace(Route.Login)
       }
     }
-    checkSession();
-  }, [router]);
+    checkSession()
+  }, [router])
 
   // Get authenticated user details
-  const { user, getUserId } = useAuthUser();
+  const { user, getUserId } = useAuthUser()
 
   // -----------------------
   // Handle image file upload to S3
   // -----------------------
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
+      const file = e.target.files[0]
 
       // Validate file type
       if (!file.type.startsWith("image/")) {
-        toast.error("Please upload an image file");
-        return;
+        toast.error("Please upload an image file")
+        return
       }
 
       // Validate file size (5MB max)
       if (file.size > 5 * 1024 * 1024) {
-        toast.error("Image size should be less than 5MB");
-        return;
+        toast.error("Image size should be less than 5MB")
+        return
       }
 
       try {
-        setIsUploading(true);
+        setIsUploading(true)
 
         // Create FormData to send file
-        const formData = new FormData();
-        formData.append("file", file);
+        const formData = new FormData()
+        formData.append("file", file)
 
         console.log(
           `Uploading file: ${file.name}, size: ${file.size}, type: ${file.type}`
-        );
+        )
 
         // Upload to S3 via our API route
         const response = await fetch("/api/upload", {
           method: "POST",
           body: formData,
-        });
+        })
 
         // Log the response status for debugging
-        console.log(`Upload response status: ${response.status}`);
+        console.log(`Upload response status: ${response.status}`)
 
         // Try to get response as text first for debugging
-        const responseText = await response.text();
-        console.log(`Response text: ${responseText}`);
+        const responseText = await response.text()
+        console.log(`Response text: ${responseText}`)
 
         // Parse the response if it's valid JSON
-        let data;
+        let data
         try {
-          data = JSON.parse(responseText);
+          data = JSON.parse(responseText)
         } catch (jsonError) {
-          console.error("Error parsing response as JSON:", jsonError);
-          throw new Error("Invalid response format from server");
+          console.error("Error parsing response as JSON:", jsonError)
+          throw new Error("Invalid response format from server")
         }
 
         if (!response.ok) {
           throw new Error(
             data.error || `Upload failed with status: ${response.status}`
-          );
+          )
         }
 
         if (!data.url) {
-          throw new Error("No URL returned from server");
+          throw new Error("No URL returned from server")
         }
 
-        console.log(`File uploaded successfully. URL: ${data.url}`);
-        setImageUrl(data.url);
-        toast.success("Image uploaded successfully");
+        console.log(`File uploaded successfully. URL: ${data.url}`)
+        setImageUrl(data.url)
+        toast.success("Image uploaded successfully")
       } catch (err) {
-        console.error("Image upload error:", err);
+        console.error("Image upload error:", err)
         toast.error(
           err instanceof Error ? err.message : "Failed to upload image"
-        );
+        )
       } finally {
-        setIsUploading(false);
+        setIsUploading(false)
       }
     }
   }
 
   // Helper function to convert to UTC
   function convertToUTC(date: Date, timezone: string): Date {
-    const localDate = new Date(date);
-    let offset = 0;
+    const localDate = new Date(date)
+    let offset = 0
 
     switch (timezone) {
       case "est":
-        offset = 5 * 60; // EST is UTC-5
-        break;
+        offset = 5 * 60 // EST is UTC-5
+        break
       case "pst":
-        offset = 8 * 60; // PST is UTC-8
-        break;
+        offset = 8 * 60 // PST is UTC-8
+        break
       case "utc":
       default:
-        offset = 0;
+        offset = 0
     }
 
     // Add the offset to convert to UTC
-    return new Date(localDate.getTime() + offset * 60000);
+    return new Date(localDate.getTime() + offset * 60000)
   }
 
   // -----------------------
   // Submit Handler
   // -----------------------
-  const eventUuid = uuidv4();
+  const eventUuid = uuidv4()
   async function handleCreateEvent(e: FormEvent) {
-    e.preventDefault();
-    setSubmitting(true);
-    setError(null);
+    e.preventDefault()
+    setSubmitting(true)
+    setError(null)
 
     try {
       // Validate start date and time
       if (!startDate || !startTime) {
         setError(
           "Please select both a start date and start time for your event"
-        );
-        setSubmitting(false);
-        return;
+        )
+        setSubmitting(false)
+        return
       }
 
       // Validate end date and time (if one is provided, both must be provided)
       if ((endDate && !endTime) || (!endDate && endTime)) {
         setError(
           "Please provide both end date and end time, or leave both empty"
-        );
-        setSubmitting(false);
-        return;
+        )
+        setSubmitting(false)
+        return
       }
 
       // Create Date objects from the selected date and time
-      const startDateObj = new Date(`${startDate}T${startTime}`);
+      const startDateObj = new Date(`${startDate}T${startTime}`)
       const endDateObj =
-        endDate && endTime ? new Date(`${endDate}T${endTime}`) : undefined;
+        endDate && endTime ? new Date(`${endDate}T${endTime}`) : undefined
 
       // Validate that end datetime is after start datetime if provided
       if (endDateObj && endDateObj <= startDateObj) {
-        setError("End date and time must be after the start date and time");
-        setSubmitting(false);
-        return;
+        setError("End date and time must be after the start date and time")
+        setSubmitting(false)
+        return
       }
 
       // Convert dates to UTC based on selected timezone
-      const startDateTimeUTC = convertToUTC(startDateObj, timezone);
+      const startDateTimeUTC = convertToUTC(startDateObj, timezone)
       const endDateTimeUTC = endDateObj
         ? convertToUTC(endDateObj, timezone)
-        : undefined;
+        : undefined
 
       // Generate a proper UUID that's compatible with Java UUID format
 
       // Get the organizer ID (user ID)
-      const organizerId = getUserId();
+      const organizerId = getUserId()
 
       // Construct the event payload per our EventDetails type
       const newEvent: EventDetails = {
@@ -289,18 +289,18 @@ export default function CreateEventPage() {
           username: user && user.username ? user.username : "",
         },
         capacity: isUnlimited ? undefined : capacity ?? undefined,
-      };
+      }
 
       // Store in context first
-      setEventData(newEvent);
+      setEventData(newEvent)
 
       // Also save in localStorage for redundancy
       try {
-        localStorage.setItem("pending_event_data", JSON.stringify(newEvent));
-        console.log("Stored event data in localStorage:", newEvent);
+        localStorage.setItem("pending_event_data", JSON.stringify(newEvent))
+        console.log("Stored event data in localStorage:", newEvent)
       } catch (err) {
         // Just log the error but continue - we're using context as primary
-        console.warn("Failed to use localStorage as backup:", err);
+        console.warn("Failed to use localStorage as backup:", err)
       }
 
       // Create a payment session with Stripe
@@ -315,33 +315,33 @@ export default function CreateEventPage() {
           amount: EVENT_CREATION_FEE_CENTS,
           description: `Event creation fee for "${newEvent.title}"`,
         }),
-      });
+      })
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json()
         throw new Error(
           `Error creating payment session: ${
             errorData.error || response.statusText
           }`
-        );
+        )
       }
 
-      const { url } = await response.json();
+      const { url } = await response.json()
 
       if (!url) {
-        throw new Error("No checkout URL returned from payment service");
+        throw new Error("No checkout URL returned from payment service")
       }
 
       // Redirect to the Stripe Checkout page
-      window.location.href = url;
+      window.location.href = url
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
-      console.error("Error preparing event creation:", err);
-      setError(err.message || "An unknown error occurred.");
-      setSubmitting(false);
+      console.error("Error preparing event creation:", err)
+      setError(err.message || "An unknown error occurred.")
+      setSubmitting(false)
       // Show error toast
-      toast.error(err.message || "An unknown error occurred.");
+      toast.error(err.message || "An unknown error occurred.")
     }
   }
 
@@ -353,7 +353,7 @@ export default function CreateEventPage() {
       <div className="flex items-center justify-center min-h-screen">
         <Spinner />
       </div>
-    );
+    )
   }
 
   return (
@@ -382,8 +382,8 @@ export default function CreateEventPage() {
                   disabled={isUploading}
                   onClick={() => {
                     // Trigger the hidden file input click
-                    const fileInput = document.getElementById("image-upload");
-                    if (fileInput) fileInput.click();
+                    const fileInput = document.getElementById("image-upload")
+                    if (fileInput) fileInput.click()
                   }}
                 >
                   {isUploading ? (
@@ -404,7 +404,7 @@ export default function CreateEventPage() {
                   id="event-id"
                   type="text"
                   className="hidden"
-                  value={eventUuid}
+                  defaultValue={eventUuid}
                 />
               </div>
             </div>
@@ -471,8 +471,8 @@ export default function CreateEventPage() {
                           // Adjust the date to account for timezone offset
                           const localDate = new Date(
                             date.getTime() - date.getTimezoneOffset() * 60000
-                          );
-                          setStartDate(localDate.toISOString().split("T")[0]);
+                          )
+                          setStartDate(localDate.toISOString().split("T")[0])
                         }
                       }}
                       disabled={{ before: new Date() }} // disables all dates before today
@@ -499,8 +499,8 @@ export default function CreateEventPage() {
                           value={startTime.split(":")[0] || "12"}
                           onValueChange={(value) => {
                             // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                            const [_, minutes] = startTime.split(":");
-                            setStartTime(`${value}:${minutes || "00"}`);
+                            const [_, minutes] = startTime.split(":")
+                            setStartTime(`${value}:${minutes || "00"}`)
                           }}
                         >
                           <SelectTrigger>
@@ -520,8 +520,8 @@ export default function CreateEventPage() {
                         <Select
                           value={startTime.split(":")[1] || "00"}
                           onValueChange={(value) => {
-                            const [hours] = startTime.split(":");
-                            setStartTime(`${hours || "12"}:${value}`);
+                            const [hours] = startTime.split(":")
+                            setStartTime(`${hours || "12"}:${value}`)
                           }}
                         >
                           <SelectTrigger>
@@ -575,8 +575,8 @@ export default function CreateEventPage() {
                           // Adjust the date to account for timezone offset
                           const localDate = new Date(
                             date.getTime() - date.getTimezoneOffset() * 60000
-                          );
-                          setEndDate(localDate.toISOString().split("T")[0]);
+                          )
+                          setEndDate(localDate.toISOString().split("T")[0])
                         }
                       }}
                       disabled={{ before: new Date() }}
@@ -606,8 +606,8 @@ export default function CreateEventPage() {
                           value={endTime.split(":")[0] || "12"}
                           onValueChange={(value) => {
                             // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                            const [_, minutes] = endTime.split(":");
-                            setEndTime(`${value}:${minutes || "00"}`);
+                            const [_, minutes] = endTime.split(":")
+                            setEndTime(`${value}:${minutes || "00"}`)
                           }}
                         >
                           <SelectTrigger>
@@ -627,8 +627,8 @@ export default function CreateEventPage() {
                         <Select
                           value={endTime.split(":")[1] || "00"}
                           onValueChange={(value) => {
-                            const [hours] = endTime.split(":");
-                            setEndTime(`${hours || "12"}:${value}`);
+                            const [hours] = endTime.split(":")
+                            setEndTime(`${hours || "12"}:${value}`)
                           }}
                         >
                           <SelectTrigger>
@@ -713,11 +713,11 @@ export default function CreateEventPage() {
                           checked={categories.includes(cat)}
                           onChange={(e) => {
                             if (e.target.checked) {
-                              setCategories((prev) => [...prev, cat]);
+                              setCategories((prev) => [...prev, cat])
                             } else {
                               setCategories((prev) =>
                                 prev.filter((c) => c !== cat)
-                              );
+                              )
                             }
                           }}
                           className="w-4 h-4"
@@ -875,5 +875,5 @@ export default function CreateEventPage() {
         </div>
       </form>
     </div>
-  );
+  )
 }

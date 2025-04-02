@@ -8,6 +8,7 @@ import os
 import datetime
 from services.payment_verification_service import PaymentVerificationService
 from models.booking_payment import BookingPayment
+from models import get_session  
 
 logger = logging.getLogger(__name__)
 
@@ -115,6 +116,14 @@ def handle_payment_succeeded(event):
     
     # Extract payment info...
     metadata = payment_intent.get('metadata', {})
+    
+    # Also check the payment intent's invoice/charge for metadata
+    if not metadata:
+        if payment_intent.get('invoice'):
+            metadata = payment_intent['invoice'].get('metadata', {})
+        elif payment_intent.get('charges', {}).get('data'):
+            metadata = payment_intent['charges']['data'][0].get('metadata', {})
+    
     booking_id = metadata.get('booking_id')
     event_id = metadata.get('event_id')
     
@@ -124,8 +133,9 @@ def handle_payment_succeeded(event):
         elif event_id:
             return handle_event_payment_success(payment_intent, metadata)
         else:
-            logger.error("No booking_id or event_id found in payment metadata")
-            return jsonify({"error": "No booking_id or event_id found"}), 400
+            # Don't error if we can't find IDs - this might be a different type of payment
+            logger.info("No booking_id or event_id found in payment metadata")
+            return jsonify({"status": "success"}), 200
             
     except Exception as e:
         logger.error(f"Error processing payment success: {str(e)}")
@@ -141,12 +151,6 @@ def handle_booking_payment_success(payment_intent: dict, metadata: dict):
     booking_service_url = os.getenv('BOOKING_SERVICE_URL', 'http://booking-service:8002')
     response = requests.post(
         f"{booking_service_url}/api/v1/bookings/{booking_id}/confirm",
-        params={
-            "session_id": payment_intent['id']
-        },
-        headers={
-            "Authorization": Config.STRIPE_SECRET_KEY  # Keep Stripe auth for booking service
-        },
         json={
             "payment_intent_id": payment_intent['id'],
             "amount": amount,
@@ -376,7 +380,7 @@ def handle_checkout_completed(event):
     session = event['data']['object']
     logger.info(f"Checkout completed: {session['id']}")
     
-    # Extract detailed session information for verification
+    # Extract detailed session information
     payment_status = session.get('payment_status')
     payment_intent_id = session.get('payment_intent')
     customer_email = session.get('customer_details', {}).get('email')
@@ -384,12 +388,51 @@ def handle_checkout_completed(event):
     amount_total = session.get('amount_total')
     currency = session.get('currency', 'usd')
     metadata = session.get('metadata', {})
-    booking_id = metadata.get('booking_id')  # Get booking_id from metadata
-    event_id = metadata.get('event_id')
-    user_id = metadata.get('user_id')
-    organizer_id = metadata.get('organizer_id')
+    booking_id = metadata.get('booking_id')
     
-    # Format payment details for storage
+    # Store in booking_payments if it's a booking payment
+    if booking_id and payment_intent_id:
+        try:
+            with get_session() as db_session:
+                booking_payment = BookingPayment(
+                    booking_id=booking_id,
+                    payment_intent_id=payment_intent_id,
+                    amount=amount_total,
+                    currency=currency,
+                    status='paid',
+                    customer_email=customer_email,
+                    customer_name=customer_name
+                )
+                db_session.add(booking_payment)
+                db_session.commit()
+                logger.info(f"Saved to booking_payments: {booking_payment.to_dict()}")
+                
+                # Update booking status
+                try:
+                    booking_service_url = os.getenv('BOOKING_SERVICE_URL', 'http://booking-service:8002')
+                    response = requests.post(
+                        f"{booking_service_url}/api/v1/bookings/{booking_id}/confirm",
+                        params={
+                            "session_id": session['id']  # Required by booking service
+                        },
+                        json={
+                            "payment_intent_id": payment_intent_id,
+                            "amount": amount_total,
+                            "currency": currency
+                        }
+                    )
+                    
+                    if response.status_code != 200:
+                        logger.error(f"Failed to update booking status: {response.text}")
+                    else:
+                        logger.info(f"Successfully updated booking status for booking {booking_id}")
+                except Exception as e:
+                    logger.error(f"Error updating booking status: {str(e)}")
+                    # Don't return error - continue with verification storage
+        except Exception as e:
+            logger.error(f"Failed to save booking payment: {str(e)}")
+    
+    # Continue with existing payment verification storage...
     payment_verification_data = {
         "event_type": "checkout.session.completed",
         "timestamp": event.get('created'),
@@ -405,10 +448,10 @@ def handle_checkout_completed(event):
             "currency": currency
         },
         "metadata": metadata,
-        "booking_id": booking_id,  # Include booking_id in verification data
-        "event_id": event_id,
-        "user_id": user_id,
-        "organizer_id": organizer_id
+        "booking_id": booking_id,
+        "event_id": metadata.get('event_id'),
+        "user_id": metadata.get('user_id'),
+        "organizer_id": metadata.get('organizer_id')
     }
     
     # Log the verification data
@@ -421,28 +464,6 @@ def handle_checkout_completed(event):
     except Exception as e:
         logger.error(f"Failed to save checkout verification: {str(e)}")
     
-    # Update booking status if this is a booking payment
-    if booking_id:
-        try:
-            booking_service_url = os.getenv('BOOKING_SERVICE_URL', 'http://localhost:8002')
-            response = requests.post(
-                f"{booking_service_url}/api/v1/bookings/{booking_id}/confirm",
-                json={
-                    "payment_intent_id": payment_intent_id,
-                    "amount": amount_total,
-                    "currency": currency
-                }
-            )
-            
-            if response.status_code != 200:
-                logger.error(f"Failed to update booking status: {response.text}")
-                return jsonify({"error": "Failed to update booking status"}), 500
-                
-            logger.info(f"Successfully updated booking status for booking {booking_id}")
-        except Exception as e:
-            logger.error(f"Error updating booking status: {str(e)}")
-            return jsonify({"error": "Error updating booking status"}), 500
-    
     # Notify event service
     try:
         requests.post(
@@ -453,10 +474,10 @@ def handle_checkout_completed(event):
                 "customer_email": customer_email,
                 "amount_total": amount_total,
                 "metadata": metadata,
-                "booking_id": booking_id,  # Include booking_id in notification
-                "event_id": event_id,
-                "user_id": user_id,
-                "organizer_id": organizer_id
+                "booking_id": booking_id,
+                "event_id": metadata.get('event_id'),
+                "user_id": metadata.get('user_id'),
+                "organizer_id": metadata.get('organizer_id')
             }
         )
     except Exception as e:
