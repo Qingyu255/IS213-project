@@ -1,22 +1,21 @@
-from fastapi import APIRouter, HTTPException, Depends, Path, Query, Security, Header, Body, Request
+from fastapi import APIRouter, HTTPException, Depends, Path, Query, Security, Header, Body
 from typing import Optional, List
 import uuid
 from ...schemas.booking import BookingCreate, BookingResponse, BookingStatus
 from ...services.event_service import EventService
 from ...services.ticket_service import TicketService
-from ...services.billing_service import BillingService
+from ...services.billing_service import BillingService, BillingServiceException
 from ...services.notification_service import NotificationService
 from ...services.logging_service import LoggingService
 from ...core.logging import logger
 from ...core.auth import validate_token
 from datetime import datetime
 from pydantic import BaseModel
-from sqlalchemy.ext.asyncio import AsyncSession
-from ...core.database import get_db
-from ...core.auth import get_current_user_id
-from ...core.config import Config
+from ...core.config import get_settings
 
 router = APIRouter()
+
+settings = get_settings()
 
 class PaymentConfirmation(BaseModel):
     payment_intent_id: str
@@ -184,10 +183,26 @@ class BookingController:
 
         except HTTPException:
             raise
+        except BillingServiceException as be:
+            logger.error(f"Billing service error: {str(be)}")
+            raise HTTPException(status_code=400, detail=str(be))
         except Exception as e:
             logger.error(f"Error confirming booking: {str(e)}")
             raise HTTPException(status_code=500, detail=str(e))
 
+    def create_payment_session(self, booking_id: str, event: dict, quantity: int) -> dict:
+        """Create a payment session for a booking"""
+        amount = float(event["price"]) * quantity
+        return self.billing_service.create_payment_session(
+            booking_id=booking_id,
+            amount=amount,
+            event_title=event["name"],
+            quantity=quantity
+        )
+
+    def verify_payment(self, booking_id: str) -> tuple[bool, Optional[str]]:
+        """Verify payment status for a booking"""
+        return self.billing_service.verify_payment_completed(booking_id)
 
 # Dependency Injection
 def get_booking_controller():
@@ -272,22 +287,27 @@ def get_user_bookings(
 
 @router.post("/bookings/{booking_id}/confirm")
 def confirm_booking(
-    booking_id: str = Path(...),
-    session_id: str = Query(...),
+    booking_id: str = Path(..., description="The ID of the booking to confirm"),
+    session_id: str = Query(..., description="The Stripe session ID"),
     authorization: str = Header(...),
     booking_controller: BookingController = Depends(get_booking_controller)
 ):
+    """Confirm a booking after successful payment"""
     try:
-        # Simple check if it's from billing service
-        if authorization == Config.STRIPE_SECRET_KEY:
-            claims = {"email": None, "name": None}  # Default values for webhook
-        else:
-            claims = validate_token(authorization)
+        # Validate the token and get claims
+        claims = validate_token(authorization)
+        logger.debug(f"Using auth token: {authorization}")
+        logger.debug(f"Token claims: {claims}")
 
         # Get the booking to verify ownership
         booking = booking_controller.get_booking(booking_id, authorization)
         if not booking:
             raise HTTPException(status_code=404, detail="Booking not found")
+
+        # Log booking details for debugging
+        logger.debug(f"Booking details: {booking}")
+        logger.debug(f"User ID from token (custom:id): {claims.get('custom:id')}")
+        logger.debug(f"User ID from booking: {booking['user_id']}")
 
         # Verify the user owns the booking using custom:id
         if booking["user_id"] != claims.get('custom:id'):
@@ -298,29 +318,12 @@ def confirm_booking(
         if not event:
             raise HTTPException(status_code=404, detail="Event not found")
 
+        # Log event details for debugging
+        logger.debug(f"Event details: {event}")
+
         # Calculate total amount
         total_amount = int(float(event["price"]) * booking["ticket_quantity"] * 100)  # Convert to cents
-
-        # Get session details from Stripe and store payment data in billing service
-        session_response = booking_controller.billing_service.get_payment_intent(str(booking_id))
-        if session_response.get("payment_intent_id"):
-            # For webhook requests, use customer data from the request
-            customer_email = claims.get('email')
-            customer_name = claims.get('name')
-            
-            store_result = booking_controller.billing_service.store_payment_intent(
-                booking_id=str(booking_id),
-                payment_intent_id=session_response["payment_intent_id"],
-                session_id=session_id,
-                amount=total_amount,
-                currency="sgd",
-                customer_email=customer_email,
-                customer_name=customer_name
-            )
-            logger.info(f"Store payment intent result: {store_result}")
-        else:
-            logger.error("No payment intent ID found in session response")
-            raise HTTPException(status_code=400, detail="Invalid payment session")
+        logger.debug(f"Calculated total amount: {total_amount}")
 
         # Create payment confirmation
         payment_confirmation = PaymentConfirmation(
@@ -328,7 +331,23 @@ def confirm_booking(
             amount=total_amount,
             currency="sgd"
         )
-        
+
+        # Verify payment completion before confirming
+        is_paid, error = booking_controller.verify_payment(booking_id)
+        if not is_paid:
+            raise HTTPException(status_code=400, detail=f"Payment verification failed: {error}")
+
+        # Store payment intent information
+        booking_controller.billing_service.store_payment_intent(
+            booking_id=booking_id,
+            payment_intent_id=session_id,  # This might need to be retrieved from Stripe
+            session_id=session_id,
+            amount=total_amount,
+            currency="sgd",
+            customer_email=booking.get("email"),
+            customer_name=claims.get("name")  # Assuming name is in the claims
+        )
+
         # Call the controller's confirm_booking method
         result = booking_controller.confirm_booking(
             booking_id=booking_id,
@@ -338,10 +357,12 @@ def confirm_booking(
 
         logger.debug(f"Booking confirmation result: {result}")
         return result
-
     except HTTPException as he:
         logger.error(f"HTTP error in confirm_booking: {str(he)}")
         raise
+    except BillingServiceException as be:
+        logger.error(f"Billing service error: {str(be)}")
+        raise HTTPException(status_code=400, detail=str(be))
     except Exception as e:
         logger.error(f"Error confirming booking: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e)) 

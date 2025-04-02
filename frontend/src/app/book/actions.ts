@@ -19,7 +19,7 @@ type CheckoutSessionResponse = {
     payment_intent?: {
       id: string;
       status: string;
-    };
+    } | null;
   };
   error?: string;
 }
@@ -92,11 +92,6 @@ export async function confirmBooking(bookingId: string, sessionId: string, beare
   }
 }
 
-// Add type guard
-function isPaymentIntent(obj: string | Stripe.PaymentIntent): obj is Stripe.PaymentIntent {
-  return typeof obj !== 'string';
-}
-
 export async function getBookingCheckoutSession(sessionId: string): Promise<CheckoutSessionResponse> {
   try {
     if (!stripe) {
@@ -111,23 +106,25 @@ export async function getBookingCheckoutSession(sessionId: string): Promise<Chec
     });
     
     // Extract only the serializable data we need
+    const serializedSession = {
+      id: session.id,
+      status: session.status,
+      amount_total: session.amount_total,
+      payment_status: session.payment_status,
+      customer_details: {
+        email: session.customer_details?.email,
+        name: session.customer_details?.name
+      },
+      metadata: session.metadata,
+      payment_intent: session.payment_intent && typeof session.payment_intent !== 'string' ? {
+        id: session.payment_intent.id,
+        status: session.payment_intent.status
+      } : null
+    };
+    
     return {
       success: true,
-      session: {
-        id: session.id,
-        status: session.status,
-        amount_total: session.amount_total,
-        payment_status: session.payment_status,
-        customer_details: {
-          email: session.customer_details?.email,
-          name: session.customer_details?.name
-        },
-        metadata: session.metadata,
-        payment_intent: session.payment_intent && isPaymentIntent(session.payment_intent) ? {
-          id: session.payment_intent.id,
-          status: session.payment_intent.status
-        } : undefined
-      }
+      session: serializedSession
     };
   } catch (error) {
     console.error('Error retrieving checkout session:', error);
