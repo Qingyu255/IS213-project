@@ -139,18 +139,18 @@ def get_payment_intent(booking_id):
     logger.info(f"Getting payment intent for booking {booking_id}")
     try:
         with get_session() as session:
-            verification = session.query(PaymentVerification)\
+            bookingPayment = session.query(BookingPayment)\
                 .filter_by(booking_id=booking_id)\
-                .order_by(PaymentVerification.created_at.desc())\
+                .order_by(BookingPayment.created_at.desc())\
                 .first()
             
-            if verification:
-                logger.info(f"Found verification for booking {booking_id}: payment_id={verification.payment_id}")
+            if bookingPayment:
+                logger.info(f"Found bookingPayment for booking {booking_id}: payment_id={bookingPayment.payment_intent_id}")
                 return jsonify({
                     "success": True,
-                    "payment_intent_id": verification.payment_id,
-                    "amount": verification.amount,
-                    "status": verification.status
+                    "payment_intent_id": bookingPayment.payment_intent_id,
+                    "amount": bookingPayment.amount,
+                    "status": bookingPayment.status
                 })
             
             logger.error(f"No payment verification found for booking {booking_id}")

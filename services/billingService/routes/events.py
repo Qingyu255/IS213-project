@@ -70,3 +70,60 @@ def verify_event_payment():
             "success": False,
             "error": f"Error verifying payment: {str(e)}"
         }), HTTPStatus.INTERNAL_SERVER_ERROR
+
+
+@events_bp.route("/payment-ids-and-amount", methods=['GET'])
+def get_payment_ids():
+    """
+    Retrieve payment IDs and amounts for an event and organizer.
+    
+    Query Parameters:
+      - event_id: ID of the event
+      - organizer_id: ID of the organizer
+    
+    Returns:
+      JSON object containing a list of payment IDs and their corresponding amounts
+    """
+    event_id = request.args.get('event_id')
+    organizer_id = request.args.get('organizer_id')
+    
+    if not event_id or not organizer_id:
+        return jsonify({
+            "success": False,
+            "error": "Missing event_id and/or organizer_id parameter"
+        }), HTTPStatus.BAD_REQUEST
+    
+    try:
+        # Call the service method to get verifications
+        logger.debug(f"fetching verifications for event_id={event_id}, organizer_id={organizer_id}")
+        verifications = payment_verification_service.get_verifications_by_event_id_and_organizer_id(event_id, organizer_id)
+        
+        if not verifications:
+            return jsonify({
+                "success": False,
+                "error": "No payment verifications found for the given event and organizer"
+            }), HTTPStatus.NOT_FOUND
+        
+        # Extract payment IDs and amounts from the verifications
+        payment_details = [
+            {
+                "payment_id": v['payment_id'],
+                "amount": v['amount'],  # Amount in cents
+                "currency": v['currency']  # Optional: Include currency for clarity
+            }
+            for v in verifications
+        ]
+        
+        return jsonify({
+            "success": True,
+            "event_id": event_id,
+            "organizer_id": organizer_id,
+            "payment_details": payment_details
+        }), HTTPStatus.OK
+    
+    except Exception as e:
+        logger.error(f"Error retrieving payment IDs for event {event_id}: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": f"An unexpected error occurred: {str(e)}"
+        }), HTTPStatus.INTERNAL_SERVER_ERROR

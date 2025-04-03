@@ -16,3 +16,4 @@ LOGGING_QUEUE = os.getenv("RABBITMQ_QUEUE")
 TICKET_QUEUE = os.getenv("TICKET_QUEUE", "ticketmanagement_queue")
 
 BILLING_MS_URL = os.getenv("BILLING_MS_URL", "http://billing-service:5001")
+TICKET_SERVICE_URL = os.getenv("TICKET_SERVICE_URL", "http://ticket-management-service:8000")
