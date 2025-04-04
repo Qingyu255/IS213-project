@@ -100,7 +100,7 @@ class BillingClient:
         Returns:
             dict: Payment details (e.g., payment_intent_id, amount) or an error message
         """
-        url = f"{BILLING_MS_URL}/api/payments/intent/{booking_id}" #Test
+        url = f"{BILLING_MS_URL}/payments/intent/{booking_id}" #Test
         
         try:
             logger.debug(f"Fetching payment details for booking_id: {booking_id}")
