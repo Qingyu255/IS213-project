@@ -2,7 +2,15 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { Calendar, Clock, MapPin, Users, Globe, Share2 } from "lucide-react";
+import {
+  Calendar,
+  Clock,
+  MapPin,
+  Users,
+  Globe,
+  Share2,
+  Ticket,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -15,6 +23,7 @@ import { ErrorMessageCallout } from "@/components/error-message-callout";
 import { Spinner } from "@/components/ui/spinner";
 import { useParams, useRouter } from "next/navigation";
 import useAuthUser from "@/hooks/use-auth-user";
+import { getAvailableTickets } from "@/lib/api/tickets";
 
 export default function EventPage() {
   const { id } = useParams();
@@ -25,6 +34,10 @@ export default function EventPage() {
   const { getUserId } = useAuthUser();
   const userId = getUserId();
   const [loading, setLoading] = useState(false);
+  const [ticketInfo, setTicketInfo] = useState<{
+    availableTickets: number;
+    totalCapacity: number;
+  } | null>(null);
 
   const handleRefundClick = () => {
     router.push(`/events/${id}/refund`);
@@ -37,6 +50,26 @@ export default function EventPage() {
     }
     router.push(`/book/${id}`);
   };
+
+  // Fetch ticket availability
+  useEffect(() => {
+    async function fetchTicketAvailability() {
+      if (!id) return;
+
+      try {
+        const ticketData = await getAvailableTickets(id as string);
+        setTicketInfo({
+          availableTickets: ticketData.available_tickets,
+          totalCapacity: ticketData.total_capacity,
+        });
+      } catch (err) {
+        console.error("Failed to fetch ticket availability:", err);
+        // Don't set error state here as it would override the main event fetch error
+      }
+    }
+
+    fetchTicketAvailability();
+  }, [id]);
 
   // Fetch event details on component mount
   useEffect(() => {
@@ -133,9 +166,10 @@ export default function EventPage() {
                 </div>
                 <div className="flex items-center">
                   <Clock className="w-5 h-5 mr-2" />
+                  End Date:{" "}
                   {event.endDateTime
                     ? new Date(event.endDateTime).toLocaleTimeString()
-                    : "Ongoing"}
+                    : "No end date"}
                 </div>
                 <div className="flex items-center">
                   <MapPin className="w-5 h-5 mr-2" />
@@ -187,18 +221,42 @@ export default function EventPage() {
                 </div>
                 <Button
                   onClick={handleBooking}
-                  disabled={loading}
+                  disabled={
+                    loading || (ticketInfo && ticketInfo.availableTickets <= 0)
+                  }
                   className="w-full md:w-auto"
                 >
-                  {loading ? "Processing..." : "Book Now"}
+                  {loading
+                    ? "Processing..."
+                    : ticketInfo && ticketInfo.availableTickets <= 0
+                    ? "Sold Out"
+                    : "Book Now"}
                 </Button>
               </div>
               <Separator className="my-4" />
               <div className="space-y-4">
+              {event.capacity !== 0 && (
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center text-muted-foreground">
+                    <Ticket className="w-5 h-5 mr-2" />
+                    <span>Available Tickets</span>
+                  </div>
+                  <span
+                    className={
+                      ticketInfo && ticketInfo.availableTickets <= 5
+                        ? "text-red-500 font-bold"
+                        : ""
+                    }
+                  >
+                    {ticketInfo ? ticketInfo.availableTickets : "Loading..."}
+                  </span>
+                </div>
+              )}
+
                 <div className="flex items-center justify-between">
                   <div className="flex items-center text-muted-foreground">
                     <Users className="w-5 h-5 mr-2" />
-                    <span>Tickets Remaining</span>
+                    <span>Total Capacity</span>
                   </div>
                   <span>
                     {event.capacity == 0 ? "No Capacity" : event.capacity}

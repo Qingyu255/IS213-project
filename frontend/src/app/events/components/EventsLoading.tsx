@@ -14,37 +14,6 @@ export default function EventsLoading() {
           <Skeleton className="h-20 w-full max-w-2xl mx-auto" />
         </div>
 
-        {/* Browse sections skeleton */}
-        <div className="flex flex-col md:flex-row gap-5">
-          {/* Browse by Category */}
-          <div className="flex-1">
-            <Skeleton className="h-8 w-48 mb-4" />
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <Skeleton
-                  key={`category-${i}`}
-                  className="h-24 w-full rounded-lg"
-                />
-              ))}
-            </div>
-          </div>
-
-          {/* Browse by Location */}
-          <div className="flex-1">
-            <Skeleton className="h-8 w-48 mb-4" />
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton
-                  key={`location-${i}`}
-                  className="h-24 w-full rounded-lg"
-                />
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <Separator className="my-4" />
-
         {/* Events grid skeleton */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           {Array.from({ length: 9 }).map((_, i) => (

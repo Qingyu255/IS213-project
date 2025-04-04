@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     RABBITMQ_URL: str = os.getenv("RABBITMQ_URL", "amqp://guest:guest@rabbitmq:5672/")
     RABBITMQ_QUEUE: str = os.getenv("RABBITMQ_QUEUE", "logs_queue")
     FRONTEND_URL: str = os.getenv("FRONTEND_URL", "http://localhost:3000")
+    EVENTS_SERVICE_URL: str = os.getenv("EVENTS_SERVICE_URL", "http://events-service:8001")
 
 @lru_cache()
 def get_settings():

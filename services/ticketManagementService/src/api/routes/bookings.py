@@ -1,7 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, Security
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from sqlalchemy.orm import selectinload, joinedload
 from uuid import UUID
 import logging
 
@@ -11,7 +10,6 @@ from ...models.ticket import Ticket
 from ...schemas.booking import BookingRequest, BookingResponse, BookingStatus
 from ...core.auth import get_current_user_id, validate_token
 from typing import List
-import uuid
 from ...services.booking_service import BookingService, TicketFilterType
 
 router = APIRouter(tags=["bookings"])
