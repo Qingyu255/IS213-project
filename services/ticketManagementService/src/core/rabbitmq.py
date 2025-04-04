@@ -1,7 +1,6 @@
 import json
 import aio_pika
 from typing import Any, Dict, Callable, Awaitable
-from functools import partial
 from .config import get_settings
 
 settings = get_settings()
