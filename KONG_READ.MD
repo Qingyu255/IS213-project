@@ -26,8 +26,8 @@ Configuration files must be in kong/config/ directory
 
 ### Run the restoration script:
 
-` chmod +x restore-kong.sh
-./restore-kong.sh `
+``` chmod +x restore-kong.sh
+./restore-kong.sh ```
 
 ### What the Script Does
 The script performs the following operations:
@@ -37,7 +37,8 @@ Restores all routes from kong/config/kong-routes.json
 Restores all plugins from kong/config/kong-plugins.json
 
 It automatically removes fields like id, created_at, and updated_at which should not be included in POST requests.
-Troubleshooting
+
+#### Troubleshooting
 If you get errors about jq not being found, install it:
 `# For Ubuntu/Debian
 sudo apt-get install jq `

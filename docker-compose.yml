@@ -524,20 +524,35 @@ services:
       - "8102:8002" # Kong admin GUI
       - "8443:8443" # Kong proxy SSL port
       - "8444:8444" # Kong admin SSL port
-    volumes:
-      - ./restore-kong.sh:/restore-kong.sh
-      - ./kong:/kong
+
     healthcheck:
       test: ["CMD", "kong", "health"]
       interval: 10s
       timeout: 10s
       retries: 5
-    command: >
-      bash -c 'kong start && 
-      chmod +x /restore-kong.sh && 
-      sleep 30 && 
-      /restore-kong.sh'
+    command: "kong start"
 
+  #Kong Config
+  kong-config:
+    image: python:3.9-alpine
+    depends_on:
+      kong:
+        condition: service_healthy
+    volumes:
+      - ./configure-kong.sh:/configure-kong.sh
+      - ./convert-jwks.py:/convert-jwks.py
+      - ./kong:/kong
+      - ./.env:/.env
+    environment:
+      - KONG_ADMIN_URL=http://kong:8001
+    entrypoint: ["sh", "-c"]
+    command: >
+      "apk add --no-cache curl jq bash &&
+      pip install cryptography &&
+      chmod +x /configure-kong.sh &&
+      chmod +x /convert-jwks.py &&
+      /configure-kong.sh"
+  
 volumes:
   users-db-data:
   ticket-db-data:
@@ -546,6 +561,7 @@ volumes:
   billing-db-data:
   grafana-data:
   kong-data: 
+  
 networks:
   default:
     name: IS213-project-default
