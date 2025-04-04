@@ -1,7 +1,7 @@
 import { InterestCategory } from "@/enums/InterestCategory";
 import { Code, Trophy, Music, Palette, Plane, UtensilsCrossed, FlaskConical, Briefcase } from "lucide-react";
 
-export const siteName = "Mulan";
+export const siteName = "Bookaroo";
   
 export const InterestCategoryArr: InterestCategory[] = [
     InterestCategory.Technology,
