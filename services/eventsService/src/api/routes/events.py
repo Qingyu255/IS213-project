@@ -18,7 +18,7 @@ from src.core.auth import get_current_user_id, validate_token
 router = APIRouter(prefix="/events", tags=["Events"])
 
 @router.post("/create", response_model=EventCreateResponse)
-async def create_event_endpoint(event: EventCreate, db: AsyncSession = Depends(get_db), user_id: str = Depends(get_current_user_id) ):
+async def create_event_endpoint(event: EventCreate, db: AsyncSession = Depends(get_db) ):
     """
     Create a new event.
     """

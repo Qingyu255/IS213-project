@@ -36,23 +36,25 @@ class RefundService:
                     logger.warning(f"Payment {payment_intent.id} has not succeeded. Current status: {payment_intent.status}")
                     return None, f"Cannot refund payment that has not succeeded. Current status: {payment_intent.status}"
                 
-                # Verify charge exists and has succeeded
-                if not hasattr(payment_intent, 'charges') or not payment_intent.charges or not payment_intent.charges.data:
+                # Verify charge exists and has 
+                charge_id = payment_intent.latest_charge
+                if not charge_id:
                     logger.warning(f"No charges found for payment intent: {payment_intent.id}")
                     return None, "No charges found for this payment"
+                logger.info(f"Found charge ID: {charge_id}")
                 
-                charge = payment_intent.charges.data[0]
+                charge = stripe.Charge.retrieve(charge_id)
                 if charge.status != 'succeeded':
-                    logger.warning(f"Charge {charge.id} has not succeeded. Current status: {charge.status}")
+                    logger.warning(f"Charge {charge_id} has not succeeded. Current status: {charge.status}")
                     return None, f"Cannot refund charge that has not succeeded. Current status: {charge.status}"
                 
                 # Check if charge is already refunded
                 if charge.refunded:
-                    logger.warning(f"Charge {charge.id} has already been refunded")
+                    logger.warning(f"Charge {charge_id} has already been refunded")
                     return None, "This charge has already been refunded"
                 
-                charge_id = charge.id
-                logger.info(f"Charge ID retrieved: {charge_id}")
+                # charge_id = charge.id
+                # logger.info(f"Charge ID retrieved: {charge_id}")
                 
                 # Prepare refund parameters
                 refund_params = {
@@ -65,9 +67,9 @@ class RefundService:
                 if 'amount' in refund_data and refund_data['amount'] is not None:
                     refund_amount = refund_data['amount']
                     if refund_amount > charge.amount:
-                        logger.warning(f"Refund amount {refund_amount} exceeds charge amount {charge.amount}")
+                        logger.warning(f"Refund amount {refund_amount} exceeds charge amount {charge.amount_captured}")
                         return None, "Refund amount cannot exceed the original charge amount"
-                    refund_params['amount'] = refund_amount
+                    refund_params['amount'] = refund_amount 
                 
                 logger.info(f"Creating refund with parameters: {refund_params}")
                 
