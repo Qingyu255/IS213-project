@@ -2,7 +2,6 @@
 
 import { stripe } from '@/lib/stripe';
 import { BACKEND_ROUTES } from "@/constants/backend-routes";
-import Stripe from 'stripe';
 
 type CheckoutSessionResponse = {
   success: boolean;

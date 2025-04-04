@@ -49,8 +49,8 @@ class PrometheusMiddleware(BaseHTTPMiddleware):
 
 # Create FastAPI app
 app = FastAPI(
-    title="Ticket Management Service",
-    description="Service for managing event bookings and tickets",
+    title="Booking Service",
+    description="Composite Service for managing event bookings and tickets",
     version="1.0.0"
 )
 
