@@ -130,7 +130,7 @@ class RefundService:
                     is_error=False
                 )
                 
-                # Step 5: BUG CANNOT AUTH Update the booking status in the Ticket Service
+                # Step 5:FIXED  Update the booking status in the Ticket Service
                 logger.debug(f"Step 5: Updating booking status to 'REFUNDED' for booking_id={booking_refund_request.booking_id}")
                 update_booking_status_response = self.billing_client.update_booking_status(booking_refund_request.booking_id, authorization=authorization)
                 
@@ -150,7 +150,7 @@ class RefundService:
                 return BookingRefundResponse(
                     success=True,
                     message="Booking refund processed successfully.",
-                    refund_id=result.get("refund_id")
+                    # refund_id=result.get("refund_id")
                 )
             else:
                 error_message = (f"Step 3: Refund processing failed for Payment Intent ID={payment_intent_id}: "

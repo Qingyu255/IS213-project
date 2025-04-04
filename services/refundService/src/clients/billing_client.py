@@ -163,26 +163,38 @@ class BillingClient:
             response.raise_for_status()  # Raise an error for non-2xx responses
             
             data = response.json()
-            
-            if not data.get("success", False):
-                logger.error(f"Failed to update booking status for booking_id={booking_id}: {data.get('message')}")
+            logger.info(f"Received response from Ticket Service: {data}")
+        
+            # Infer success based on the presence of a valid "message" field
+            if "message" in data and "REFUNDED" in data["message"]:
+                logger.info(f"Booking {booking_id} successfully updated to 'refunded'")
+                return {
+                    "success": True,
+                    "message": data["message"],
+                    "status": "REFUNDED"  # Assume status is REFUNDED based on the message
+                }
+            else:
+                logger.error(f"Unexpected response format from Ticket Service for booking_id={booking_id}: {data}")
                 return {
                     "success": False,
-                    "message": data.get("message", "Failed to update booking status"),
-                    "status": None  # No status available in case of failure
+                    "message": "Unexpected response format from Ticket Service",
+                    "status": None
                 }
-            
-            logger.info(f"Booking {booking_id} successfully updated to 'refunded'")
+        
+        except requests.HTTPError as e:
+            # Log HTTP errors (e.g., 4xx or 5xx responses)
+            logger.error(f"HTTP error updating booking status for booking_id={booking_id}: {str(e)}")
             return {
-                "success": True,
-                "message": data.get("message", f"Booking {booking_id} updated to 'refunded' successfully"),
-                "status": data.get("status", "REFUNDED")  # Include the updated status
+                "success": False,
+                "message": f"HTTP error: {str(e)}",
+                "status": None
             }
         
         except requests.RequestException as e:
-            logger.error(f"Error updating booking status for booking_id={booking_id}: {str(e)}")
+            # Log connection or timeout errors
+            logger.error(f"Error communicating with Ticket Service for booking_id={booking_id}: {str(e)}")
             return {
                 "success": False,
                 "message": f"Error communicating with Ticket Service: {str(e)}",
-                "status": None  # No status available in case of communication error
+                "status": None
             }

@@ -212,6 +212,7 @@ services:
   rabbitmq:
     image: rabbitmq:3-management
     container_name: logging_rabbitmq
+    mem_limit: 512m
     restart: always
     ports:
       - "5672:5672"

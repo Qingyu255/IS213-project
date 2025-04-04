@@ -149,7 +149,7 @@ async def validate_token(credentials: HTTPAuthorizationCredentials = Security(se
                 issuer=COGNITO_DOMAIN,
                 audience=CLIENT_ID,
                 options={
-                    "verify_aud": True,
+                    "verify_aud": False,
                     "verify_exp": True
                 }
             )

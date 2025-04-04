@@ -42,7 +42,7 @@ def process_booking_refund(booking_refund_request: BookingRefundRequest, authori
         if not authorization:
             raise HTTPException(status_code=401, detail="Authorization header is missing")
         
-        response = refund_service.process_booking_refund(booking_refund_request)
+        response = refund_service.process_booking_refund(booking_refund_request, authorization)
         return response
     except HTTPException as exc:
         # If RefundService raises an HTTPException (e.g., with 404), re-raise it directly
