@@ -1,11 +1,12 @@
 from http import HTTPStatus
 import logging
 import os
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, redirect
 from flask_cors import CORS
 from config import Config
 import time
 from prometheus_client import Counter, Histogram, start_http_server
+from flasgger import Swagger
 
 # Import routes
 from routes.refund import refund_bp
@@ -58,6 +59,39 @@ def create_app(config_class=Config):
         }
     })
     
+    # Initialize Swagger with explicit configuration
+    swagger_config = {
+        "headers": [],
+        "specs": [
+            {
+                "endpoint": "apispec",
+                "route": "/apispec.json",
+                "rule_filter": lambda rule: True,
+                "model_filter": lambda tag: True,
+            }
+        ],
+        "static_url_path": "/flasgger_static",
+        "swagger_ui": True,
+        "specs_route": "/swagger"  # This is what we're accessing in the browser
+    }
+    
+    # Define Swagger info
+    template = {
+        "info": {
+            "title": "Billing Service API",
+            "description": "API documentation for the Billing Service",
+            "version": "1.0.0"
+        }
+    }
+    
+    # Initialize Swagger with explicit configuration
+    try:
+        swagger = Swagger(app, config=swagger_config, template=template)
+        logger.info("Swagger UI initialized successfully at /swagger")
+    except Exception as e:
+        logger.error(f"Failed to initialize Swagger UI: {str(e)}", exc_info=True)
+        # Continue without Swagger if it fails
+    
     # Initialize the database
     init_db()
     
@@ -90,6 +124,12 @@ def create_app(config_class=Config):
     def not_found_error(error):
         return jsonify({"error": "Not found"}), HTTPStatus.BAD_REQUEST
 
+    @app.errorhandler(HTTPStatus.NOT_FOUND)
+    def handle_404(error):
+        if request.path.startswith('/swagger') or request.path == '/apispec.json':
+            logger.warning(f"Swagger route not found: {request.path}. This could be a configuration issue.")
+        return jsonify({"error": "The requested URL was not found on the server."}), HTTPStatus.NOT_FOUND
+        
     @app.errorhandler(HTTPStatus.INTERNAL_SERVER_ERROR)
     def internal_error(error):
         return jsonify({"error": "Internal server error"}), HTTPStatus.INTERNAL_SERVER_ERROR
@@ -101,7 +141,19 @@ def create_app(config_class=Config):
     
     @app.route('/')
     def index():
+        """
+        Home page
+        ---
+        responses:
+          200:
+            description: Welcome message
+        """
         return 'Billing Service API'
+    
+    @app.route('/docs')
+    def docs():
+        """Redirect to Swagger UI"""
+        return redirect('/swagger')
     
     return app
 
@@ -122,7 +174,36 @@ app = create_app()
 # Health check endpoint
 @app.route('/health', methods=['GET'])
 def health_check():
-    """Health check endpoint for Docker"""
+    """
+    Health check endpoint for Docker
+    ---
+    responses:
+      200:
+        description: Service is healthy
+        schema:
+          type: object
+          properties:
+            status:
+              type: string
+              example: healthy
+            service:
+              type: string
+              example: billing-service
+            environment:
+              type: string
+              example: production
+      500:
+        description: Service is unhealthy
+        schema:
+          type: object
+          properties:
+            status:
+              type: string
+              example: unhealthy
+            error:
+              type: string
+              example: Database connection error
+    """
     try:
         return jsonify({
             "status": "healthy",

@@ -21,17 +21,31 @@ webhook_bp = Blueprint('webhook', __name__)
 @webhook_bp.route("/", methods=['POST'])
 def handle_webhook():
     """
-    [PRODUCTION] Handle Stripe webhook events with signature verification
+    Handle Stripe webhook events with signature verification
     ---
-    This endpoint processes webhook events from Stripe with proper signature verification.
-    It handles various event types including payment intents, charges, refunds, and more.
-    
-    Headers:
-      - Stripe-Signature: Signature provided by Stripe to verify the webhook
-      - X-Development-Testing: Set to "true" to bypass signature verification (development only)
-    
-    Body:
-      - Raw payload from Stripe
+    tags:
+      - Webhooks
+    description: |
+      This endpoint processes webhook events from Stripe with proper signature verification.
+      It handles various event types including payment intents, charges, refunds, and more.
+    parameters:
+      - name: Stripe-Signature
+        in: header
+        type: string
+        required: true
+        description: Signature provided by Stripe to verify the webhook
+      - name: X-Development-Testing
+        in: header
+        type: string
+        required: false
+        description: Set to "true" to bypass signature verification (development only)
+    responses:
+      200:
+        description: Webhook processed successfully
+      400:
+        description: Invalid signature or payload
+      500:
+        description: Server error
     """
     payload = request.get_data(as_text=True)
     sig_header = request.headers.get('Stripe-Signature')

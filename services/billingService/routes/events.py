@@ -16,14 +16,73 @@ events_bp = Blueprint('events', __name__)
 @events_bp.route("/verify-payment", methods=['GET'])
 def verify_event_payment():
     """
-    Verify payment status for an event by verifying completion of event_type: checkout.session.completed
-    
-    Query Parameters:
-      - event_id: ID of the event to verify payment for
-      - organizer_id: (Optional) ID of the organizer for additional verification
-    
-    Returns:
-      JSON object with payment verification details
+    Verify payment status for an event
+    ---
+    tags:
+      - Events
+    parameters:
+      - name: event_id
+        in: query
+        type: string
+        required: true
+        description: ID of the event to verify payment for
+      - name: organizer_id
+        in: query
+        type: string
+        required: true
+        description: ID of the organizer for additional verification
+    responses:
+      200:
+        description: Successfully verified payment
+        schema:
+          type: object
+          properties:
+            success:
+              type: boolean
+              example: true
+            event_id:
+              type: string
+              example: evt_123456
+            is_paid:
+              type: boolean
+              example: true
+            total_paid:
+              type: integer
+              description: Total amount paid in cents
+              example: 50000
+            currency:
+              type: string
+              example: sgd
+            verification_count:
+              type: integer
+              example: 1
+            successful_payment_count:
+              type: integer
+              example: 1
+            latest_payment:
+              type: object
+      400:
+        description: Bad request - missing parameters
+        schema:
+          type: object
+          properties:
+            success:
+              type: boolean
+              example: false
+            error:
+              type: string
+              example: Missing event_id and/or organizer_id parameter
+      500:
+        description: Server error
+        schema:
+          type: object
+          properties:
+            success:
+              type: boolean
+              example: false
+            error:
+              type: string
+              example: Error verifying payment
     """
     event_id = request.args.get('event_id')
     organizer_id = request.args.get('organizer_id')
@@ -75,14 +134,83 @@ def verify_event_payment():
 @events_bp.route("/payment-ids-and-amount", methods=['GET'])
 def get_payment_ids():
     """
-    Retrieve payment IDs and amounts for an event and organizer.
-    
-    Query Parameters:
-      - event_id: ID of the event
-      - organizer_id: ID of the organizer
-    
-    Returns:
-      JSON object containing a list of payment IDs and their corresponding amounts
+    Retrieve payment IDs and amounts for an event
+    ---
+    tags:
+      - Events
+    parameters:
+      - name: event_id
+        in: query
+        type: string
+        required: true
+        description: ID of the event
+      - name: organizer_id
+        in: query
+        type: string
+        required: true
+        description: ID of the organizer
+    responses:
+      200:
+        description: Payment details retrieved successfully
+        schema:
+          type: object
+          properties:
+            success:
+              type: boolean
+              example: true
+            event_id:
+              type: string
+              example: evt_123456
+            organizer_id:
+              type: string
+              example: org_123456
+            payment_details:
+              type: array
+              items:
+                type: object
+                properties:
+                  payment_id:
+                    type: string
+                    example: pi_1H2J3K4L5M6N7O8P9Q0R1S2T
+                  amount:
+                    type: integer
+                    example: 50000
+                  currency:
+                    type: string
+                    example: sgd
+      400:
+        description: Bad request - missing parameters
+        schema:
+          type: object
+          properties:
+            success:
+              type: boolean
+              example: false
+            error:
+              type: string
+              example: Missing event_id and/or organizer_id parameter
+      404:
+        description: No payment verifications found
+        schema:
+          type: object
+          properties:
+            success:
+              type: boolean
+              example: false
+            error:
+              type: string
+              example: No payment verifications found for the given event and organizer
+      500:
+        description: Server error
+        schema:
+          type: object
+          properties:
+            success:
+              type: boolean
+              example: false
+            error:
+              type: string
+              example: An unexpected error occurred
     """
     event_id = request.args.get('event_id')
     organizer_id = request.args.get('organizer_id')
