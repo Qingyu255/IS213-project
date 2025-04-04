@@ -407,28 +407,28 @@ def handle_checkout_completed(event):
                 db_session.commit()
                 logger.info(f"Saved to booking_payments: {booking_payment.to_dict()}")
                 
-                # Update booking status
-                try:
-                    booking_service_url = os.getenv('BOOKING_SERVICE_URL', 'http://booking-service:8002')
-                    response = requests.post(
-                        f"{booking_service_url}/api/v1/bookings/{booking_id}/confirm",
-                        params={
-                            "session_id": session['id']  # Required by booking service
-                        },
-                        json={
-                            "payment_intent_id": payment_intent_id,
-                            "amount": amount_total,
-                            "currency": currency
-                        }
-                    )
+                # # Update booking status
+                # try:
+                #     booking_service_url = os.getenv('BOOKING_SERVICE_URL', 'http://booking-service:8002')
+                #     response = requests.post(
+                #         f"{booking_service_url}/api/v1/bookings/{booking_id}/confirm",
+                #         params={
+                #             "session_id": session['id']  # Required by booking service
+                #         },
+                #         json={
+                #             "payment_intent_id": payment_intent_id,
+                #             "amount": amount_total,
+                #             "currency": currency
+                #         }
+                #     )
                     
-                    if response.status_code != 200:
-                        logger.error(f"Failed to update booking status: {response.text}")
-                    else:
-                        logger.info(f"Successfully updated booking status for booking {booking_id}")
-                except Exception as e:
-                    logger.error(f"Error updating booking status: {str(e)}")
-                    # Don't return error - continue with verification storage
+                #     if response.status_code != 200:
+                #         logger.error(f"Failed to update booking status: {response.text}")
+                #     else:
+                #         logger.info(f"Successfully updated booking status for booking {booking_id}")
+                # except Exception as e:
+                #     logger.error(f"Error updating booking status: {str(e)}")
+                #     # Don't return error - continue with verification storage
         except Exception as e:
             logger.error(f"Failed to save booking payment: {str(e)}")
     

@@ -338,15 +338,15 @@ def confirm_booking(
             raise HTTPException(status_code=400, detail=f"Payment verification failed: {error}")
 
         # Store payment intent information
-        booking_controller.billing_service.store_payment_intent(
-            booking_id=booking_id,
-            payment_intent_id=session_id,  # This might need to be retrieved from Stripe
-            session_id=session_id,
-            amount=total_amount,
-            currency="sgd",
-            customer_email=booking.get("email"),
-            customer_name=claims.get("name")  # Assuming name is in the claims
-        )
+        # booking_controller.billing_service.store_payment_intent(
+        #     booking_id=booking_id,
+        #     payment_intent_id=session_id,  # This might need to be retrieved from Stripe
+        #     session_id=session_id,
+        #     amount=total_amount,
+        #     currency="sgd",
+        #     customer_email=booking.get("email"),
+        #     customer_name=claims.get("name")  # Assuming name is in the claims
+        # )
 
         # Call the controller's confirm_booking method
         result = booking_controller.confirm_booking(
