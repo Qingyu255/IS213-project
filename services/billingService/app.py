@@ -40,7 +40,7 @@ def register_blueprints(app):
     app.register_blueprint(refund_bp, url_prefix="/api/refund")
     app.register_blueprint(webhook_bp, url_prefix="/api/webhook")
     app.register_blueprint(events_bp, url_prefix="/api/events")
-    app.register_blueprint(payments_bp, url_prefix="/api/payments")
+    app.register_blueprint(payments_bp, url_prefix="/payments")
 
 def create_app(config_class=Config):
     """Application factory function"""

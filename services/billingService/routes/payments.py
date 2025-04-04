@@ -165,3 +165,27 @@ def get_payment_intent(booking_id):
             "success": False,
             "error": str(e)
         }), 500 
+    
+@payments_bp.route('/<booking_id>/verify', methods=['GET'])
+def verify_payment(booking_id):
+    try:
+        with get_session() as session:
+            payment = session.query(BookingPayment)\
+            .filter_by(booking_id=booking_id)\
+            .first()
+
+        if payment:
+            return jsonify({
+                "is_paid": True,
+                "error": None
+                })
+
+
+        return jsonify({
+            "is_paid": False,
+            "error": "Payment not found or not paid"
+            })
+    except Exception as e:
+        return jsonify({
+            "error": f"Failed to verify payment: {str(e)}"
+            })
