@@ -1,8 +1,9 @@
 package IS213.G4T7.createEventService.services.utils;
 
+import org.springframework.beans.factory.annotation.Value;
+
 import IS213.G4T7.createEventService.dto.BasicUserData;
 import IS213.G4T7.createEventService.dto.EmailData;
-import org.springframework.beans.factory.annotation.Value;
 
 public class EmailTemplateEnricher {
     @Value("${frontend.url}")
@@ -18,7 +19,7 @@ public class EmailTemplateEnricher {
 
         // Set recipient email from BasicUserData; adjust getEmail() if needed.
         emailData.setEmail(basicUserData.getEmail());
-        emailData.setSubject("Upcoming Event in " + eventCategory + " on Mulan!");
+        emailData.setSubject("Upcoming Event in " + eventCategory + " on Bookaroo!");
 
         // Create a fixed template with personalization
         String body = String.format(

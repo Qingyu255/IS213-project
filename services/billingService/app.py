@@ -90,7 +90,6 @@ def create_app(config_class=Config):
         logger.info("Swagger UI initialized successfully at /swagger")
     except Exception as e:
         logger.error(f"Failed to initialize Swagger UI: {str(e)}", exc_info=True)
-        # Continue without Swagger if it fails
     
     # Initialize the database
     init_db()

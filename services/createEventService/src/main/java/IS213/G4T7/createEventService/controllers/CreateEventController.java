@@ -112,7 +112,7 @@ public class CreateEventController {
                     "- Categories: %s\n\n" +
                     "You can view and manage your event in your dashboard.\n\n" +
                     "Best regards,\n" +
-                    "Mulan Event Team",
+                    "Bookaroo Event Team",
                     eventDetails.getOrganizer().getUsername(),
                     eventDetails.getTitle(),
                     eventDetails.getTitle(),
