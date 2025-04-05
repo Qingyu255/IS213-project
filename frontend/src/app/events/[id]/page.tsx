@@ -45,7 +45,7 @@ export default function EventPage() {
 
   const handleBooking = async () => {
     if (!userId) {
-      router.push("/auth/signin");
+      router.push("/auth/login");
       return;
     }
     router.push(`/book/${id}`);
