@@ -12,6 +12,8 @@ import { Spinner } from "@/components/ui/spinner"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { BACKEND_ROUTES } from "@/constants/backend-routes"
 import { MapPin, Calendar } from "lucide-react"
+import useAuthUser from "@/hooks/use-auth-user"
+import { getAvailableTickets } from "@/lib/api/tickets"
 
 interface BookingFormData {
   quantity: number
@@ -58,6 +60,11 @@ export default function BookingPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [event, setEvent] = useState<EventDetails | null>(null)
+  const { getUserId } = useAuthUser()
+  const userId = getUserId()
+  const [ticketInfo, setTicketInfo] = useState<{
+    availableTickets: number
+  } | null>(null)
 
   useEffect(() => {
     async function fetchEvent() {
@@ -65,9 +72,6 @@ export default function BookingPage() {
 
       try {
         const bearerToken = await getBearerIdToken()
-        if (!bearerToken) {
-          throw new Error("Please sign in to view event details")
-        }
 
         const response = await fetch(
           `${BACKEND_ROUTES.eventsService}/api/v1/events/${params.id}`,
@@ -91,8 +95,34 @@ export default function BookingPage() {
     fetchEvent()
   }, [params?.id])
 
+  // Fetch ticket availability
+  useEffect(() => {
+    async function fetchTicketAvailability() {
+      if (!userId) {
+        setTicketInfo(null) // Set to null when not logged in
+        return
+      }
+
+      try {
+        const ticketData = await getAvailableTickets(params.id as string)
+        setTicketInfo({
+          availableTickets: ticketData.available_tickets,
+        })
+      } catch (err) {
+        console.error("Failed to fetch ticket availability:", err)
+        setTicketInfo(null)
+      }
+    }
+
+    fetchTicketAvailability()
+  }, [params.id, userId])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!userId) {
+      router.push("/auth/login")
+      return
+    }
     if (!event || !params?.id) return
     if (loading || isRedirecting) return // Prevent double submission
 
@@ -249,6 +279,15 @@ export default function BookingPage() {
                   <span>${totalPrice.toFixed(2)}</span>
                 </div>
               </div>
+            </div>
+
+            <div className="flex justify-between">
+              <span className="font-medium">Available Tickets:</span>
+              <span>
+                {ticketInfo != null
+                  ? ticketInfo.availableTickets
+                  : "Sign in to view"}
+              </span>
             </div>
           </CardContent>
         </Card>

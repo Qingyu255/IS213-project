@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { BookingStatus } from "@/types/booking";
 import { fetchAuthSession } from "aws-amplify/auth";
+import { getBearerIdToken, getBearerToken } from "@/utils/auth"
 
 const TICKET_SERVICE_URL =
   process.env.NEXT_PUBLIC_TICKET_SERVICE_URL || "http://localhost:8000";
@@ -206,27 +207,28 @@ export async function getEventTickets(eventId: string): Promise<Ticket[]> {
   return response.json();
 }
 
-export async function getAvailableTickets(
-  eventId: string
-): Promise<{ available_tickets: number; total_capacity: number }> {
-  if (!isValidUUID(eventId)) {
-    throw new Error("Invalid event ID format. Must be a valid UUID.");
-  }
-  const headers = await getAuthHeaders();
-  const response = await fetch(
-    `${TICKET_SERVICE_URL}/api/v1/tickets/event/${eventId}/available`,
-    {
-      headers,
+export async function getAvailableTickets(eventId: string) {
+  try {
+    const headers = await getAuthHeaders()
+    // Check if headers is missing Authorization
+    if (!(headers as Record<string, string>)['Authorization']) {
+      return { available_tickets: null }
     }
-  );
-  if (!response.ok) {
-    throw new Error("Failed to fetch available tickets");
+
+    const response = await fetch(
+      `${TICKET_SERVICE_URL}/api/v1/tickets/event/${eventId}/available`,
+      { headers }
+    )
+
+    if (!response.ok) {
+      return { available_tickets: null }
+    }
+
+    return await response.json()
+  } catch (error) {
+    console.error("Error fetching tickets:", error)
+    return { available_tickets: null }
   }
-  const data = await response.json();
-  return {
-    available_tickets: data.available_tickets === -1 ? "unlimited" : data.available_tickets,
-    total_capacity: data.total_capacity,
-  };
 }
 
 export async function testAuth(): Promise<any> {

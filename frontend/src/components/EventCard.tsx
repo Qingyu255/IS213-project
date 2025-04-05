@@ -136,7 +136,9 @@ export function EventCard({
           <CardFooter className="flex justify-between pt-4">
             <div className="text-sm text-muted-foreground">
               {event.ticketInfo
-                ? event.ticketInfo.availableTickets === "Unlimited"
+                ? event.ticketInfo.availableTickets === null
+                  ? "Sign in to View Availability"
+                  : event.ticketInfo.availableTickets === "Unlimited"
                   ? "No Capacity Limit"
                   : `${event.ticketInfo.availableTickets}/${event.ticketInfo.totalCapacity} Available`
                 : "Tickets loading..."}
