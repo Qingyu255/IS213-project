@@ -37,10 +37,6 @@ export default function EventPage() {
     availableTickets: number;
   } | null>(null);
 
-  const handleRefundClick = () => {
-    router.push(`/events/${id}/refund`);
-  };
-
   const handleBooking = async () => {
     if (!userId) {
       router.push("/auth/login");
@@ -54,7 +50,7 @@ export default function EventPage() {
     async function fetchTicketAvailability() {
       if (!userId) {
         return;
-      };
+      }
 
       try {
         const ticketData = await getAvailableTickets(id as string);
@@ -221,7 +217,8 @@ export default function EventPage() {
                 <Button
                   onClick={handleBooking}
                   disabled={
-                    isLoading || (ticketInfo != null && ticketInfo.availableTickets <= 0)
+                    isLoading ||
+                    (ticketInfo != null && ticketInfo.availableTickets <= 0)
                   }
                   className="w-full md:w-auto"
                 >
@@ -234,24 +231,26 @@ export default function EventPage() {
               </div>
               <Separator className="my-4" />
               <div className="space-y-4">
-              {event.capacity !== 0 && (
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center text-muted-foreground">
-                    <Ticket className="w-5 h-5 mr-2" />
-                    <span>Available Tickets</span>
+                {event.capacity !== 0 && (
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center text-muted-foreground">
+                      <Ticket className="w-5 h-5 mr-2" />
+                      <span>Available Tickets</span>
+                    </div>
+                    <span
+                      className={
+                        ticketInfo && ticketInfo.availableTickets <= 5
+                          ? "text-red-500 font-bold"
+                          : ""
+                      }
+                    >
+                      {/* where ticketInfo == null suggests that the user is not signed in */}
+                      {ticketInfo != null
+                        ? ticketInfo.availableTickets
+                        : "Sign in to view"}
+                    </span>
                   </div>
-                  <span
-                    className={
-                      ticketInfo && ticketInfo.availableTickets <= 5
-                        ? "text-red-500 font-bold"
-                        : ""
-                    }
-                  >
-                    {/* where ticketInfo == null suggests that the user is not signed in */}
-                    {ticketInfo != null ? ticketInfo.availableTickets : "Sign in to view"}
-                  </span>
-                </div>
-              )}
+                )}
 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center text-muted-foreground">
@@ -275,10 +274,8 @@ export default function EventPage() {
                   </Button>
                 </div>
               </div>
-            </div>
-
-            {/* Organizer Card */}
-            <div className="bg-card rounded-lg p-6 shadow-lg">
+              <Separator className="my-4"/>
+              {/* Organizer Details */}
               <h3 className="font-bold mb-4">Organized by</h3>
               <div className="flex items-center gap-4">
                 <Avatar className="w-12 h-12">
