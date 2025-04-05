@@ -1,13 +1,13 @@
-"use client"
+"use client";
 
-import { useRouter, useParams } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { CheckCircle } from "lucide-react"
+import { useRouter, useParams } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CheckCircle } from "lucide-react";
 
 export default function RefundSuccessPage() {
-  const router = useRouter()
-  const params = useParams()
+  const router = useRouter();
+  const params = useParams();
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -34,6 +34,6 @@ export default function RefundSuccessPage() {
         </Card>
       </div>
     </div>
-  )
+  );
 }
 

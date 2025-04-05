@@ -1,25 +1,25 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { EventTimeline } from "./components/event-timeline"
-import { Badge } from "@/components/ui/badge"
+import { useEffect, useState } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { EventTimeline } from "./components/event-timeline";
+import { Badge } from "@/components/ui/badge";
 import {
   getUserBookings,
   getUserEventTickets,
   type BookingResponse,
   updateBookingStatus,
-} from "@/lib/api/tickets"
-import useAuthUser from "@/hooks/use-auth-user"
-import { Spinner } from "@/components/ui/spinner"
-import { ErrorMessageCallout } from "@/components/error-message-callout"
-import { HostingEvents } from "./components/hosting-events"
-import { fetchAuthSession } from "@aws-amplify/core"
-import { Route } from "@/enums/Route"
-import { useRouter } from "next/navigation"
-import { getEventById, getUserHostedEvents } from "@/lib/api/events"
-import { toast } from "sonner"
-import type { EventDetails } from "@/types/event"
+} from "@/lib/api/tickets";
+import useAuthUser from "@/hooks/use-auth-user";
+import { Spinner } from "@/components/ui/spinner";
+import { ErrorMessageCallout } from "@/components/error-message-callout";
+import { HostingEvents } from "./components/hosting-events";
+import { fetchAuthSession } from "@aws-amplify/core";
+import { Route } from "@/enums/Route";
+import { useRouter } from "next/navigation";
+import { getEventById, getUserHostedEvents } from "@/lib/api/events";
+import { toast } from "sonner";
+import type { EventDetails } from "@/types/event";
 
 interface EventBooking {
   eventId: string
@@ -52,22 +52,22 @@ interface TimelineEvent {
 }
 
 export default function MyEventsPage() {
-  const router = useRouter()
-  const [activeTab, setActiveTab] = useState("attending")
-  const [activeStatusTab, setActiveStatusTab] = useState("all")
-  const [hostedEvents, setHostedEvents] = useState<EventDetails[]>([])
-  const [eventBookings, setEventBookings] = useState<EventBooking[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const { user, getUserId, getUsername } = useAuthUser()
-  const userId = getUserId()
-  const username = getUsername()
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState("attending");
+  const [activeStatusTab, setActiveStatusTab] = useState("all");
+  const [hostedEvents, setHostedEvents] = useState<EventDetails[]>([]);
+  const [eventBookings, setEventBookings] = useState<EventBooking[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { user, getUserId, getUsername } = useAuthUser();
+  const userId = getUserId();
+  const username = getUsername();
 
-  const [hostingCount, setHostingCount] = useState(0)
+  const [hostingCount, setHostingCount] = useState(0);
 
   useEffect(() => {
-    setHostingCount(hostedEvents.length)
-  }, [hostedEvents])
+    setHostingCount(hostedEvents.length);
+  }, [hostedEvents]);
 
   // -----------------------
   // Auth check on mount (DO NOT MODIFY)
@@ -75,26 +75,26 @@ export default function MyEventsPage() {
   useEffect(() => {
     async function checkSession() {
       try {
-        const session = await fetchAuthSession()
-        const token = session.tokens?.accessToken
+        const session = await fetchAuthSession();
+        const token = session.tokens?.accessToken;
         if (!token) {
-          router.replace(Route.Login)
+          router.replace(Route.Login);
         } else {
-          setIsLoading(false)
+          setIsLoading(false);
         }
       } catch (err) {
-        console.error("Session check failed:", err)
-        router.replace(Route.Login)
+        console.error("Session check failed:", err);
+        router.replace(Route.Login);
       }
     }
-    checkSession()
-  }, [router])
+    checkSession();
+  }, [router]);
 
   useEffect(() => {
     async function fetchBookingsAndTickets() {
       if (!userId) {
-        console.log("No user ID (custom:id) available, skipping fetch")
-        setIsLoading(false)
+        console.log("No user ID (custom:id) available, skipping fetch");
+        setIsLoading(false);
         setError(
           "Unable to find your user ID (custom:id). This could be because:\n" +
             "1. You are not logged in\n" +
@@ -103,45 +103,45 @@ export default function MyEventsPage() {
             "Please try:\n" +
             "1. Logging out and logging in again\n" +
             "2. If the issue persists, contact support to verify your account setup"
-        )
-        return
+        );
+        return;
       }
 
-      console.log("=== Debug Info ===")
-      console.log("User object:", user)
-      console.log("Fetching bookings for user ID (custom:id):", userId)
-      console.log("Username:", username)
+      console.log("=== Debug Info ===");
+      console.log("User object:", user);
+      console.log("Fetching bookings for user ID (custom:id):", userId);
+      console.log("Username:", username);
 
       try {
-        setIsLoading(true)
-        setError(null)
+        setIsLoading(true);
+        setError(null);
 
         // Add a delay to ensure the component is mounted
-        await new Promise((resolve) => setTimeout(resolve, 500))
+        await new Promise((resolve) => setTimeout(resolve, 500));
 
-        console.log("Making API call to get user bookings...")
-        const bookings = await getUserBookings(userId)
-        console.log("Bookings API Response:", bookings)
+        console.log("Making API call to get user bookings...");
+        const bookings = await getUserBookings(userId);
+        console.log("Bookings API Response:", bookings);
 
         // Group bookings by event ID
-        const bookingsByEvent: Record<string, BookingResponse[]> = {}
+        const bookingsByEvent: Record<string, BookingResponse[]> = {};
 
         bookings.forEach((booking) => {
-          const eventId = booking.event_id
+          const eventId = booking.event_id;
           if (!bookingsByEvent[eventId]) {
-            bookingsByEvent[eventId] = []
+            bookingsByEvent[eventId] = [];
           }
-          bookingsByEvent[eventId].push(booking)
-        })
+          bookingsByEvent[eventId].push(booking);
+        });
 
         // Create event objects with their bookings and ticket details
-        const eventBookingsData: EventBooking[] = []
+        const eventBookingsData: EventBooking[] = [];
         for (const [eventId, eventBookings] of Object.entries(
           bookingsByEvent
         )) {
           try {
-            const eventTickets = await getUserEventTickets(userId, eventId)
-            const eventDetails = await getEventById(eventId)
+            const eventTickets = await getUserEventTickets(userId, eventId);
+            const eventDetails = await getEventById(eventId);
             eventBookingsData.push({
               eventId,
               bookings: eventBookings,
@@ -150,70 +150,70 @@ export default function MyEventsPage() {
                 event_details: eventDetails,
                 ...eventTickets,
               },
-            })
+            });
           } catch (eventError) {
-            console.error("Error fetching event tickets:", eventError)
+            console.error("Error fetching event tickets:", eventError);
             // Continue with other events even if one fails
           }
         }
 
-        setEventBookings(eventBookingsData)
+        setEventBookings(eventBookingsData);
       } catch (error) {
-        console.error("Error fetching bookings and tickets:", error)
-        setError("Failed to load your events. Please try again later.")
+        console.error("Error fetching bookings and tickets:", error);
+        setError("Failed to load your events. Please try again later.");
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
       }
     }
 
     async function fetchHostedEvents() {
       if (!userId) {
-        setIsLoading(false)
-        return
+        setIsLoading(false);
+        return;
       }
 
       try {
         // Get events where user is the organizer
-        const eventsUserIsHosting = await getUserHostedEvents(userId)
-        setHostedEvents(eventsUserIsHosting)
+        const eventsUserIsHosting = await getUserHostedEvents(userId);
+        setHostedEvents(eventsUserIsHosting);
       } catch (err) {
-        console.error("Error fetching hosted events:", err)
-        setError("Failed to load your hosted events")
+        console.error("Error fetching hosted events:", err);
+        setError("Failed to load your hosted events");
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
       }
     }
 
-    fetchBookingsAndTickets()
-    fetchHostedEvents()
-  }, [userId, user, username])
+    fetchBookingsAndTickets();
+    fetchHostedEvents();
+  }, [userId, user, username]);
 
   const handleBookingAction = async (
     bookingId: string,
     action: "cancel" | "refund"
   ) => {
     try {
-      await updateBookingStatus(bookingId, action)
+      await updateBookingStatus(bookingId, action);
       // Refresh bookings after action
       if (userId) {
-        const updatedBookings = await getUserBookings(userId)
+        const updatedBookings = await getUserBookings(userId);
 
-        const bookingsByEvent: Record<string, BookingResponse[]> = {}
+        const bookingsByEvent: Record<string, BookingResponse[]> = {};
         updatedBookings.forEach((booking) => {
-          const eventId = booking.event_id
+          const eventId = booking.event_id;
           if (!bookingsByEvent[eventId]) {
-            bookingsByEvent[eventId] = []
+            bookingsByEvent[eventId] = [];
           }
-          bookingsByEvent[eventId].push(booking)
-        })
+          bookingsByEvent[eventId].push(booking);
+        });
 
-        const updatedEventBookings: EventBooking[] = []
+        const updatedEventBookings: EventBooking[] = [];
         for (const [eventId, eventBookings] of Object.entries(
           bookingsByEvent
         )) {
           try {
-            const eventTickets = await getUserEventTickets(userId, eventId)
-            const eventDetails = await getEventById(eventId)
+            const eventTickets = await getUserEventTickets(userId, eventId);
+            const eventDetails = await getEventById(eventId);
             updatedEventBookings.push({
               eventId,
               bookings: eventBookings,
@@ -222,43 +222,43 @@ export default function MyEventsPage() {
                 event_details: eventDetails,
                 ...eventTickets,
               },
-            })
+            });
           } catch (eventError) {
-            console.error("Error fetching event tickets:", eventError)
+            console.error("Error fetching event tickets:", eventError);
           }
         }
 
-        setEventBookings(updatedEventBookings)
+        setEventBookings(updatedEventBookings);
       }
       toast.success("Success", {
         description: `Booking ${action}ed successfully`,
-      })
+      });
     } catch (err) {
       const errorMessage =
-        err instanceof Error ? err.message : `Failed to ${action} booking`
+        err instanceof Error ? err.message : `Failed to ${action} booking`;
       toast.error("Error", {
         description: errorMessage,
-      })
-      throw err
+      });
+      throw err;
     }
-  }
+  };
 
   // Filter events based on active status tab
   const filterEventsByStatus = (events: TimelineEvent[]) => {
-    if (activeStatusTab === "all") return events
+    if (activeStatusTab === "all") return events;
 
     return events.filter((event) =>
       event.bookings.some((booking) => {
         if (activeStatusTab === "confirmed")
-          return booking.status === "CONFIRMED"
-        if (activeStatusTab === "pending") return booking.status === "PENDING"
+          return booking.status === "CONFIRMED";
+        if (activeStatusTab === "pending") return booking.status === "PENDING";
         if (activeStatusTab === "cancelled")
-          return booking.status === "CANCELED"
-        if (activeStatusTab === "refunded") return booking.status === "REFUNDED"
-        return false
+          return booking.status === "CANCELED";
+        if (activeStatusTab === "refunded") return booking.status === "REFUNDED";
+        return false;
       })
-    )
-  }
+    );
+  };
 
   // Convert events to the format expected by EventTimeline
   const attendingEvents: TimelineEvent[] = eventBookings.map(
@@ -277,17 +277,17 @@ export default function MyEventsPage() {
       })),
       ticketDetails: eventWithBookings.ticketDetails,
     })
-  )
+  );
 
   // Filter events based on status tab
-  const filteredAttendingEvents = filterEventsByStatus(attendingEvents)
+  const filteredAttendingEvents = filterEventsByStatus(attendingEvents);
 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Spinner size="lg" />
       </div>
-    )
+    );
   }
 
   if (!userId) {
@@ -295,7 +295,7 @@ export default function MyEventsPage() {
       <div className="flex justify-center items-center h-screen">
         <Spinner size="lg" className="bg-black dark:bg-white" />
       </div>
-    )
+    );
   }
 
   if (error) {
@@ -303,7 +303,7 @@ export default function MyEventsPage() {
       <div className="min-h-screen bg-background p-4">
         <ErrorMessageCallout errorMessage={error} />
       </div>
-    )
+    );
   }
 
   if (!user?.isLoggedIn) {
@@ -313,7 +313,7 @@ export default function MyEventsPage() {
           <p>Please log in to view your events.</p>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -387,5 +387,5 @@ export default function MyEventsPage() {
         </Tabs>
       </div>
     </div>
-  )
+  );
 }

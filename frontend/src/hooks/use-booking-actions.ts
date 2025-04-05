@@ -1,34 +1,34 @@
-"use client"
+"use client";
 
-import { useState } from "react"
+import { useState } from "react";
 import { updateBookingStatus } from "@/lib/api/tickets";
-import { toast } from "sonner"
+import { toast } from "sonner";
 
 export function useBookingActions() {
-  const [processingBookingId, setProcessingBookingId] = useState<string | null>(null)
+  const [processingBookingId, setProcessingBookingId] = useState<string | null>(null);
 
   const handleBookingAction = async (bookingId: string, action: "cancel" | "refund") => {
-    setProcessingBookingId(bookingId)
+    setProcessingBookingId(bookingId);
     try {
-      await updateBookingStatus(bookingId, action)
+      await updateBookingStatus(bookingId, action);
       toast.success("Success", {
         description: `Booking ${action}ed successfully`,
-      })
-      return true
+      });
+      return true;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : `Failed to ${action} booking`
+      const errorMessage = err instanceof Error ? err.message : `Failed to ${action} booking`;
       toast.error("Error", {
         description: errorMessage,
-      })
-      throw err
+      });
+      throw err;
     } finally {
-      setProcessingBookingId(null)
+      setProcessingBookingId(null);
     }
-  }
+  };
 
   return {
     processingBookingId,
     handleBookingAction,
-  }
+  };
 }
 

@@ -11,7 +11,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { deleteEvent } from "@/lib/api/events";
 
 interface HostingEventsProps {
-  events: EventDetails[];
+  events: EventDetails[]
 }
 
 export function HostingEvents({ events }: HostingEventsProps) {
@@ -32,16 +32,17 @@ export function HostingEvents({ events }: HostingEventsProps) {
 
   const handleDeleteEvent = async () => {
     if (!eventToDelete) return;
-    
+
     try {
       setIsDeleting(true);
-      
+
       await deleteEvent(eventToDelete);
-      
+
       // Remove the deleted event from state
-      setHostingEvents(prev => prev.filter(event => event.id !== eventToDelete));
+      setHostingEvents((prev) =>
+        prev.filter((event) => event.id !== eventToDelete)
+      );
       toast.success("Event deleted successfully");
-      
     } catch (error) {
       console.error("Error deleting event:", error);
       toast.error("Failed to delete event");
@@ -81,15 +82,15 @@ export function HostingEvents({ events }: HostingEventsProps) {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {hostingEvents.map((event) => (
-          <HostingEventCard 
-            key={event.id} 
-            event={event} 
+          <HostingEventCard
+            key={event.id}
+            event={event}
             onEdit={handleEditEvent}
             onDelete={openDeleteDialog}
           />
         ))}
       </div>
-      
+
       {/* Custom delete confirmation modal */}
       {showDeleteDialog && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -97,19 +98,19 @@ export function HostingEvents({ events }: HostingEventsProps) {
             <div className="p-6">
               <h3 className="text-lg font-semibold mb-2">Are you sure?</h3>
               <p className="text-muted-foreground mb-4">
-                This action cannot be undone. This will permanently delete the event 
-                and any associated data.
+                This action cannot be undone. This will permanently delete the
+                event and any associated data.
               </p>
-              
+
               <div className="flex justify-end space-x-2">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   onClick={closeDeleteDialog}
                   disabled={isDeleting}
                 >
                   Cancel
                 </Button>
-                <Button 
+                <Button
                   variant="destructive"
                   onClick={handleDeleteEvent}
                   disabled={isDeleting}
