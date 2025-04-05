@@ -2,6 +2,7 @@ package IS213.G4T7.createEventService.services.Impl;
 
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -22,7 +23,7 @@ public class NotificationServiceImpl implements NotificationService {
 
     private final RestTemplate restTemplate;
 
-    public NotificationServiceImpl(RestTemplate restTemplate) {
+    public NotificationServiceImpl(@Qualifier("notificationRestTemplate") RestTemplate restTemplate) {
         this.restTemplate = restTemplate;
     }
 
