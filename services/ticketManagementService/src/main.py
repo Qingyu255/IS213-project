@@ -13,8 +13,8 @@ from prometheus_client import make_asgi_app, Counter, Histogram
 import time
 from starlette.middleware.base import BaseHTTPMiddleware
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
+# Configure logging to show debug messages
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 # Get settings

@@ -12,6 +12,11 @@ from ...core.auth import validate_token
 from datetime import datetime
 from pydantic import BaseModel
 from ...core.config import get_settings
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -53,57 +58,92 @@ class BookingController:
                 message=f"Received booking request for event: {booking_details.event_id}",
                 transaction_id=transaction_id
             )
-
-            # 2a. Fetch and validate event details
+            
+            # 2. Get event details and safely convert price once
             event = self.event_service.get_event(booking_details.event_id)
             if not event:
                 raise HTTPException(status_code=404, detail="Event not found")
+            
+            try:
+                price = float(event.get("price", 0))
+                capacity = int(event.get("capacity", 0))
+            except ValueError:
+                raise HTTPException(status_code=400, detail="Invalid price or capacity format in event data")
 
-            # 2b. Check ticket availability
+            # 3. Check ticket availability
             availability = self.ticket_service.get_available_tickets(
                 event_id=booking_details.event_id,
                 auth_token=auth_token
             )
-            
-            if availability["available_tickets"] < booking_details.ticket_quantity:
-                raise HTTPException(
-                    status_code=400,
-                    detail=(
-                        f"Only {availability['available_tickets']} tickets available "
-                        f"(requested: {booking_details.ticket_quantity}, "
-                        f"total capacity: {availability['total_capacity']}, "
-                        f"already booked: {availability['booked_tickets']})"
-                    )
-                )
 
-            # 3. Calculate total amount
-            total_amount = float(event["price"]) * booking_details.ticket_quantity
+            # Debug the raw response
+            print("DEBUG: Raw availability response:", availability)
+            print("DEBUG: Type of available_tickets:", type(availability["available_tickets"]))
+            print("DEBUG: Value of available_tickets:", availability["available_tickets"])
+            print("DEBUG: Comparison result:", availability["available_tickets"] == -1)
+
+            logger.debug(f"Availability response: {availability}")
+            available_tickets = int(availability["available_tickets"])
+            logger.debug(f"Available tickets: {available_tickets}, type: {type(available_tickets)}")
+            logger.debug(f"Booking quantity: {booking_details.ticket_quantity}, type: {type(booking_details.ticket_quantity)}")
+
+            # If it's -1, it means unlimited tickets
+            if available_tickets == -1:
+                logger.debug("Unlimited tickets detected, allowing booking")
+                pass
+            else:
+                # Simple numeric comparison
+                if int(available_tickets) < int(booking_details.ticket_quantity):
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Only {available_tickets} tickets available"
+                    )
 
             # 4. Create booking record
             booking = self.ticket_service.create_booking(
                 event_id=booking_details.event_id,
                 user_id=booking_details.user_id,
                 ticket_quantity=booking_details.ticket_quantity,
-                total_amount=total_amount,
+                total_amount=price * booking_details.ticket_quantity,
                 auth_token=auth_token,
                 email=booking_details.email
             )
 
-            # 5. Log booking creation
-            self.logging_service.send_log(
-                level="info",
-                message=f"Created pending booking {booking['booking_id']} for event {event['id']}",
-                transaction_id=transaction_id
-            )
+            # 5. If event is free, auto-confirm the booking
+            if price == 0:
+                self.ticket_service.update_booking_status(
+                    booking_id=booking["booking_id"],
+                    status=BookingStatus.CONFIRMED.value,
+                    auth_token=auth_token
+                )
+
+                # Send confirmation for free event
+                try:
+                    self.notification_service.send_booking_confirmation(
+                        booking_id=booking["booking_id"],
+                        customer_email=booking["email"],
+                        event_name=event["name"],
+                        ticket_quantity=booking["ticket_quantity"],
+                        total_amount=0,
+                        user_id=booking["user_id"],
+                        event_datetime=event["datetime"],
+                        additional_info={
+                            "payment_id": None,
+                            "currency": "SGD",
+                            "type": "free_event"
+                        }
+                    )
+                except Exception as e:
+                    logger.error(f"Error sending free event confirmation: {str(e)}")
 
             return BookingResponse(
-                status="PENDING",
+                status=BookingStatus.CONFIRMED.value if price == 0 else BookingStatus.PENDING.value,
                 booking_id=booking["booking_id"],
                 event_id=booking_details.event_id,
                 user_id=booking_details.user_id,
                 ticket_quantity=booking_details.ticket_quantity,
                 created_at=booking.get("created_at", datetime.now()),
-                message="Booking created successfully. Please complete payment."
+                message="Free event booking confirmed successfully" if price == 0 else "Pending payment"
             )
 
         except HTTPException as he:

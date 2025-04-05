@@ -18,6 +18,7 @@ export interface BookingResponse {
   created_at: string;
   updated_at: string;
   tickets: Ticket[];
+  total_amount: number;
 }
 
 export interface Ticket {
@@ -66,19 +67,20 @@ function isValidUUID(uuid: string) {
   return true; // Skip validation for now to troubleshoot the API connection
 }
 
-export async function createBooking(
-  bookingData: BookingRequest
-): Promise<BookingResponse> {
+export async function createBooking(bookingData: BookingRequest): Promise<BookingResponse> {
   const headers = await getAuthHeaders();
   const response = await fetch(`${TICKET_SERVICE_URL}/api/v1/bookings/book`, {
     method: "POST",
     headers,
     body: JSON.stringify(bookingData),
   });
+
   if (!response.ok) {
     throw new Error("Failed to create booking");
   }
-  return response.json();
+
+  const booking = await response.json();
+  return booking;  // Backend will auto-confirm if free event
 }
 
 export async function getUserBookings(
@@ -121,17 +123,32 @@ export async function getBooking(bookingId: string): Promise<BookingResponse> {
   if (!isValidUUID(bookingId)) {
     throw new Error("Invalid booking ID format. Must be a valid UUID.");
   }
+  
   const headers = await getAuthHeaders();
+  console.log("Fetching booking with ID:", bookingId); // Debug log
+  
   const response = await fetch(
     `${TICKET_SERVICE_URL}/api/v1/bookings/${bookingId}`,
     {
       headers,
     }
   );
+
   if (!response.ok) {
-    throw new Error("Failed to fetch booking");
+    const errorData = await response.json().catch(() => null);
+    console.error("Error fetching booking:", {
+      status: response.status,
+      error: errorData
+    });
+    throw new Error(
+      errorData?.detail || 
+      `Failed to fetch booking (${response.status})`
+    );
   }
-  return response.json();
+
+  const data = await response.json();
+  console.log("Booking data received:", data); // Debug log
+  return data;
 }
 
 export async function updateBookingStatus(
@@ -205,7 +222,11 @@ export async function getAvailableTickets(
   if (!response.ok) {
     throw new Error("Failed to fetch available tickets");
   }
-  return response.json();
+  const data = await response.json();
+  return {
+    available_tickets: data.available_tickets === -1 ? "unlimited" : data.available_tickets,
+    total_capacity: data.total_capacity,
+  };
 }
 
 export async function testAuth(): Promise<any> {

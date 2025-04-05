@@ -47,7 +47,7 @@ interface BookingType {
   created_at: string | Date
   updated_at: string
   tickets: TicketType[]
-  onAction?: (action: "cancel" | "refund") => Promise<void>
+  onAction?: (action: "cancel" | "refund" | "complete") => Promise<void>
 }
 
 interface EventType {
@@ -175,7 +175,7 @@ export function EventTimeline({ events, type }: EventTimelineProps) {
 
   const handleAction = async (
     booking: BookingType,
-    action: "cancel" | "refund"
+    action: "cancel" | "refund" | "complete"
   ) => {
     setProcessingBookingId(booking.booking_id)
     try {
@@ -589,59 +589,61 @@ export function EventTimeline({ events, type }: EventTimelineProps) {
                                           <Button
                                             size="sm"
                                             className="bg-[hsl(var(--status-pending))] hover:bg-[hsl(var(--status-pending))] text-[hsl(var(--background))]"
+                                            onClick={() =>
+                                              handleAction(booking, "complete")
+                                            }
+                                            disabled={
+                                              processingBookingId ===
+                                              booking.booking_id
+                                            }
                                           >
+                                            {processingBookingId ===
+                                            booking.booking_id ? (
+                                              <Spinner className="mr-2 h-4 w-4" />
+                                            ) : null}
                                             Complete Payment
                                           </Button>
                                         )}
-
-                                        {booking.onAction && (
-                                          <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                              <Button
-                                                variant="outline"
-                                                size="sm"
-                                                disabled={
-                                                  processingBookingId ===
-                                                  booking.booking_id
-                                                }
-                                              >
-                                                {processingBookingId ===
-                                                booking.booking_id ? (
-                                                  <Spinner className="mr-2 h-4 w-4" />
-                                                ) : null}
-                                                Actions{" "}
-                                                <ChevronDown className="ml-2 h-4 w-4" />
-                                              </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
-                                              {booking.status ===
-                                                BookingStatus.PENDING && (
-                                                <DropdownMenuItem
-                                                  onClick={() =>
-                                                    handleAction(
-                                                      booking,
-                                                      "cancel"
-                                                    )
-                                                  }
-                                                >
-                                                  Cancel Booking
-                                                </DropdownMenuItem>
-                                              )}
-                                              {booking.status ===
-                                                BookingStatus.CONFIRMED && (
-                                                <DropdownMenuItem
-                                                  onClick={() =>
-                                                    handleAction(
-                                                      booking,
-                                                      "refund"
-                                                    )
-                                                  }
-                                                >
-                                                  Request Refund
-                                                </DropdownMenuItem>
-                                              )}
-                                            </DropdownMenuContent>
-                                          </DropdownMenu>
+                                        {booking.status ===
+                                          BookingStatus.PENDING && (
+                                          <Button
+                                            size="sm"
+                                            variant="default"
+                                            onClick={() =>
+                                              handleAction(booking, "cancel")
+                                            }
+                                            disabled={
+                                              processingBookingId ===
+                                              booking.booking_id
+                                            }
+                                          >
+                                            {processingBookingId ===
+                                            booking.booking_id ? (
+                                              <Spinner className="mr-2 h-4 w-4" />
+                                            ) : null}
+                                            Cancel Booking
+                                          </Button>
+                                        )}
+                                        {booking.status ===
+                                          BookingStatus.CONFIRMED && (
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="text-[hsl(var(--destructive))] bg-[hsl(var(--destructive-bg))] hover:bg-[hsl(var(--destructive-bg))]"
+                                            onClick={() =>
+                                              handleAction(booking, "refund")
+                                            }
+                                            disabled={
+                                              processingBookingId ===
+                                              booking.booking_id
+                                            }
+                                          >
+                                            {processingBookingId ===
+                                            booking.booking_id ? (
+                                              <Spinner className="mr-2 h-4 w-4" />
+                                            ) : null}
+                                            Request Refund
+                                          </Button>
                                         )}
                                       </div>
                                     </CardContent>

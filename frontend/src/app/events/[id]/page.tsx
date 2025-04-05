@@ -36,7 +36,6 @@ export default function EventPage() {
   const [loading, setLoading] = useState(false)
   const [ticketInfo, setTicketInfo] = useState<{
     availableTickets: number | "Unlimited"
-    totalCapacity: number | "Unlimited"
   } | null>(null)
 
   const handleRefundClick = () => {
@@ -57,23 +56,24 @@ export default function EventPage() {
   useEffect(() => {
     async function fetchTicketAvailability() {
       if (!userId) {
+        setTicketInfo(null) // Set to null to show "Sign in to view"
         return
       }
 
       try {
         const ticketData = await getAvailableTickets(id as string)
         setTicketInfo({
-          availableTickets: ticketData.available_tickets,
-          totalCapacity: ticketData.total_capacity,
+          availableTickets:
+            event?.capacity === 0 ? "Unlimited" : ticketData.available_tickets,
         })
       } catch (err) {
         console.error("Failed to fetch ticket availability:", err)
-        // Don't set error state here as it would override the main event fetch error
+        setTicketInfo(null) // Set to null on error too
       }
     }
 
     fetchTicketAvailability()
-  }, [id, userId])
+  }, [id, userId, event?.capacity])
 
   // Fetch event details on component mount
   useEffect(() => {
@@ -87,16 +87,28 @@ export default function EventPage() {
         const data: EventDetails = await res.json()
         console.log("Event data:", data)
 
-        // Fetch ticket info after we have event data
-        const ticketData = await getAvailableTickets(id as string)
-        console.log("Ticket data:", ticketData)
+        // Only fetch ticket info if user is logged in
+        if (userId) {
+          try {
+            const ticketData = await getAvailableTickets(id as string)
+            console.log("Ticket data:", ticketData)
+            setTicketInfo({
+              availableTickets:
+                data.capacity === 0
+                  ? "Unlimited"
+                  : ticketData.available_tickets,
+            })
+          } catch (err) {
+            console.log("Not logged in or error fetching tickets:", err)
+            // Just leave ticketInfo as null when not logged in
+            setTicketInfo(null)
+          }
+        } else {
+          // Just leave ticketInfo as null when not logged in
+          setTicketInfo(null)
+        }
 
         setEvent(data)
-        setTicketInfo({
-          availableTickets:
-            data.capacity === 0 ? "Unlimited" : ticketData.available_tickets,
-          totalCapacity: data.capacity === 0 ? "Unlimited" : data.capacity,
-        })
       } catch (err: any) {
         console.error("Error fetching data:", err)
         setError(err.message || "An error occurred")
@@ -105,7 +117,7 @@ export default function EventPage() {
       }
     }
     fetchEvent()
-  }, [id])
+  }, [id, userId])
 
   if (isLoading) {
     return (
@@ -230,41 +242,34 @@ export default function EventPage() {
                   onClick={handleBooking}
                   disabled={
                     isLoading ||
-                    (ticketInfo != null &&
-                      typeof ticketInfo.availableTickets === "number" &&
+                    (ticketInfo?.availableTickets !== "Unlimited" &&
+                      typeof ticketInfo?.availableTickets === "number" &&
                       ticketInfo.availableTickets <= 0)
                   }
                   className="w-full md:w-auto"
                 >
-                  {loading
-                    ? "Loading..."
-                    : typeof ticketInfo?.availableTickets === "number" &&
-                      ticketInfo.availableTickets === 0
+                  {isLoading
+                    ? "Processing..."
+                    : !userId
+                    ? "Sign in to Book"
+                    : ticketInfo?.availableTickets === 0
                     ? "Sold Out"
                     : "Book Now"}
                 </Button>
               </div>
               <Separator className="my-4" />
               <div className="space-y-4">
-                {event.capacity !== 0 && (
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center text-muted-foreground">
-                      <Ticket className="w-5 h-5 mr-2" />
-                      <span>Available Tickets</span>
-                    </div>
-                    <span
-                      className={
-                        ticketInfo?.availableTickets === "Unlimited"
-                          ? ""
-                          : ticketInfo && ticketInfo.availableTickets <= 5
-                          ? "text-red-500 font-bold"
-                          : ""
-                      }
-                    >
-                      {ticketInfo?.availableTickets ?? "Loading..."}
-                    </span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center text-muted-foreground">
+                    <Ticket className="w-5 h-5 mr-2" />
+                    <span>Available Tickets</span>
                   </div>
-                )}
+                  <span>
+                    {ticketInfo === null
+                      ? "Sign in to view"
+                      : ticketInfo.availableTickets}
+                  </span>
+                </div>
 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center text-muted-foreground">

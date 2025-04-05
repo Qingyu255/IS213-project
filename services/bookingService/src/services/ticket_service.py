@@ -9,8 +9,10 @@ from ..core.logging import logger
 from fastapi import HTTPException
 from .rabbitmq_service import RabbitMQService
 from .logging_service import LoggingService
+import logging
 
 settings = get_settings()
+logger = logging.getLogger(__name__)
 
 class TicketServiceException(Exception):
     """Custom exception for ticket service errors"""
@@ -216,6 +218,10 @@ class TicketService:
                 f"api/v1/tickets/event/{event_id}/available",
                 auth_token=auth_token
             )
+            logger.debug(f"Raw ticket service response: {response}")
+            logger.debug(f"Response type: {type(response)}")
+            logger.debug(f"available_tickets value: {response['available_tickets']}")
+            logger.debug(f"available_tickets type: {type(response['available_tickets'])}")
             # Response now includes total_capacity and booked_tickets
             return {
                 "available_tickets": response["available_tickets"],
