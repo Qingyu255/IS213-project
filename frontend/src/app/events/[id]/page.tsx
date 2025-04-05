@@ -28,15 +28,13 @@ import { getAvailableTickets } from "@/lib/api/tickets";
 export default function EventPage() {
   const { id } = useParams();
   const [event, setEvent] = useState<EventDetails | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const { getUserId } = useAuthUser();
   const userId = getUserId();
-  const [loading, setLoading] = useState(false);
   const [ticketInfo, setTicketInfo] = useState<{
     availableTickets: number;
-    totalCapacity: number;
   } | null>(null);
 
   const handleRefundClick = () => {
@@ -54,13 +52,14 @@ export default function EventPage() {
   // Fetch ticket availability
   useEffect(() => {
     async function fetchTicketAvailability() {
-      if (!id) return;
+      if (!userId) {
+        return;
+      };
 
       try {
         const ticketData = await getAvailableTickets(id as string);
         setTicketInfo({
           availableTickets: ticketData.available_tickets,
-          totalCapacity: ticketData.total_capacity,
         });
       } catch (err) {
         console.error("Failed to fetch ticket availability:", err);
@@ -69,7 +68,7 @@ export default function EventPage() {
     }
 
     fetchTicketAvailability();
-  }, [id]);
+  }, [id, userId]);
 
   // Fetch event details on component mount
   useEffect(() => {
@@ -222,11 +221,11 @@ export default function EventPage() {
                 <Button
                   onClick={handleBooking}
                   disabled={
-                    loading || (ticketInfo && ticketInfo.availableTickets <= 0)
+                    isLoading || (ticketInfo != null && ticketInfo.availableTickets <= 0)
                   }
                   className="w-full md:w-auto"
                 >
-                  {loading
+                  {isLoading
                     ? "Processing..."
                     : ticketInfo && ticketInfo.availableTickets <= 0
                     ? "Sold Out"
@@ -248,7 +247,8 @@ export default function EventPage() {
                         : ""
                     }
                   >
-                    {ticketInfo ? ticketInfo.availableTickets : "Loading..."}
+                    {/* where ticketInfo == null suggests that the user is not signed in */}
+                    {ticketInfo != null ? ticketInfo.availableTickets : "Sign in to view"}
                   </span>
                 </div>
               )}
