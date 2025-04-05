@@ -10,7 +10,7 @@
     --card-foreground: 240 10% 3.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 240 10% 3.9%;
-    --primary: 250 80% 55%;
+    --primary: 270 70% 55%;
     --primary-foreground: 210 20% 98%;
     --secondary: 220 14.3% 95.9%;
     --secondary-foreground: 220.9 39.3% 11%;
@@ -22,8 +22,41 @@
     --destructive-foreground: 210 20% 98%;
     --border: 220 13% 91%;
     --input: 220 13% 91%;
-    --ring: 262.1 83.3% 57.8%;
+    --ring: 270 70% 57.8%;
     --radius: 0.5rem;
+
+    /* Status Colors */
+    --status-confirmed: 142 76% 36%; /* Green */
+    --status-confirmed-bg: 142 76% 97%;
+    --status-confirmed-border: 142 76% 88%;
+    --status-confirmed-icon-bg: 142 76% 92%;
+
+    --status-pending: 38 92% 50%; /* Amber */
+    --status-pending-bg: 38 92% 97%;
+    --status-pending-border: 38 92% 88%;
+    --status-pending-icon-bg: 38 92% 92%;
+
+    --status-cancelled: 0 84% 60%; /* Red */
+    --status-cancelled-bg: 0 84% 97%;
+    --status-cancelled-border: 0 84% 88%;
+    --status-cancelled-icon-bg: 0 84% 92%;
+
+    --status-refunded: 214 100% 50%; /* Blue */
+    --status-refunded-bg: 214 100% 97%;
+    --status-refunded-border: 214 100% 88%;
+    --status-refunded-icon-bg: 214 100% 92%;
+
+    /* Purple Theme Colors */
+    --purple-50: 270 70% 97%;
+    --purple-100: 270 70% 92%;
+    --purple-200: 270 70% 88%;
+    --purple-300: 270 70% 80%;
+    --purple-400: 270 70% 70%;
+    --purple-500: 270 70% 60%;
+    --purple-600: 270 70% 50%;
+    --purple-700: 270 70% 40%;
+    --purple-800: 270 70% 30%;
+    --purple-900: 270 70% 20%;
   }
 
   .dark {
@@ -33,7 +66,7 @@
     --card-foreground: 0 0% 98%;
     --popover: 240 10% 3.9%;
     --popover-foreground: 0 0% 98%;
-    --primary: 250 80% 55%;
+    --primary: 270 70% 60%;
     --primary-foreground: 210 20% 98%;
     --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 20% 98%;
@@ -45,7 +78,40 @@
     --destructive-foreground: 210 20% 98%;
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --ring: 270 70% 70%;
+
+    /* Dark Status Colors */
+    --status-confirmed: 142 76% 50%;
+    --status-confirmed-bg: 142 76% 15%;
+    --status-confirmed-border: 142 76% 25%;
+    --status-confirmed-icon-bg: 142 76% 20%;
+
+    --status-pending: 38 92% 60%;
+    --status-pending-bg: 38 92% 15%;
+    --status-pending-border: 38 92% 25%;
+    --status-pending-icon-bg: 38 92% 20%;
+
+    --status-cancelled: 0 84% 65%;
+    --status-cancelled-bg: 0 84% 15%;
+    --status-cancelled-border: 0 84% 25%;
+    --status-cancelled-icon-bg: 0 84% 20%;
+
+    --status-refunded: 214 100% 65%;
+    --status-refunded-bg: 214 100% 15%;
+    --status-refunded-border: 214 100% 25%;
+    --status-refunded-icon-bg: 214 100% 20%;
+
+    /* Purple Theme Colors - Dark Mode */
+    --purple-50: 270 70% 15%;
+    --purple-100: 270 70% 20%;
+    --purple-200: 270 70% 25%;
+    --purple-300: 270 70% 30%;
+    --purple-400: 270 70% 40%;
+    --purple-500: 270 70% 50%;
+    --purple-600: 270 70% 60%;
+    --purple-700: 270 70% 70%;
+    --purple-800: 270 70% 80%;
+    --purple-900: 270 70% 90%;
   }
 }
 
@@ -58,8 +124,6 @@
   }
 }
 
-
-
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -68,3 +132,4 @@
     @apply bg-background text-foreground;
   }
 }
+

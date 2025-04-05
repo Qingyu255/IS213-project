@@ -39,6 +39,14 @@ export type EventDetails = {
     id: string;
     username: string;
   };
-  capacity?: number; // maximum allowed attendees
+  capacity: number; // maximum allowed attendees
 };
+
+export interface EventWithTickets extends EventDetails {
+  ticketInfo?: {
+    availableTickets: number | "Unlimited";
+    totalCapacity: number | "Unlimited";
+    bookedTickets: number;
+  };
+}
 

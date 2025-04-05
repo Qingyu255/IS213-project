@@ -54,10 +54,27 @@ class BookingController:
                 transaction_id=transaction_id
             )
 
-            # 2. Fetch and validate event details
+            # 2a. Fetch and validate event details
             event = self.event_service.get_event(booking_details.event_id)
             if not event:
                 raise HTTPException(status_code=404, detail="Event not found")
+
+            # 2b. Check ticket availability
+            availability = self.ticket_service.get_available_tickets(
+                event_id=booking_details.event_id,
+                auth_token=auth_token
+            )
+            
+            if availability["available_tickets"] < booking_details.ticket_quantity:
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        f"Only {availability['available_tickets']} tickets available "
+                        f"(requested: {booking_details.ticket_quantity}, "
+                        f"total capacity: {availability['total_capacity']}, "
+                        f"already booked: {availability['booked_tickets']})"
+                    )
+                )
 
             # 3. Calculate total amount
             total_amount = float(event["price"]) * booking_details.ticket_quantity

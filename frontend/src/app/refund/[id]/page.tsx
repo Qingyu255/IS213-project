@@ -1,18 +1,18 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState, useEffect } from "react"
-import { useRouter, useParams } from "next/navigation"
-import { getBearerIdToken } from "@/utils/auth"
-import { Button } from "@/components/ui/button"
-import { ErrorMessageCallout } from "@/components/error-message-callout"
-import { Spinner } from "@/components/ui/spinner"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { BACKEND_ROUTES } from "@/constants/backend-routes"
-import Image from "next/image"
-import { MapPin, Calendar } from "lucide-react"
-import { Separator } from "@/components/ui/separator"
+import { useState, useEffect } from "react";
+import { useRouter, useParams } from "next/navigation";
+import { getBearerIdToken } from "@/utils/auth";
+import { Button } from "@/components/ui/button";
+import { ErrorMessageCallout } from "@/components/error-message-callout";
+import { Spinner } from "@/components/ui/spinner";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { BACKEND_ROUTES } from "@/constants/backend-routes";
+import Image from "next/image";
+import { MapPin, Calendar } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
 
 // Define interfaces based on your API response
 interface TicketResponse {
@@ -70,22 +70,22 @@ interface EventDetails {
 }
 
 export default function RefundPage() {
-  const router = useRouter()
-  const params = useParams()
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [booking, setBooking] = useState<BookingResponse | null>(null)
-  const [event, setEvent] = useState<EventDetails | null>(null)
+  const router = useRouter();
+  const params = useParams();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [booking, setBooking] = useState<BookingResponse | null>(null);
+  const [event, setEvent] = useState<EventDetails | null>(null);
 
   useEffect(() => {
     async function fetchBookingAndEvent() {
-      if (!params?.id) return
+      if (!params?.id) return;
 
       try {
-        setLoading(true)
-        const bearerToken = await getBearerIdToken()
+        setLoading(true);
+        const bearerToken = await getBearerIdToken();
         if (!bearerToken) {
-          throw new Error("Please sign in to view booking details")
+          throw new Error("Please sign in to view booking details");
         }
 
         // Fetch booking details
@@ -94,14 +94,14 @@ export default function RefundPage() {
             Accept: "application/json",
             Authorization: bearerToken,
           },
-        })
+        });
 
         if (!bookingResponse.ok) {
-          throw new Error("Failed to fetch booking details")
+          throw new Error("Failed to fetch booking details");
         }
 
-        const bookingData = await bookingResponse.json()
-        setBooking(bookingData)
+        const bookingData = await bookingResponse.json();
+        setBooking(bookingData);
 
         // Fetch event details using the event_id from the booking
         if (bookingData.event_id) {
@@ -110,36 +110,36 @@ export default function RefundPage() {
               Accept: "application/json",
               Authorization: bearerToken,
             },
-          })
+          });
 
           if (eventResponse.ok) {
-            const eventData = await eventResponse.json()
-            setEvent(eventData)
+            const eventData = await eventResponse.json();
+            setEvent(eventData);
           }
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load booking")
+        setError(err instanceof Error ? err.message : "Failed to load booking");
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
     }
 
-    fetchBookingAndEvent()
-  }, [params?.id])
+    fetchBookingAndEvent();
+  }, [params?.id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!booking || !params?.id) return
+    e.preventDefault();
+    if (!booking || !params?.id) return;
 
-    setLoading(true)
-    setError(null)
+    setLoading(true);
+    setError(null);
 
     try {
       // Get the current user and bearer token
-      const bearerToken = await getBearerIdToken()
+      const bearerToken = await getBearerIdToken();
 
       if (!bearerToken) {
-        throw new Error("Please sign in to request a refund")
+        throw new Error("Please sign in to request a refund");
       }
 
       // Submit the refund request with hardcoded reason
@@ -153,51 +153,51 @@ export default function RefundPage() {
           booking_id: params.id,
           reason: "requested_by_customer",
         }),
-      })
+      });
 
       if (!refundResponse.ok) {
-        const errorData = await refundResponse.json()
-        throw new Error(errorData.detail || "Failed to process refund request")
+        const errorData = await refundResponse.json();
+        throw new Error(errorData.detail || "Failed to process refund request");
       }
 
       // Redirect to success page
-      router.push(`/refund/${params.id}/success`)
+      router.push(`/refund/${params.id}/success`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred")
+      setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   // Format date and time
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
+    const date = new Date(dateString);
     return date.toLocaleDateString("en-US", {
       weekday: "short",
       year: "numeric",
       month: "short",
       day: "numeric",
-    })
-  }
+    });
+  };
 
   const formatTime = (dateString: string) => {
-    const date = new Date(dateString)
+    const date = new Date(dateString);
     return date.toLocaleTimeString("en-US", {
       hour: "2-digit",
       minute: "2-digit",
-    })
-  }
+    });
+  };
 
   if (loading && !booking) {
     return (
       <div className="flex justify-center items-center min-h-screen">
         <Spinner />
       </div>
-    )
+    );
   }
 
   // Calculate total amount from price and quantity
-  const totalAmount = event && booking ? event.price * booking.ticket_quantity : 0
+  const totalAmount = event && booking ? event.price * booking.ticket_quantity : 0;
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -310,6 +310,6 @@ export default function RefundPage() {
         )}
       </div>
     </div>
-  )
+  );
 }
 

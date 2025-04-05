@@ -207,3 +207,24 @@ class TicketService:
         except Exception as e:
             logger.error(f"Unexpected error creating booking: {str(e)}")
             raise HTTPException(status_code=500, detail=str(e))
+
+    def get_available_tickets(self, event_id: str, auth_token: str) -> dict:
+        """Check ticket availability for an event"""
+        try:
+            response = self._make_request_with_retry(
+                "get",
+                f"api/v1/tickets/event/{event_id}/available",
+                auth_token=auth_token
+            )
+            # Response now includes total_capacity and booked_tickets
+            return {
+                "available_tickets": response["available_tickets"],
+                "total_capacity": response["total_capacity"],
+                "booked_tickets": response["booked_tickets"]
+            }
+        except Exception as e:
+            logger.error(f"Error checking ticket availability: {str(e)}")
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to check ticket availability"
+            )
