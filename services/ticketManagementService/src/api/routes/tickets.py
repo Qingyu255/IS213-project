@@ -68,15 +68,36 @@ async def get_available_tickets(
     db: AsyncSession = Depends(get_db),
     _: str = Depends(get_current_user_id)
 ):
+    # Get event capacity from events service first
     event_data = await asyncio.to_thread(fetch_event_data, event_id)
-    total_capacity = event_data.get("capacity")
-    query = select(func.count(Ticket.ticket_id)).join(Booking).where(
+    total_capacity = event_data.get("capacity", 0)
+    print(f"Event capacity: {total_capacity}")
+    
+    if total_capacity == 0:
+        return {
+            "available_tickets": "Unlimited",
+            "total_capacity": "Unlimited",
+            "booked_tickets": 0
+        }
+    
+    # Count tickets from confirmed bookings
+    query = select(func.count(Ticket.ticket_id)).select_from(Ticket).join(Booking).where(
         Booking.event_id == event_id,
         Booking.status == BookingStatus.CONFIRMED
     )
-    booked_tickets = (await db.execute(query)).scalar()
+    print(f"SQL Query: {query}")
     
-    return {"available_tickets": total_capacity - booked_tickets}
+    booked_tickets = (await db.execute(query)).scalar() or 0
+    print(f"Booked tickets: {booked_tickets}")
+    
+    available = total_capacity - booked_tickets
+    print(f"Available = {total_capacity} - {booked_tickets} = {available}")
+    
+    return {
+        "available_tickets": max(0, available),
+        "total_capacity": total_capacity,
+        "booked_tickets": booked_tickets
+    }
 
 @router.get(
     "/tickets/user/{user_id}/event/{event_id}",
@@ -108,7 +129,9 @@ async def get_user_event_tickets(
 
 # Helper to fetch event data from events service
 def fetch_event_data(event_id: str):
-    response = requests.get(f"{settings.EVENTS_SERVICE_URL}/api/v1/events/{event_id}")
+    response = requests.get(f"{settings.EVENT_SERVICE_URL}/api/v1/events/{event_id}")
     if response.status_code != 200:
         raise HTTPException(status_code=404, detail="Event not found")
-    return response.json()
+    event_json = response.json()
+    print("DEBUG: Received event data:", event_json)  # <-- Log it
+    return event_json

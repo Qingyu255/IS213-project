@@ -1,23 +1,33 @@
-"use client";
-import { useEffect, useState } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
-import { ErrorMessageCallout } from "@/components/error-message-callout";
-import { EventList } from "./components/event-list";
-import { Pagination } from "@/components/pagination";
-import { Badge } from "@/components/ui/badge";
+"use client"
+import { useEffect, useState } from "react"
+import { useSearchParams, useRouter } from "next/navigation"
+import { ErrorMessageCallout } from "@/components/error-message-callout"
+import { EventList } from "./components/event-list"
+import { Pagination } from "@/components/pagination"
+import { Badge } from "@/components/ui/badge"
 // import { BrowseByCategory } from "./components/browse-by-category";
 // import { BrowseByLocation } from "./components/browse-by-location";
-import { Separator } from "@/components/ui/separator";
-import { BACKEND_ROUTES } from "@/constants/backend-routes";
-import { EventDetails } from "@/types/event";
-import EventsLoading from "./components/EventsLoading";
+import { Separator } from "@/components/ui/separator"
+import { BACKEND_ROUTES } from "@/constants/backend-routes"
+import { EventDetails } from "@/types/event"
+import EventsLoading from "./components/EventsLoading"
+import { getAvailableTickets } from "@/lib/api/tickets"
+
+// Add ticket info to event type
+type EventWithTickets = EventDetails & {
+  ticketInfo?: {
+    availableTickets: number
+    totalCapacity: number
+    bookedTickets: number
+  }
+}
 
 type EventsData = {
-  events: EventDetails[];
-};
+  events: EventWithTickets[]
+}
 
 async function getEvents(page = 1, limit = 9): Promise<EventsData> {
-  const skip = (page - 1) * limit;
+  const skip = (page - 1) * limit
   const res = await fetch(
     `${BACKEND_ROUTES.eventsService}/api/v1/events/?skip=${skip}&limit=${limit}`,
     {
@@ -25,61 +35,93 @@ async function getEvents(page = 1, limit = 9): Promise<EventsData> {
         Accept: "application/json",
       },
     }
-  );
+  )
 
   if (!res.ok) {
-    throw new Error(`Failed to fetch events: ${res.statusText}`);
+    throw new Error(`Failed to fetch events: ${res.statusText}`)
   }
 
-  const data = (await res.json()) as EventDetails[];
-  return { events: data };
+  const data = (await res.json()) as EventDetails[]
+  return { events: data }
 }
 
 export default function EventsPage() {
-  const searchParams = useSearchParams();
-  const router = useRouter();
+  const searchParams = useSearchParams()
+  const router = useRouter()
 
   // If no page param is present, redirect to ?page=1
-  const pageParam = searchParams.get("page");
+  const pageParam = searchParams.get("page")
   useEffect(() => {
     if (!pageParam) {
-      router.push("?page=1");
+      router.push("?page=1")
     }
-  }, [pageParam, router]);
+  }, [pageParam, router])
 
   // Use the page param from search params or default to 1
-  const [page, setPage] = useState(pageParam ? Number(pageParam) : 1);
-  const limit = 9;
-  const [eventsData, setEventsData] = useState<EventsData | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [page, setPage] = useState(pageParam ? Number(pageParam) : 1)
+  const limit = 9
+  const [eventsData, setEventsData] = useState<EventsData | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     async function fetchEvents() {
       try {
-        const data = await getEvents(page, limit);
-        setEventsData(data);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const data = await getEvents(page, limit)
+
+        // Fetch ticket info for each event
+        const eventsWithTickets = await Promise.all(
+          data.events.map(async (event) => {
+            try {
+              const ticketInfo = await getAvailableTickets(event.id)
+              return {
+                ...event,
+                ticketInfo: {
+                  availableTickets:
+                    (event.capacity ?? 0) === 0
+                      ? "Unlimited"
+                      : ticketInfo.available_tickets,
+                  totalCapacity:
+                    (event.capacity ?? 0) === 0
+                      ? "Unlimited"
+                      : event.capacity ?? 0,
+                  bookedTickets:
+                    (event.capacity ?? 0) === 0
+                      ? 0
+                      : (event.capacity ?? 0) - ticketInfo.available_tickets,
+                },
+              } as EventWithTickets
+            } catch (error) {
+              console.error(
+                `Failed to fetch tickets for event ${event.id}:`,
+                error
+              )
+              return event as EventWithTickets
+            }
+          })
+        )
+
+        setEventsData({ events: eventsWithTickets })
       } catch (err: any) {
-        setError(err.message || "An unknown error occurred");
+        setError(err.message || "An unknown error occurred")
       } finally {
-        setIsLoading(false);
+        setIsLoading(false)
       }
     }
-    fetchEvents();
-  }, [page, limit]);
+    fetchEvents()
+  }, [page, limit])
 
   function handlePageChange(newPage: number) {
-    setPage(newPage);
-    router.push(`?page=${newPage}`);
+    setPage(newPage)
+    router.push(`?page=${newPage}`)
   }
 
   if (isLoading) {
-    return <EventsLoading />;
+    return <EventsLoading />
   }
 
   if (error) {
-    return <ErrorMessageCallout errorMessage={error} />;
+    return <ErrorMessageCallout errorMessage={error} />
   }
 
   if (!eventsData) {
@@ -87,7 +129,7 @@ export default function EventsPage() {
       <div className="flex items-center justify-center min-h-screen">
         <p>No events found.</p>
       </div>
-    );
+    )
   }
 
   return (
@@ -120,5 +162,5 @@ export default function EventsPage() {
         />
       </div>
     </div>
-  );
+  )
 }
