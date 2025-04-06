@@ -20,6 +20,7 @@ import { useRouter } from "next/navigation";
 import { getEventById, getUserHostedEvents } from "@/lib/api/events";
 import { toast } from "sonner";
 import type { EventDetails } from "@/types/event";
+import { getBearerIdToken } from "@/utils/auth";
 
 interface EventBooking {
   eventId: string
@@ -194,13 +195,72 @@ export default function MyEventsPage() {
   ) => {
     try {
       if (action === "complete") {
-        // Redirect to Stripe payment
-        router.push(`/book/${bookingId}/payment`);
-        return;
+        // Check session first
+        try {
+          const session = await fetchAuthSession();
+          if (!session.tokens?.idToken) {
+            toast.error("Error", {
+              description: "Please log in to complete your payment",
+            });
+            router.push("/auth/login");
+            return;
+          }
+
+          // Get bearer token
+          const bearerToken = await getBearerIdToken();
+          if (!bearerToken) {
+            toast.error("Error", {
+              description: "Please log in to complete your payment",
+            });
+            router.push("/auth/login");
+            return;
+          }
+
+          // Create a new Stripe session for completing the payment
+          const response = await fetch("/api/stripe/booking/complete", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: bearerToken,
+            },
+            body: JSON.stringify({
+              bookingId,
+            }),
+          });
+
+          if (!response.ok) {
+            const error = await response.json();
+            if (error.error === "Could not validate credentials") {
+              toast.error("Error", {
+                description: "Your session has expired. Please log in again.",
+              });
+              router.push("/auth/login");
+              return;
+            }
+            throw new Error(error.error || "Failed to create payment session");
+          }
+
+          const { url } = await response.json();
+          if (!url) {
+            throw new Error("No payment URL received");
+          }
+
+          window.location.href = url; // Redirect to Stripe
+          return;
+        } catch (error) {
+          console.error("Error in payment flow:", error);
+          if (error instanceof Error) {
+            toast.error("Error", {
+              description: error.message,
+            });
+          }
+          throw error;
+        }
       }
 
       // For cancel and refund actions, call the API
       await updateBookingStatus(bookingId, action);
+
       // Refresh bookings after action
       if (userId) {
         const updatedBookings = await getUserBookings(userId);
@@ -237,6 +297,7 @@ export default function MyEventsPage() {
 
         setEventBookings(updatedEventBookings);
       }
+
       toast.success("Success", {
         description: `Booking ${action}ed successfully`,
       });
