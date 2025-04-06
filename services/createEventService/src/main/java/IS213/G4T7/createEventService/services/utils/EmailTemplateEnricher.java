@@ -31,12 +31,10 @@ public class EmailTemplateEnricher {
 
         // Create a fixed template with personalization
         String message = String.format(
-                "%s, We noticed that you have an interest in %s events. " +
+                "%s, we noticed that you have an interest in %s events. " +
                         "There may be an upcoming event that matches your interests. " +
                         "Check it out here: \n" +
-                        "%s/events/%s \n" +
-                        "Best regards,\n" +
-                        "Event Service Team",
+                        "%s/events/%s \n",
                 basicUserData.getUsername(), eventCategory, frontendUrl, eventId
         );
         emailData.setMainMessage(message);
