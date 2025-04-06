@@ -1,10 +1,10 @@
-import Image from "next/image"
-import Link from "next/link"
-import { Calendar, Clock, MapPin, Users } from "lucide-react"
-import { Card, CardContent, CardFooter } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { EventDetails, EventWithTickets } from "@/types/event"
+import Image from "next/image";
+import Link from "next/link";
+import { Calendar, Clock, MapPin, Users } from "lucide-react";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { EventDetails, EventWithTickets } from "@/types/event";
 
 type EventCardProps = {
   event: EventWithTickets
@@ -19,7 +19,7 @@ export function EventCard({
   showCapacity = false,
   showTime = false,
 }: EventCardProps) {
-  const isFeatured = variant === "featured"
+  const isFeatured = variant === "featured";
 
   return (
     <Card
@@ -136,7 +136,9 @@ export function EventCard({
           <CardFooter className="flex justify-between pt-4">
             <div className="text-sm text-muted-foreground">
               {event.ticketInfo
-                ? event.ticketInfo.availableTickets === "Unlimited"
+                ? event.ticketInfo.availableTickets === null
+                  ? "Sign in to View Availability"
+                  : event.ticketInfo.availableTickets === "Unlimited"
                   ? "No Capacity Limit"
                   : `${event.ticketInfo.availableTickets}/${event.ticketInfo.totalCapacity} Available`
                 : "Tickets loading..."}
@@ -182,5 +184,5 @@ export function EventCard({
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }

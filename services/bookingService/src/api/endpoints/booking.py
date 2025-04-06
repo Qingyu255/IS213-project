@@ -12,6 +12,12 @@ from ...core.auth import validate_token
 from datetime import datetime
 from pydantic import BaseModel
 from ...core.config import get_settings
+import logging
+from sqlalchemy.orm import Session
+
+# Configure logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -53,57 +59,83 @@ class BookingController:
                 message=f"Received booking request for event: {booking_details.event_id}",
                 transaction_id=transaction_id
             )
-
-            # 2a. Fetch and validate event details
+            
+            # 2. Get event details and safely convert price once
             event = self.event_service.get_event(booking_details.event_id)
             if not event:
                 raise HTTPException(status_code=404, detail="Event not found")
+            
+            try:
+                price = float(event.get("price", 0))
+                capacity = int(event.get("capacity", 0))
+            except ValueError:
+                raise HTTPException(status_code=400, detail="Invalid price or capacity format in event data")
 
-            # 2b. Check ticket availability
+            # 3. Check ticket availability
             availability = self.ticket_service.get_available_tickets(
                 event_id=booking_details.event_id,
                 auth_token=auth_token
             )
-            
-            if availability["available_tickets"] < booking_details.ticket_quantity:
-                raise HTTPException(
-                    status_code=400,
-                    detail=(
-                        f"Only {availability['available_tickets']} tickets available "
-                        f"(requested: {booking_details.ticket_quantity}, "
-                        f"total capacity: {availability['total_capacity']}, "
-                        f"already booked: {availability['booked_tickets']})"
-                    )
-                )
 
-            # 3. Calculate total amount
-            total_amount = float(event["price"]) * booking_details.ticket_quantity
+            available_tickets = int(availability["available_tickets"])
+            total_capacity = int(availability["total_capacity"])
+
+            if total_capacity == 0:
+                logger.debug("Unlimited tickets detected, allowing booking")
+                pass
+            else:
+                # Simple numeric comparison
+                if int(available_tickets) < int(booking_details.ticket_quantity):
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Only {available_tickets} tickets available"
+                    )
 
             # 4. Create booking record
             booking = self.ticket_service.create_booking(
                 event_id=booking_details.event_id,
                 user_id=booking_details.user_id,
                 ticket_quantity=booking_details.ticket_quantity,
-                total_amount=total_amount,
+                total_amount=price * booking_details.ticket_quantity,
                 auth_token=auth_token,
                 email=booking_details.email
             )
 
-            # 5. Log booking creation
-            self.logging_service.send_log(
-                level="info",
-                message=f"Created pending booking {booking['booking_id']} for event {event['id']}",
-                transaction_id=transaction_id
-            )
+            # 5. If event is free, auto-confirm the booking
+            if price == 0:
+                self.ticket_service.update_booking_status(
+                    booking_id=booking["booking_id"],
+                    status=BookingStatus.CONFIRMED.value,
+                    auth_token=auth_token
+                )
+
+                # Send confirmation for free event
+                try:
+                    self.notification_service.send_booking_confirmation(
+                        booking_id=booking["booking_id"],
+                        customer_email=booking["email"],
+                        event_name=event["name"],
+                        ticket_quantity=booking["ticket_quantity"],
+                        total_amount=0,
+                        user_id=booking["user_id"],
+                        event_datetime=event["datetime"],
+                        additional_info={
+                            "payment_id": None,
+                            "currency": "SGD",
+                            "type": "free_event"
+                        }
+                    )
+                except Exception as e:
+                    logger.error(f"Error sending free event confirmation: {str(e)}")
 
             return BookingResponse(
-                status="PENDING",
+                status=BookingStatus.CONFIRMED.value if price == 0 else BookingStatus.PENDING.value,
                 booking_id=booking["booking_id"],
                 event_id=booking_details.event_id,
                 user_id=booking_details.user_id,
                 ticket_quantity=booking_details.ticket_quantity,
                 created_at=booking.get("created_at", datetime.now()),
-                message="Booking created successfully. Please complete payment."
+                message="Free event booking confirmed successfully" if price == 0 else "Pending payment"
             )
 
         except HTTPException as he:
@@ -335,12 +367,8 @@ def confirm_booking(
         if not event:
             raise HTTPException(status_code=404, detail="Event not found")
 
-        # Log event details for debugging
-        logger.debug(f"Event details: {event}")
-
         # Calculate total amount
         total_amount = int(float(event["price"]) * booking["ticket_quantity"] * 100)  # Convert to cents
-        logger.debug(f"Calculated total amount: {total_amount}")
 
         # Create payment confirmation
         payment_confirmation = PaymentConfirmation(
@@ -353,17 +381,7 @@ def confirm_booking(
         is_paid, error = booking_controller.verify_payment(booking_id)
         if not is_paid:
             raise HTTPException(status_code=400, detail=f"Payment verification failed: {error}")
-
-        # Store payment intent information
-        # booking_controller.billing_service.store_payment_intent(
-        #     booking_id=booking_id,
-        #     payment_intent_id=session_id,  # This might need to be retrieved from Stripe
-        #     session_id=session_id,
-        #     amount=total_amount,
-        #     currency="sgd",
-        #     customer_email=booking.get("email"),
-        #     customer_name=claims.get("name")  # Assuming name is in the claims
-        # )
+        logger.debug(f"Payment verification result: {is_paid}")
 
         # Call the controller's confirm_booking method
         result = booking_controller.confirm_booking(
@@ -382,4 +400,43 @@ def confirm_booking(
         raise HTTPException(status_code=400, detail=str(be))
     except Exception as e:
         logger.error(f"Error confirming booking: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/{booking_id}/cancel")
+async def cancel_booking(
+    booking_id: str = Path(..., description="The ID of the booking to cancel"),
+    authorization: str = Header(None),
+    controller: BookingController = Depends(get_booking_controller)
+) -> dict:
+    try:
+        # Validate the token and get claims
+        claims = validate_token(authorization)
+        user_id = claims.get("custom:id")
+
+        # Get booking
+        booking = controller.get_booking(booking_id, authorization)
+        if not booking:
+            raise HTTPException(status_code=404, detail="Booking not found")
+        
+        # Check if user owns this booking
+        if booking["user_id"] != user_id:
+            raise HTTPException(status_code=403, detail="Not authorized to cancel this booking")
+        
+        # Can cancel if status is CONFIRMED or PENDING
+        if booking["status"] not in [BookingStatus.CONFIRMED.value, BookingStatus.PENDING.value]:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Cannot cancel booking with status {booking['status']}"
+            )
+        
+        # Update booking status through ticket service
+        await controller.ticket_service.update_booking_status(
+            booking_id=booking_id,
+            status=BookingStatus.CANCELED.value,
+            auth_token=authorization
+        )
+        
+        return {"message": "Booking canceled successfully"}
+    except Exception as e:
+        logger.error(f"Error canceling booking: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e)) 

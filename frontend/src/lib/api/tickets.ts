@@ -1,9 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { BookingStatus } from "@/types/booking";
 import { fetchAuthSession } from "aws-amplify/auth";
+import { getBearerIdToken, getBearerToken } from "@/utils/auth";
 
-const TICKET_SERVICE_URL =
-  process.env.NEXT_PUBLIC_TICKET_SERVICE_URL || "http://localhost:8000";
+const TICKET_SERVICE_URL = typeof window === 'undefined' 
+  ? process.env.TICKET_SERVICE_URL  // Use container name when running in Docker
+  : 'http://localhost:8000';        // Use localhost when running in browser
 
 export interface BookingRequest {
   event_id: string;
@@ -18,6 +20,7 @@ export interface BookingResponse {
   created_at: string;
   updated_at: string;
   tickets: Ticket[];
+  total_amount: number;
 }
 
 export interface Ticket {
@@ -66,19 +69,20 @@ function isValidUUID(uuid: string) {
   return true; // Skip validation for now to troubleshoot the API connection
 }
 
-export async function createBooking(
-  bookingData: BookingRequest
-): Promise<BookingResponse> {
+export async function createBooking(bookingData: BookingRequest): Promise<BookingResponse> {
   const headers = await getAuthHeaders();
   const response = await fetch(`${TICKET_SERVICE_URL}/api/v1/bookings/book`, {
     method: "POST",
     headers,
     body: JSON.stringify(bookingData),
   });
+
   if (!response.ok) {
     throw new Error("Failed to create booking");
   }
-  return response.json();
+
+  const booking = await response.json();
+  return booking;  // Backend will auto-confirm if free event
 }
 
 export async function getUserBookings(
@@ -121,38 +125,64 @@ export async function getBooking(bookingId: string): Promise<BookingResponse> {
   if (!isValidUUID(bookingId)) {
     throw new Error("Invalid booking ID format. Must be a valid UUID.");
   }
+  
   const headers = await getAuthHeaders();
+  console.log("Fetching booking with ID:", bookingId); // Debug log
+  
   const response = await fetch(
     `${TICKET_SERVICE_URL}/api/v1/bookings/${bookingId}`,
     {
       headers,
     }
   );
+
   if (!response.ok) {
-    throw new Error("Failed to fetch booking");
+    const errorData = await response.json().catch(() => null);
+    console.error("Error fetching booking:", {
+      status: response.status,
+      error: errorData
+    });
+    throw new Error(
+      errorData?.detail || 
+      `Failed to fetch booking (${response.status})`
+    );
   }
-  return response.json();
+
+  const data = await response.json();
+  console.log("Booking data received:", data); // Debug log
+  return data;
 }
 
 export async function updateBookingStatus(
   bookingId: string,
-  action: "confirm" | "cancel" | "refund"
+  action: "cancel" | "refund" | "complete"
 ): Promise<{ message: string }> {
-  if (!isValidUUID(bookingId)) {
-    throw new Error("Invalid booking ID format. Must be a valid UUID.");
-  }
+  const endpoint = action === "complete" ? "confirm" : action;
   const headers = await getAuthHeaders();
-  const response = await fetch(
-    `${TICKET_SERVICE_URL}/api/v1/bookings/${bookingId}/${action}`,
-    {
-      method: "POST",
-      headers,
+  
+  console.log('Making request to:', `${TICKET_SERVICE_URL}/api/v1/bookings/${bookingId}/${endpoint}`);
+  
+  try {
+    const response = await fetch(
+      `${TICKET_SERVICE_URL}/api/v1/bookings/${bookingId}/${endpoint}`,
+      {
+        method: "POST",
+        headers,
+        credentials: 'include',
+      }
+    );
+
+    const data = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(data.detail || `Failed to ${action} booking`);
     }
-  );
-  if (!response.ok) {
-    throw new Error(`Failed to ${action} booking`);
+    
+    return data;
+  } catch (error) {
+    console.error('Error updating booking status:', error);
+    throw error;
   }
-  return response.json();
 }
 
 export async function getUserTickets(userId: string): Promise<Ticket[]> {
@@ -189,23 +219,28 @@ export async function getEventTickets(eventId: string): Promise<Ticket[]> {
   return response.json();
 }
 
-export async function getAvailableTickets(
-  eventId: string
-): Promise<{ available_tickets: number; total_capacity: number }> {
-  if (!isValidUUID(eventId)) {
-    throw new Error("Invalid event ID format. Must be a valid UUID.");
-  }
-  const headers = await getAuthHeaders();
-  const response = await fetch(
-    `${TICKET_SERVICE_URL}/api/v1/tickets/event/${eventId}/available`,
-    {
-      headers,
+export async function getAvailableTickets(eventId: string) {
+  try {
+    const headers = await getAuthHeaders();
+    // Check if headers is missing Authorization
+    if (!(headers as Record<string, string>)['Authorization']) {
+      return { available_tickets: null };
     }
-  );
-  if (!response.ok) {
-    throw new Error("Failed to fetch available tickets");
+
+    const response = await fetch(
+      `${TICKET_SERVICE_URL}/api/v1/tickets/event/${eventId}/available`,
+      { headers }
+    );
+
+    if (!response.ok) {
+      return { available_tickets: null };
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error fetching tickets:", error);
+    return { available_tickets: null };
   }
-  return response.json();
 }
 
 export async function testAuth(): Promise<any> {

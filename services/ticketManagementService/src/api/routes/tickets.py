@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from typing import List
 from uuid import UUID
+import logging
 
 from ...core.config import get_settings
 from ...core.database import get_db
@@ -16,6 +17,7 @@ from ...core.auth import get_current_user_id
 
 router = APIRouter(tags=["tickets"])
 settings = get_settings()
+logger = logging.getLogger(__name__)
 
 def format_ticket_response(ticket: Ticket) -> dict:
     return {
@@ -70,28 +72,26 @@ async def get_available_tickets(
 ):
     # Get event capacity from events service first
     event_data = await asyncio.to_thread(fetch_event_data, event_id)
-    total_capacity = event_data.get("capacity", 0)
-    print(f"Event capacity: {total_capacity}")
-    
-    if total_capacity == 0:
-        return {
-            "available_tickets": "Unlimited",
-            "total_capacity": "Unlimited",
-            "booked_tickets": 0
-        }
+    total_capacity = event_data.get("capacity", 0)  # Will now be an int
     
     # Count tickets from confirmed bookings
     query = select(func.count(Ticket.ticket_id)).select_from(Ticket).join(Booking).where(
         Booking.event_id == event_id,
         Booking.status == BookingStatus.CONFIRMED
     )
-    print(f"SQL Query: {query}")
     
     booked_tickets = (await db.execute(query)).scalar() or 0
-    print(f"Booked tickets: {booked_tickets}")
     
-    available = total_capacity - booked_tickets
-    print(f"Available = {total_capacity} - {booked_tickets} = {available}")
+    # If total capacity is 0, tickets are unlimited
+    if total_capacity == 0:
+        return {
+            "available_tickets": 0,
+            "total_capacity": 0,
+            "booked_tickets": booked_tickets
+        }
+    
+    # Calculate available tickets
+    available = total_capacity - booked_tickets  # Now both are integers
     
     return {
         "available_tickets": max(0, available),
@@ -127,11 +127,18 @@ async def get_user_event_tickets(
         "ticket_ids": [str(ticket.ticket_id) for ticket in tickets]
     }
 
-# Helper to fetch event data from events service
 def fetch_event_data(event_id: str):
     response = requests.get(f"{settings.EVENT_SERVICE_URL}/api/v1/events/{event_id}")
     if response.status_code != 200:
         raise HTTPException(status_code=404, detail="Event not found")
     event_json = response.json()
-    print("DEBUG: Received event data:", event_json)  # <-- Log it
+    
+    # Convert capacity to int here
+    if "capacity" in event_json:
+        try:
+            event_json["capacity"] = int(event_json["capacity"])
+        except (ValueError, TypeError):
+            event_json["capacity"] = 0
+            
+    logger.debug(f"Received event data: {event_json}")
     return event_json

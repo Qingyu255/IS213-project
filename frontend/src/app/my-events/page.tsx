@@ -45,7 +45,7 @@ interface TimelineEvent {
   bookings: Array<
     BookingResponse & {
       created_at: string
-      onAction?: (action: "cancel" | "refund") => Promise<void>
+      onAction?: (action: "cancel" | "refund" | "complete") => Promise<void>
     }
   >
   ticketDetails: EventBooking["ticketDetails"]
@@ -190,9 +190,16 @@ export default function MyEventsPage() {
 
   const handleBookingAction = async (
     bookingId: string,
-    action: "cancel" | "refund"
+    action: "cancel" | "refund" | "complete"
   ) => {
     try {
+      if (action === "complete") {
+        // Redirect to Stripe payment
+        router.push(`/book/${bookingId}/payment`);
+        return;
+      }
+
+      // For cancel and refund actions, call the API
       await updateBookingStatus(bookingId, action);
       // Refresh bookings after action
       if (userId) {
@@ -247,17 +254,21 @@ export default function MyEventsPage() {
   const filterEventsByStatus = (events: TimelineEvent[]) => {
     if (activeStatusTab === "all") return events;
 
-    return events.filter((event) =>
-      event.bookings.some((booking) => {
-        if (activeStatusTab === "confirmed")
-          return booking.status === "CONFIRMED";
-        if (activeStatusTab === "pending") return booking.status === "PENDING";
-        if (activeStatusTab === "cancelled")
-          return booking.status === "CANCELED";
-        if (activeStatusTab === "refunded") return booking.status === "REFUNDED";
-        return false;
-      })
-    );
+    return events
+      .map((event) => ({
+        ...event,
+        bookings: event.bookings.filter((booking) => {
+          if (activeStatusTab === "confirmed")
+            return booking.status === "CONFIRMED";
+          if (activeStatusTab === "pending") return booking.status === "PENDING";
+          if (activeStatusTab === "canceled")
+            return booking.status === "CANCELED";
+          if (activeStatusTab === "refunded")
+            return booking.status === "REFUNDED";
+          return false;
+        }),
+      }))
+      .filter((event) => event.bookings.length > 0); // Only keep events that have matching bookings
   };
 
   // Convert events to the format expected by EventTimeline
@@ -272,7 +283,7 @@ export default function MyEventsPage() {
       bookings: eventWithBookings.bookings.map((booking) => ({
         ...booking,
         created_at: booking.created_at,
-        onAction: (action: "cancel" | "refund") =>
+        onAction: (action: "cancel" | "refund" | "complete") =>
           handleBookingAction(booking.booking_id, action),
       })),
       ticketDetails: eventWithBookings.ticketDetails,
@@ -361,10 +372,10 @@ export default function MyEventsPage() {
                       Pending
                     </TabsTrigger>
                     <TabsTrigger
-                      value="cancelled"
+                      value="canceled"
                       className="text-xs sm:text-sm"
                     >
-                      Cancelled
+                      Canceled
                     </TabsTrigger>
                     <TabsTrigger
                       value="refunded"

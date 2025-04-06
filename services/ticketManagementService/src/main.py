@@ -13,8 +13,8 @@ from prometheus_client import make_asgi_app, Counter, Histogram
 import time
 from starlette.middleware.base import BaseHTTPMiddleware
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
+# Configure logging to show debug messages
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 # Get settings
@@ -72,12 +72,11 @@ app.mount("/metrics", metrics_app)
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.FRONTEND_URL],  # Frontend URL from settings
+    allow_origins=["http://localhost:3000"],  # Explicitly allow frontend URL
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
     expose_headers=["*"],
-    max_age=3600  # Cache preflight requests for 1 hour
 )
 
 # Include router
