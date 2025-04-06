@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { BookingStatus } from "@/types/booking";
 import { fetchAuthSession } from "aws-amplify/auth";
-import { getBearerIdToken, getBearerToken } from "@/utils/auth"
+import { getBearerIdToken, getBearerToken } from "@/utils/auth";
 
 const TICKET_SERVICE_URL = typeof window === 'undefined' 
   ? process.env.TICKET_SERVICE_URL  // Use container name when running in Docker
@@ -221,25 +221,25 @@ export async function getEventTickets(eventId: string): Promise<Ticket[]> {
 
 export async function getAvailableTickets(eventId: string) {
   try {
-    const headers = await getAuthHeaders()
+    const headers = await getAuthHeaders();
     // Check if headers is missing Authorization
     if (!(headers as Record<string, string>)['Authorization']) {
-      return { available_tickets: null }
+      return { available_tickets: null };
     }
 
     const response = await fetch(
       `${TICKET_SERVICE_URL}/api/v1/tickets/event/${eventId}/available`,
       { headers }
-    )
+    );
 
     if (!response.ok) {
-      return { available_tickets: null }
+      return { available_tickets: null };
     }
 
-    return await response.json()
+    return await response.json();
   } catch (error) {
-    console.error("Error fetching tickets:", error)
-    return { available_tickets: null }
+    console.error("Error fetching tickets:", error);
+    return { available_tickets: null };
   }
 }
 

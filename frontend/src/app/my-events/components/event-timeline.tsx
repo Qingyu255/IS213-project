@@ -1,7 +1,7 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import Image from "next/image"
+import Link from "next/link";
+import Image from "next/image";
 import {
   Calendar,
   Ticket,
@@ -12,19 +12,19 @@ import {
   XCircle,
   RefreshCcw,
   ExternalLink,
-} from "lucide-react"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { BookingStatus } from "@/types/booking"
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { BookingStatus } from "@/types/booking";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@/components/ui/collapsible"
-import { Spinner } from "@/components/ui/spinner"
-import { useState } from "react"
-import { cn } from "@/lib/utils"
+} from "@/components/ui/collapsible";
+import { Spinner } from "@/components/ui/spinner";
+import { useState } from "react";
+import { cn } from "@/lib/utils";
 
 // Define the interfaces to match your existing data structure
 interface TicketType {
@@ -62,34 +62,34 @@ interface EventTimelineProps {
 export function EventTimeline({ events, type }: EventTimelineProps) {
   const [processingBookingId, setProcessingBookingId] = useState<string | null>(
     null
-  )
+  );
   const [openEvent, setOpenEvent] = useState<string | null>(
     events.length > 0 ? events[0].id : null
-  )
-  const [openBooking, setOpenBooking] = useState<string | null>(null)
+  );
+  const [openBooking, setOpenBooking] = useState<string | null>(null);
 
   // Group events by month
   const groupedEvents = events.reduce<Record<string, EventType[]>>(
     (groups, event) => {
-      const date = event.date
+      const date = event.date;
       const monthYear = date.toLocaleString("default", {
         month: "long",
         year: "numeric",
-      })
+      });
 
       if (!groups[monthYear]) {
-        groups[monthYear] = []
+        groups[monthYear] = [];
       }
-      groups[monthYear].push(event)
-      return groups
+      groups[monthYear].push(event);
+      return groups;
     },
     {}
-  )
+  );
 
   // Sort events within each month by date
   Object.values(groupedEvents).forEach((monthEvents) => {
-    monthEvents.sort((a, b) => b.date.getTime() - a.date.getTime())
-  })
+    monthEvents.sort((a, b) => b.date.getTime() - a.date.getTime());
+  });
 
   const getStatusInfo = (status: BookingStatus) => {
     switch (status) {
@@ -108,7 +108,7 @@ export function EventTimeline({ events, type }: EventTimelineProps) {
           borderColor: "border-[hsl(var(--status-confirmed-border))]",
           textColor: "text-[hsl(var(--status-confirmed))]",
           iconBg: "bg-[hsl(var(--status-confirmed-bg))]",
-        }
+        };
       case BookingStatus.PENDING:
         return {
           label: "Pending",
@@ -122,7 +122,7 @@ export function EventTimeline({ events, type }: EventTimelineProps) {
           borderColor: "border-[hsl(var(--status-pending-border))]",
           textColor: "text-[hsl(var(--status-pending))]",
           iconBg: "bg-[hsl(var(--status-pending-bg))]",
-        }
+        };
       case BookingStatus.CANCELED:
         return {
           label: "Canceled",
@@ -138,7 +138,7 @@ export function EventTimeline({ events, type }: EventTimelineProps) {
           borderColor: "border-[hsl(var(--status-cancelled-border))]",
           textColor: "text-[hsl(var(--status-cancelled))]",
           iconBg: "bg-[hsl(var(--status-cancelled-bg))]",
-        }
+        };
       case BookingStatus.REFUNDED:
         return {
           label: "Refunded",
@@ -154,7 +154,7 @@ export function EventTimeline({ events, type }: EventTimelineProps) {
           borderColor: "border-[hsl(var(--status-refunded-border))]",
           textColor: "text-[hsl(var(--status-refunded))]",
           iconBg: "bg-[hsl(var(--status-refunded-bg))]",
-        }
+        };
       default:
         return {
           label: status,
@@ -164,46 +164,46 @@ export function EventTimeline({ events, type }: EventTimelineProps) {
           borderColor: "border-gray-200",
           textColor: "text-gray-700",
           iconBg: "bg-gray-100",
-        }
+        };
     }
-  }
+  };
 
   const handleAction = async (
     booking: BookingType,
     action: "cancel" | "refund" | "complete"
   ) => {
-    setProcessingBookingId(booking.booking_id)
+    setProcessingBookingId(booking.booking_id);
     try {
       if (booking.onAction) {
-        await booking.onAction(action)
+        await booking.onAction(action);
       }
     } finally {
-      setProcessingBookingId(null)
+      setProcessingBookingId(null);
     }
-  }
+  };
 
   const toggleEvent = (eventId: string) => {
-    setOpenEvent(openEvent === eventId ? null : eventId)
-  }
+    setOpenEvent(openEvent === eventId ? null : eventId);
+  };
 
   const toggleBooking = (bookingId: string) => {
-    setOpenBooking(openBooking === bookingId ? null : bookingId)
-  }
+    setOpenBooking(openBooking === bookingId ? null : bookingId);
+  };
 
   // Count bookings by status for an event
   const countBookingsByStatus = (event: EventType) => {
     const confirmed = event.bookings.filter(
       (b) => b.status === BookingStatus.CONFIRMED
-    ).length
+    ).length;
     const pending = event.bookings.filter(
       (b) => b.status === BookingStatus.PENDING
-    ).length
+    ).length;
     const canceled = event.bookings.filter(
       (b) => b.status === BookingStatus.CANCELED
-    ).length
+    ).length;
     const refunded = event.bookings.filter(
       (b) => b.status === BookingStatus.REFUNDED
-    ).length
+    ).length;
 
     return {
       confirmed,
@@ -211,8 +211,8 @@ export function EventTimeline({ events, type }: EventTimelineProps) {
       canceled,
       refunded,
       total: event.bookings.length,
-    }
-  }
+    };
+  };
 
   if (events.length === 0) {
     return (
@@ -231,7 +231,7 @@ export function EventTimeline({ events, type }: EventTimelineProps) {
           <Link href="/events">Explore Events</Link>
         </Button>
       </div>
-    )
+    );
   }
 
   return (
@@ -243,7 +243,7 @@ export function EventTimeline({ events, type }: EventTimelineProps) {
           </div>
           <div className="space-y-4">
             {monthEvents.map((event) => {
-              const counts = countBookingsByStatus(event)
+              const counts = countBookingsByStatus(event);
 
               return (
                 <Card
@@ -267,8 +267,8 @@ export function EventTimeline({ events, type }: EventTimelineProps) {
                             sizes="(max-width: 64px) 100vw, 64px"
                             className="object-cover"
                             onError={(e) => {
-                              const target = e.target as HTMLImageElement
-                              target.src = "/eventplaceholder.png"
+                              const target = e.target as HTMLImageElement;
+                              target.src = "/eventplaceholder.png";
                             }}
                             priority
                           />
@@ -371,13 +371,13 @@ export function EventTimeline({ events, type }: EventTimelineProps) {
 
                         <div className="space-y-4 mt-4">
                           {event.bookings.map((booking) => {
-                            const statusInfo = getStatusInfo(booking.status)
+                            const statusInfo = getStatusInfo(booking.status);
                             const bookingDate =
                               booking.created_at instanceof Date
                                 ? booking.created_at.toLocaleDateString()
                                 : new Date(
                                     booking.created_at
-                                  ).toLocaleDateString()
+                                  ).toLocaleDateString();
 
                             return (
                               <Card
@@ -660,18 +660,18 @@ export function EventTimeline({ events, type }: EventTimelineProps) {
                                   </CollapsibleContent>
                                 </Collapsible>
                               </Card>
-                            )
+                            );
                           })}
                         </div>
                       </div>
                     </CollapsibleContent>
                   </Collapsible>
                 </Card>
-              )
+              );
             })}
           </div>
         </div>
       ))}
     </div>
-  )
+  );
 }

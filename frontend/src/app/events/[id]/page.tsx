@@ -1,7 +1,7 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import Image from "next/image"
+import { useEffect, useState } from "react";
+import Image from "next/image";
 import {
   Calendar,
   Clock,
@@ -10,70 +10,70 @@ import {
   Globe,
   Share2,
   Ticket,
-} from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Separator } from "@/components/ui/separator"
-import { EventMap } from "./components/event-map"
-import { EventDetails } from "@/types/event"
-import { BACKEND_ROUTES } from "@/constants/backend-routes"
-import { getBearerIdToken } from "@/utils/auth"
-import { ErrorMessageCallout } from "@/components/error-message-callout"
-import { Spinner } from "@/components/ui/spinner"
-import { useParams, useRouter } from "next/navigation"
-import useAuthUser from "@/hooks/use-auth-user"
-import { getAvailableTickets } from "@/lib/api/tickets"
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Separator } from "@/components/ui/separator";
+import { EventMap } from "./components/event-map";
+import { EventDetails } from "@/types/event";
+import { BACKEND_ROUTES } from "@/constants/backend-routes";
+import { getBearerIdToken } from "@/utils/auth";
+import { ErrorMessageCallout } from "@/components/error-message-callout";
+import { Spinner } from "@/components/ui/spinner";
+import { useParams, useRouter } from "next/navigation";
+import useAuthUser from "@/hooks/use-auth-user";
+import { getAvailableTickets } from "@/lib/api/tickets";
 
 export default function EventPage() {
-  const { id } = useParams()
-  const [event, setEvent] = useState<EventDetails | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const router = useRouter()
-  const { getUserId } = useAuthUser()
-  const userId = getUserId()
-  const [loading, setLoading] = useState(false)
+  const { id } = useParams();
+  const [event, setEvent] = useState<EventDetails | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+  const { getUserId } = useAuthUser();
+  const userId = getUserId();
+  const [loading, setLoading] = useState(false);
   const [ticketInfo, setTicketInfo] = useState<{
     availableTickets: number | "Unlimited"
-  } | null>(null)
+  } | null>(null);
 
   const handleRefundClick = () => {
-    router.push(`/events/${id}/refund`)
-  }
+    router.push(`/events/${id}/refund`);
+  };
 
   const handleBooking = async () => {
     if (!userId) {
-      router.push("/auth/signin")
-      return
-      router.push("/auth/login")
-      return
+      router.push("/auth/signin");
+      return;
+      router.push("/auth/login");
+      return;
     }
-    router.push(`/book/${id}`)
-  }
+    router.push(`/book/${id}`);
+  };
 
   // Fetch ticket availability
   useEffect(() => {
     async function fetchTicketAvailability() {
       if (!userId) {
-        setTicketInfo(null) // Set to null to show "Sign in to view"
-        return
+        setTicketInfo(null); // Set to null to show "Sign in to view"
+        return;
       }
 
       try {
-        const ticketData = await getAvailableTickets(id as string)
+        const ticketData = await getAvailableTickets(id as string);
         setTicketInfo({
           availableTickets:
             event?.capacity === 0 ? "Unlimited" : ticketData.available_tickets,
-        })
+        });
       } catch (err) {
-        console.error("Failed to fetch ticket availability:", err)
-        setTicketInfo(null) // Set to null on error too
+        console.error("Failed to fetch ticket availability:", err);
+        setTicketInfo(null); // Set to null on error too
       }
     }
 
-    fetchTicketAvailability()
-  }, [id, userId, event?.capacity])
+    fetchTicketAvailability();
+  }, [id, userId, event?.capacity]);
 
   // Fetch event details on component mount
   useEffect(() => {
@@ -81,50 +81,50 @@ export default function EventPage() {
       try {
         const res = await fetch(
           `${BACKEND_ROUTES.eventsService}/api/v1/events/${id}`
-        )
+        );
         if (!res.ok)
-          throw new Error(`Failed to fetch event details: ${res.statusText}`)
-        const data: EventDetails = await res.json()
-        console.log("Event data:", data)
+          throw new Error(`Failed to fetch event details: ${res.statusText}`);
+        const data: EventDetails = await res.json();
+        console.log("Event data:", data);
 
         // Only fetch ticket info if user is logged in
         if (userId) {
           try {
-            const ticketData = await getAvailableTickets(id as string)
-            console.log("Ticket data:", ticketData)
+            const ticketData = await getAvailableTickets(id as string);
+            console.log("Ticket data:", ticketData);
             setTicketInfo({
               availableTickets:
                 data.capacity === 0
                   ? "Unlimited"
                   : ticketData.available_tickets,
-            })
+            });
           } catch (err) {
-            console.log("Not logged in or error fetching tickets:", err)
+            console.log("Not logged in or error fetching tickets:", err);
             // Just leave ticketInfo as null when not logged in
-            setTicketInfo(null)
+            setTicketInfo(null);
           }
         } else {
           // Just leave ticketInfo as null when not logged in
-          setTicketInfo(null)
+          setTicketInfo(null);
         }
 
-        setEvent(data)
+        setEvent(data);
       } catch (err: any) {
-        console.error("Error fetching data:", err)
-        setError(err.message || "An error occurred")
+        console.error("Error fetching data:", err);
+        setError(err.message || "An error occurred");
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
       }
     }
-    fetchEvent()
-  }, [id, userId])
+    fetchEvent();
+  }, [id, userId]);
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-5">
         <Spinner size="sm" className="bg-black dark:bg-white" />
       </div>
-    )
+    );
   }
 
   if (error) {
@@ -132,7 +132,7 @@ export default function EventPage() {
       <div className="flex items-center justify-center p-5">
         <ErrorMessageCallout errorMessage={error} />
       </div>
-    )
+    );
   }
 
   if (!event) {
@@ -140,7 +140,7 @@ export default function EventPage() {
       <div className="flex items-center justify-center min-h-screen">
         <p>No event found.</p>
       </div>
-    )
+    );
   }
 
   return (
@@ -171,7 +171,7 @@ export default function EventPage() {
                     >
                       {category as string}
                     </Badge>
-                  )
+                  );
                 })}
               </>
               <h1 className="text-4xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-blue-400">
@@ -311,5 +311,5 @@ export default function EventPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

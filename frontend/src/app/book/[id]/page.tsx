@@ -1,19 +1,19 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { useRouter, useParams } from "next/navigation"
-import { getCurrentUser } from "aws-amplify/auth"
-import { getBearerIdToken } from "@/utils/auth"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { ErrorMessageCallout } from "@/components/error-message-callout"
-import { Spinner } from "@/components/ui/spinner"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { BACKEND_ROUTES } from "@/constants/backend-routes"
-import { MapPin, Calendar } from "lucide-react"
-import useAuthUser from "@/hooks/use-auth-user"
-import { getAvailableTickets } from "@/lib/api/tickets"
+import { useState, useEffect } from "react";
+import { useRouter, useParams } from "next/navigation";
+import { getCurrentUser } from "aws-amplify/auth";
+import { getBearerIdToken } from "@/utils/auth";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ErrorMessageCallout } from "@/components/error-message-callout";
+import { Spinner } from "@/components/ui/spinner";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { BACKEND_ROUTES } from "@/constants/backend-routes";
+import { MapPin, Calendar } from "lucide-react";
+import useAuthUser from "@/hooks/use-auth-user";
+import { getAvailableTickets } from "@/lib/api/tickets";
 
 interface BookingFormData {
   quantity: number
@@ -38,40 +38,40 @@ interface EventDetails {
 }
 
 function formatDateTime(dateStr: string) {
-  const date = new Date(dateStr)
+  const date = new Date(dateStr);
   return {
     date: date.toLocaleDateString(),
     time: date.toLocaleTimeString([], {
       hour: "2-digit",
       minute: "2-digit",
     }),
-  }
+  };
 }
 
 export default function BookingPage() {
-  const router = useRouter()
-  const params = useParams()
-  const [isRedirecting, setIsRedirecting] = useState(false)
+  const router = useRouter();
+  const params = useParams();
+  const [isRedirecting, setIsRedirecting] = useState(false);
   const [formData, setFormData] = useState<BookingFormData>({
     quantity: 1,
     name: "",
     email: "",
-  })
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [event, setEvent] = useState<EventDetails | null>(null)
-  const { getUserId } = useAuthUser()
-  const userId = getUserId()
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [event, setEvent] = useState<EventDetails | null>(null);
+  const { getUserId } = useAuthUser();
+  const userId = getUserId();
   const [ticketInfo, setTicketInfo] = useState<{
     availableTickets: number
-  } | null>(null)
+  } | null>(null);
 
   useEffect(() => {
     async function fetchEvent() {
-      if (!params?.id) return
+      if (!params?.id) return;
 
       try {
-        const bearerToken = await getBearerIdToken()
+        const bearerToken = await getBearerIdToken();
 
         const response = await fetch(
           `${BACKEND_ROUTES.eventsService}/api/v1/events/${params.id}`,
@@ -81,61 +81,61 @@ export default function BookingPage() {
               Authorization: bearerToken,
             },
           }
-        )
+        );
         if (!response.ok) {
-          throw new Error("Failed to fetch event details")
+          throw new Error("Failed to fetch event details");
         }
-        const data = await response.json()
-        setEvent(data)
+        const data = await response.json();
+        setEvent(data);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load event")
+        setError(err instanceof Error ? err.message : "Failed to load event");
       }
     }
 
-    fetchEvent()
-  }, [params?.id])
+    fetchEvent();
+  }, [params?.id]);
 
   // Fetch ticket availability
   useEffect(() => {
     async function fetchTicketAvailability() {
       if (!userId) {
-        setTicketInfo(null) // Set to null when not logged in
-        return
+        setTicketInfo(null); // Set to null when not logged in
+        return;
       }
 
       try {
-        const ticketData = await getAvailableTickets(params.id as string)
+        const ticketData = await getAvailableTickets(params.id as string);
         setTicketInfo({
           availableTickets: ticketData.available_tickets,
-        })
+        });
       } catch (err) {
-        console.error("Failed to fetch ticket availability:", err)
-        setTicketInfo(null)
+        console.error("Failed to fetch ticket availability:", err);
+        setTicketInfo(null);
       }
     }
 
-    fetchTicketAvailability()
-  }, [params.id, userId])
+    fetchTicketAvailability();
+  }, [params.id, userId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
     if (!userId) {
-      router.push("/auth/login")
-      return
+      router.push("/auth/login");
+      return;
     }
-    if (!event || !params?.id) return
-    if (loading || isRedirecting) return // Prevent double submission
+    if (!event || !params?.id) return;
+    if (loading || isRedirecting) return; // Prevent double submission
 
-    setLoading(true)
-    setError(null)
+    setLoading(true);
+    setError(null);
 
     try {
       // Get the current user and bearer token
-      const user = await getCurrentUser()
-      const bearerToken = await getBearerIdToken()
+      const user = await getCurrentUser();
+      const bearerToken = await getBearerIdToken();
 
       if (!bearerToken) {
-        throw new Error("Please sign in to make a booking")
+        throw new Error("Please sign in to make a booking");
       }
 
       // 1. First create the booking record
@@ -154,23 +154,23 @@ export default function BookingPage() {
             email: formData.email,
           }),
         }
-      )
+      );
 
       if (!bookingResponse.ok) {
-        const errorData = await bookingResponse.json()
-        throw new Error(errorData.detail || "Failed to create booking")
+        const errorData = await bookingResponse.json();
+        throw new Error(errorData.detail || "Failed to create booking");
       }
 
-      const bookingData = await bookingResponse.json()
+      const bookingData = await bookingResponse.json();
 
       // If booking is confirmed (free event), go to confirmation
       if (bookingData.status === "CONFIRMED") {
-        setIsRedirecting(true)
+        setIsRedirecting(true);
         // Use replace instead of push to prevent back navigation
         await router.replace(
           `/book/${bookingData.booking_id}/success?session_id=${bookingData.session_id}`
-        )
-        return
+        );
+        return;
       }
 
       // Otherwise continue with payment flow
@@ -186,32 +186,32 @@ export default function BookingPage() {
           userId: user.userId,
           quantity: formData.quantity,
         }),
-      })
+      });
 
       if (!stripeResponse.ok) {
-        const errorData = await stripeResponse.json()
-        throw new Error(errorData.error || "Failed to create payment session")
+        const errorData = await stripeResponse.json();
+        throw new Error(errorData.error || "Failed to create payment session");
       }
 
-      const { url } = await stripeResponse.json()
-      setIsRedirecting(true)
-      window.location.href = url // Use direct navigation for Stripe
+      const { url } = await stripeResponse.json();
+      setIsRedirecting(true);
+      window.location.href = url; // Use direct navigation for Stripe
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred")
-      setLoading(false)
-      setIsRedirecting(false)
+      setError(err instanceof Error ? err.message : "An error occurred");
+      setLoading(false);
+      setIsRedirecting(false);
     }
-  }
+  };
 
   if (!event) {
     return (
       <div className="flex justify-center items-center min-h-screen">
         <Spinner />
       </div>
-    )
+    );
   }
 
-  const totalPrice = event.price * formData.quantity
+  const totalPrice = event.price * formData.quantity;
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -357,5 +357,5 @@ export default function BookingPage() {
         </form>
       </div>
     </div>
-  )
+  );
 }

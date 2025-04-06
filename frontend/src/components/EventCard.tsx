@@ -1,10 +1,10 @@
-import Image from "next/image"
-import Link from "next/link"
-import { Calendar, Clock, MapPin, Users } from "lucide-react"
-import { Card, CardContent, CardFooter } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { EventDetails, EventWithTickets } from "@/types/event"
+import Image from "next/image";
+import Link from "next/link";
+import { Calendar, Clock, MapPin, Users } from "lucide-react";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { EventDetails, EventWithTickets } from "@/types/event";
 
 type EventCardProps = {
   event: EventWithTickets
@@ -19,7 +19,7 @@ export function EventCard({
   showCapacity = false,
   showTime = false,
 }: EventCardProps) {
-  const isFeatured = variant === "featured"
+  const isFeatured = variant === "featured";
 
   return (
     <Card
@@ -184,5 +184,5 @@ export function EventCard({
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }

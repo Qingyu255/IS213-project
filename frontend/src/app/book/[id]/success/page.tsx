@@ -1,21 +1,21 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { useRouter, useSearchParams, useParams } from "next/navigation"
-import { confirmBooking } from "@/app/book/actions"
-import { getBearerIdToken } from "@/utils/auth"
-import { Spinner } from "@/components/ui/spinner"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardFooter } from "@/components/ui/card"
+import { useEffect, useState } from "react";
+import { useRouter, useSearchParams, useParams } from "next/navigation";
+import { confirmBooking } from "@/app/book/actions";
+import { getBearerIdToken } from "@/utils/auth";
+import { Spinner } from "@/components/ui/spinner";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardFooter } from "@/components/ui/card";
 import {
   CheckCircle,
   XCircle,
   AlertCircle,
   Home,
   ArrowRight,
-} from "lucide-react"
-import { Badge } from "@/components/ui/badge"
-import { getBooking } from "@/lib/api/tickets"
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { getBooking } from "@/lib/api/tickets";
 
 interface BookingDetails {
   booking_id: string
@@ -26,42 +26,42 @@ interface BookingDetails {
 }
 
 export default function BookingSuccessPage() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const params = useParams()
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const params = useParams();
   const [status, setStatus] = useState<"loading" | "success" | "error">(
     "loading"
-  )
-  const [error, setError] = useState<string | null>(null)
-  const [booking, setBooking] = useState<BookingDetails | null>(null)
-  const bookingId = params.id as string
-  const sessionId = searchParams.get("session_id")
-  const price = Number(searchParams.get("price")) || 0
+  );
+  const [error, setError] = useState<string | null>(null);
+  const [booking, setBooking] = useState<BookingDetails | null>(null);
+  const bookingId = params.id as string;
+  const sessionId = searchParams.get("session_id");
+  const price = Number(searchParams.get("price")) || 0;
 
   useEffect(() => {
     async function processBooking() {
       try {
         // Get the bearer token
-        const bearerToken = await getBearerIdToken()
+        const bearerToken = await getBearerIdToken();
         if (!bearerToken) {
-          setStatus("error")
-          setError("Please log in to view your booking")
-          return
+          setStatus("error");
+          setError("Please log in to view your booking");
+          return;
         }
 
         // First get booking details
-        const bookingData = await getBooking(bookingId)
-        console.log("Initial booking data:", bookingData) // Debug log
+        const bookingData = await getBooking(bookingId);
+        console.log("Initial booking data:", bookingData); // Debug log
 
         // If there's a session ID, this is a paid booking that needs confirmation
         if (sessionId && bookingData.status !== "CONFIRMED") {
-          const result = await confirmBooking(bookingId, sessionId, bearerToken)
+          const result = await confirmBooking(bookingId, sessionId, bearerToken);
           if (!result.success) {
-            throw new Error(result.error || "Failed to confirm booking")
+            throw new Error(result.error || "Failed to confirm booking");
           }
           // Refresh booking data after confirmation
-          const confirmedBookingData = await getBooking(bookingId)
-          console.log("Confirmed booking data:", confirmedBookingData) // Debug log
+          const confirmedBookingData = await getBooking(bookingId);
+          console.log("Confirmed booking data:", confirmedBookingData); // Debug log
 
           setBooking({
             booking_id: confirmedBookingData.booking_id,
@@ -69,7 +69,7 @@ export default function BookingSuccessPage() {
             ticket_quantity: confirmedBookingData.tickets.length,
             event_id: confirmedBookingData.event_id,
             total_amount: price * confirmedBookingData.tickets.length,
-          })
+          });
         } else {
           // For free events or already confirmed bookings
           setBooking({
@@ -78,22 +78,22 @@ export default function BookingSuccessPage() {
             ticket_quantity: bookingData.tickets.length,
             event_id: bookingData.event_id,
             total_amount: price * bookingData.tickets.length,
-          })
+          });
         }
 
         // Important: Set status to success after setting the booking
-        setStatus("success")
+        setStatus("success");
       } catch (err) {
-        console.error("Error processing booking:", err) // Debug log
-        setStatus("error")
+        console.error("Error processing booking:", err); // Debug log
+        setStatus("error");
         setError(
           err instanceof Error ? err.message : "Failed to process booking"
-        )
+        );
       }
     }
 
-    processBooking()
-  }, [bookingId, sessionId, price])
+    processBooking();
+  }, [bookingId, sessionId, price]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
@@ -193,5 +193,5 @@ export default function BookingSuccessPage() {
         )}
       </Card>
     </div>
-  )
+  );
 }
