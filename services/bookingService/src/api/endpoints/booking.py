@@ -109,21 +109,20 @@ class BookingController:
                     auth_token=auth_token
                 )
 
+                # 4. Get user details from token claims
+                claims = validate_token(auth_token)
+                user_email = claims.get("email")  # Get email from token claims
+
                 # Send confirmation for free event
                 try:
                     self.notification_service.send_booking_confirmation(
                         booking_id=booking["booking_id"],
-                        customer_email=booking["email"],
-                        event_name=event["name"],
+                        customer_email=user_email,
+                        event_name=event["title"],
                         ticket_quantity=booking["ticket_quantity"],
                         total_amount=0,
-                        user_id=booking["user_id"],
-                        event_datetime=event["datetime"],
-                        additional_info={
-                            "payment_id": None,
-                            "currency": "SGD",
-                            "type": "free_event"
-                        }
+                        event_start_datetime=event["startDateTime"],
+                        event_end_datetime=event["endDateTime"]
                     )
                 except Exception as e:
                     logger.error(f"Error sending free event confirmation: {str(e)}")
@@ -194,26 +193,29 @@ class BookingController:
             if not event:
                 raise HTTPException(status_code=404, detail="Event not found")
 
-            # 4. Send confirmation notification
+            # 4. Get user details from token claims
+            claims = validate_token(authorization)
+            user_email = claims.get("email")  # Get email from token claims
+            if not user_email:
+                logger.error("No email found in token claims")
+                raise HTTPException(status_code=400, detail="User email not found")
+
+            # 5. Send confirmation notification
             try:
                 self.notification_service.send_booking_confirmation(
                     booking_id=booking_id,
-                    customer_email=booking.get("email", ""),
-                    event_name=event["name"],
+                    customer_email=user_email,  # Use email from token claims
+                    event_name=event["title"],
                     ticket_quantity=booking["ticket_quantity"],
-                    total_amount=float(payment_confirmation.amount) / 100,
-                    user_id=booking["user_id"],
-                    event_datetime=event["datetime"],
-                    additional_info={
-                        "payment_id": payment_confirmation.payment_intent_id,
-                        "currency": payment_confirmation.currency
-                    }
+                    total_amount=float(payment_confirmation.amount) / 100,  # Amount from payment confirmation
+                    event_start_datetime=event["startDateTime"],
+                    event_end_datetime=event["endDateTime"],
                 )
                 
             except Exception as e:
                 logger.error(f"Error sending confirmation notifications: {str(e)}")
 
-            # 5. Log successful confirmation
+            # 6. Log successful confirmation
             self.logging_service.send_log(
                 level="info",
                 message=f"Booking {booking_id} confirmed after payment",
