@@ -285,7 +285,9 @@ export default function BookingPage() {
               <span className="font-medium">Available Tickets:</span>
               <span>
                 {ticketInfo != null
-                  ? ticketInfo.availableTickets
+                  ? ticketInfo.availableTickets === -1
+                    ? "Unlimited"
+                    : ticketInfo.availableTickets
                   : "Sign in to view"}
               </span>
             </div>

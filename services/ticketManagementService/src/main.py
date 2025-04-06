@@ -72,12 +72,11 @@ app.mount("/metrics", metrics_app)
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.FRONTEND_URL],  # Frontend URL from settings
+    allow_origins=["http://localhost:3000"],  # Explicitly allow frontend URL
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
     expose_headers=["*"],
-    max_age=3600  # Cache preflight requests for 1 hour
 )
 
 # Include router

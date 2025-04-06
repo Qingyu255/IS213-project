@@ -185,15 +185,39 @@ async def cancel_booking(
     db: AsyncSession = Depends(get_db),
     current_user_id: str = Depends(get_current_user_id)
 ):
-    # Get the booking first to check ownership
-    booking = await booking_service.get_booking_by_id(booking_id, db)
-    
-    # Compare user IDs as strings
-    if booking["user_id"] != current_user_id:
-        logger.warning(f"User {current_user_id} attempted to cancel booking {booking_id} owned by user {booking['user_id']}")
-        raise HTTPException(status_code=403, detail="Cannot cancel other users' bookings")
-    
-    return await booking_service.update_booking_status(booking_id, BookingStatus.CANCELED, db)
+    try:
+        logger.debug(f"Attempting to cancel booking {booking_id} for user {current_user_id}")
+        
+        # Get the booking first to check ownership
+        booking = await booking_service.get_booking_by_id(booking_id, db)
+        
+        if not booking:
+            raise HTTPException(status_code=404, detail="Booking not found")
+        
+        # Compare user IDs as strings
+        if str(booking["user_id"]) != str(current_user_id):
+            logger.warning(f"User {current_user_id} attempted to cancel booking {booking_id} owned by user {booking['user_id']}")
+            raise HTTPException(status_code=403, detail="Cannot cancel other users' bookings")
+        
+        logger.debug(f"Current booking status: {booking['status']}")
+        logger.debug(f"Attempting transition to: CANCELED")
+        
+        # Can cancel if status is CONFIRMED or PENDING
+        if booking["status"] not in [BookingStatus.CONFIRMED.value, BookingStatus.PENDING.value]:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Cannot cancel booking with status {booking['status']}"
+            )
+        
+        result = await booking_service.update_booking_status(booking_id, BookingStatus.CANCELED, db)
+        return {"message": "Booking canceled successfully"}
+        
+    except HTTPException as he:
+        logger.error(f"HTTP error in cancel_booking: {str(he)}")
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error in cancel_booking: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/bookings/{booking_id}/refund")
 async def refund_booking(

@@ -3,8 +3,9 @@ import { BookingStatus } from "@/types/booking";
 import { fetchAuthSession } from "aws-amplify/auth";
 import { getBearerIdToken, getBearerToken } from "@/utils/auth"
 
-const TICKET_SERVICE_URL =
-  process.env.NEXT_PUBLIC_TICKET_SERVICE_URL || "http://localhost:8000";
+const TICKET_SERVICE_URL = typeof window === 'undefined' 
+  ? process.env.TICKET_SERVICE_URL  // Use container name when running in Docker
+  : 'http://localhost:8000';        // Use localhost when running in browser
 
 export interface BookingRequest {
   event_id: string;
@@ -154,23 +155,34 @@ export async function getBooking(bookingId: string): Promise<BookingResponse> {
 
 export async function updateBookingStatus(
   bookingId: string,
-  action: "confirm" | "cancel" | "refund"
+  action: "cancel" | "refund" | "complete"
 ): Promise<{ message: string }> {
-  if (!isValidUUID(bookingId)) {
-    throw new Error("Invalid booking ID format. Must be a valid UUID.");
-  }
+  const endpoint = action === "complete" ? "confirm" : action;
   const headers = await getAuthHeaders();
-  const response = await fetch(
-    `${TICKET_SERVICE_URL}/api/v1/bookings/${bookingId}/${action}`,
-    {
-      method: "POST",
-      headers,
+  
+  console.log('Making request to:', `${TICKET_SERVICE_URL}/api/v1/bookings/${bookingId}/${endpoint}`);
+  
+  try {
+    const response = await fetch(
+      `${TICKET_SERVICE_URL}/api/v1/bookings/${bookingId}/${endpoint}`,
+      {
+        method: "POST",
+        headers,
+        credentials: 'include',
+      }
+    );
+
+    const data = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(data.detail || `Failed to ${action} booking`);
     }
-  );
-  if (!response.ok) {
-    throw new Error(`Failed to ${action} booking`);
+    
+    return data;
+  } catch (error) {
+    console.error('Error updating booking status:', error);
+    throw error;
   }
-  return response.json();
 }
 
 export async function getUserTickets(userId: string): Promise<Ticket[]> {

@@ -18,12 +18,6 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { BookingStatus } from "@/types/booking"
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
@@ -47,6 +41,7 @@ interface BookingType {
   created_at: string | Date
   updated_at: string
   tickets: TicketType[]
+  total_amount: number
   onAction?: (action: "cancel" | "refund" | "complete") => Promise<void>
 }
 
@@ -130,10 +125,10 @@ export function EventTimeline({ events, type }: EventTimelineProps) {
         }
       case BookingStatus.CANCELED:
         return {
-          label: "Cancelled",
+          label: "Canceled",
           badge: (
             <Badge className="bg-[hsl(var(--status-cancelled))] text-[hsl(var(--background))]">
-              Cancelled
+              Canceled
             </Badge>
           ),
           icon: (
@@ -302,7 +297,7 @@ export function EventTimeline({ events, type }: EventTimelineProps) {
                                   variant="outline"
                                   className="bg-[hsl(var(--status-cancelled-bg))] text-[hsl(var(--status-cancelled))]"
                                 >
-                                  {counts.canceled} Cancelled
+                                  {counts.canceled} Canceled
                                 </Badge>
                               )}
                             </div>
@@ -522,12 +517,12 @@ export function EventTimeline({ events, type }: EventTimelineProps) {
                                             BookingStatus.CANCELED && (
                                             <div>
                                               <h3 className="font-semibold mb-3">
-                                                Cancellation Details
+                                                Cancelation Details
                                               </h3>
                                               <div className="rounded-md border border-[hsl(var(--status-cancelled-border))] p-3 bg-[hsl(var(--background))]">
                                                 <p className="text-sm text-[hsl(var(--status-cancelled))]">
                                                   This booking has been
-                                                  cancelled. No payment was
+                                                  canceled. No payment was
                                                   processed.
                                                 </p>
                                               </div>
@@ -586,52 +581,64 @@ export function EventTimeline({ events, type }: EventTimelineProps) {
                                       <div className="flex justify-end gap-2 mt-6">
                                         {booking.status ===
                                           BookingStatus.PENDING && (
-                                          <Button
-                                            size="sm"
-                                            className="bg-[hsl(var(--status-pending))] hover:bg-[hsl(var(--status-pending))] text-[hsl(var(--background))]"
-                                            onClick={() =>
-                                              handleAction(booking, "complete")
-                                            }
-                                            disabled={
-                                              processingBookingId ===
-                                              booking.booking_id
-                                            }
-                                          >
-                                            {processingBookingId ===
-                                            booking.booking_id ? (
-                                              <Spinner className="mr-2 h-4 w-4" />
-                                            ) : null}
-                                            Complete Payment
-                                          </Button>
-                                        )}
-                                        {booking.status ===
-                                          BookingStatus.PENDING && (
-                                          <Button
-                                            size="sm"
-                                            variant="default"
-                                            onClick={() =>
-                                              handleAction(booking, "cancel")
-                                            }
-                                            disabled={
-                                              processingBookingId ===
-                                              booking.booking_id
-                                            }
-                                          >
-                                            {processingBookingId ===
-                                            booking.booking_id ? (
-                                              <Spinner className="mr-2 h-4 w-4" />
-                                            ) : null}
-                                            Cancel Booking
-                                          </Button>
+                                          <>
+                                            <Button
+                                              size="sm"
+                                              className="bg-[hsl(var(--status-pending))] hover:bg-[hsl(var(--status-pending))] text-[hsl(var(--background))]"
+                                              onClick={() =>
+                                                handleAction(
+                                                  booking,
+                                                  "complete"
+                                                )
+                                              }
+                                              disabled={
+                                                processingBookingId ===
+                                                booking.booking_id
+                                              }
+                                            >
+                                              {processingBookingId ===
+                                              booking.booking_id ? (
+                                                <Spinner className="mr-2 h-4 w-4" />
+                                              ) : null}
+                                              Complete Payment
+                                            </Button>
+                                            <Button
+                                              size="sm"
+                                              className="bg-[hsl(var(--status-cancelled))] hover:bg-[hsl(var(--status-cancelled))] text-[hsl(var(--background))]"
+                                              onClick={() =>
+                                                handleAction(booking, "cancel")
+                                              }
+                                              disabled={
+                                                processingBookingId ===
+                                                booking.booking_id
+                                              }
+                                            >
+                                              {processingBookingId ===
+                                              booking.booking_id ? (
+                                                <Spinner className="mr-2 h-4 w-4" />
+                                              ) : null}
+                                              Cancel Booking
+                                            </Button>
+                                          </>
                                         )}
                                         {booking.status ===
                                           BookingStatus.CONFIRMED && (
                                           <Button
                                             size="sm"
-                                            variant="outline"
-                                            className="text-[hsl(var(--destructive))] bg-[hsl(var(--destructive-bg))] hover:bg-[hsl(var(--destructive-bg))]"
+                                            className={
+                                              event.ticketDetails?.event_details
+                                                ?.price > 0
+                                                ? "bg-[hsl(var(--status-refunded))] hover:bg-[hsl(var(--status-refunded))] text-[hsl(var(--background))]" // Blue for refund
+                                                : "bg-[hsl(var(--status-cancelled))] hover:bg-[hsl(var(--status-cancelled))] text-[hsl(var(--background))]" // Black for cancel
+                                            }
                                             onClick={() =>
-                                              handleAction(booking, "refund")
+                                              handleAction(
+                                                booking,
+                                                event.ticketDetails
+                                                  ?.event_details?.price > 0
+                                                  ? "refund"
+                                                  : "cancel"
+                                              )
                                             }
                                             disabled={
                                               processingBookingId ===
@@ -642,7 +649,10 @@ export function EventTimeline({ events, type }: EventTimelineProps) {
                                             booking.booking_id ? (
                                               <Spinner className="mr-2 h-4 w-4" />
                                             ) : null}
-                                            Request Refund
+                                            {event.ticketDetails?.event_details
+                                              ?.price > 0
+                                              ? "Request Refund"
+                                              : "Cancel Booking"}
                                           </Button>
                                         )}
                                       </div>

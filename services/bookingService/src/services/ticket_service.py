@@ -29,7 +29,7 @@ class BookingStatus(str, Enum):
         """Validate status transitions based on atomic service rules"""
         transitions = {
             cls.PENDING: [cls.CONFIRMED, cls.CANCELED],
-            cls.CONFIRMED: [cls.REFUNDED],
+            cls.CONFIRMED: [cls.REFUNDED, cls.CANCELED],
             cls.CANCELED: [],
             cls.REFUNDED: []
         }
@@ -49,7 +49,7 @@ class TicketService:
         # Define routing keys
         self.routing_keys = {
             "CONFIRMED": "booking.confirmed",
-            "CANCELLED": "booking.cancelled",
+            "CANCELED": "booking.canceled",
             "REFUNDED": "booking.refunded"
         }
 
@@ -117,9 +117,9 @@ class TicketService:
         try:
             # Map the endpoint based on the status
             status_endpoints = {
-                BookingStatus.CONFIRMED.value: "confirm",
-                BookingStatus.CANCELED.value: "cancel",
-                BookingStatus.REFUNDED.value: "refund"
+                "CONFIRMED": "confirm",
+                "CANCELED": "cancel",
+                "REFUNDED": "refund"
             }
             
             endpoint = status_endpoints.get(status)
@@ -129,7 +129,7 @@ class TicketService:
             logger.debug(f"Updating booking {booking_id} to status {status} using endpoint {endpoint}")
             
             return self._make_request_with_retry(
-                "post",  # Changed from put to post as the endpoints use POST
+                "post",
                 f"api/v1/bookings/{booking_id}/{endpoint}",
                 auth_token=auth_token
             )

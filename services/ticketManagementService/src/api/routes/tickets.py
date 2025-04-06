@@ -74,17 +74,6 @@ async def get_available_tickets(
     event_data = await asyncio.to_thread(fetch_event_data, event_id)
     total_capacity = event_data.get("capacity", 0)  # Will now be an int
     
-    logger.debug(f"total_capacity={total_capacity}, type={type(total_capacity)}")
-    
-    if total_capacity == 0:
-        # Return -1 to indicate unlimited tickets
-        logger.debug("Returning -1 for unlimited tickets")
-        return {
-            "available_tickets": -1,
-            "total_capacity": -1,
-            "booked_tickets": 0
-        }
-    
     # Count tickets from confirmed bookings
     query = select(func.count(Ticket.ticket_id)).select_from(Ticket).join(Booking).where(
         Booking.event_id == event_id,
@@ -92,11 +81,17 @@ async def get_available_tickets(
     )
     
     booked_tickets = (await db.execute(query)).scalar() or 0
-    logger.debug(f"Booked tickets: {booked_tickets}, type: {type(booked_tickets)}")
+    
+    # If total capacity is 0, tickets are unlimited
+    if total_capacity == 0:
+        return {
+            "available_tickets": 0,
+            "total_capacity": 0,
+            "booked_tickets": booked_tickets
+        }
     
     # Calculate available tickets
     available = total_capacity - booked_tickets  # Now both are integers
-    logger.debug(f"Available tickets: {available}, type: {type(available)}")
     
     return {
         "available_tickets": max(0, available),
