@@ -52,7 +52,7 @@ export default function SignUpForm() {
 
     try {
       const res = await fetch(
-        `${BACKEND_ROUTES.userManagementServiceUrl}/api/users/create`,
+        `${BACKEND_ROUTES.kong}/api/users/create`,
         {
           method: "POST",
           headers: {

@@ -41,7 +41,7 @@ services:
           - POST
           - PUT
           - DELETE
-        strip_path: false
+        strip_path: true
     plugins:
       - name: cors
         config:
@@ -97,7 +97,7 @@ services:
           - POST
           - PUT
           - DELETE
-        strip_path: false
+        strip_path: true
     plugins:
       - name: cors
         config:
