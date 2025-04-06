@@ -19,7 +19,7 @@ type EventsData = {
 async function getEvents(page = 1, limit = 9): Promise<EventsData> {
   const skip = (page - 1) * limit;
   const res = await fetch(
-    `${BACKEND_ROUTES.eventsService}/api/v1/events/?skip=${skip}&limit=${limit}`,
+    `${BACKEND_ROUTES.kong}/api/v1/events/?skip=${skip}&limit=${limit}`,
     {
       headers: {
         Accept: "application/json",

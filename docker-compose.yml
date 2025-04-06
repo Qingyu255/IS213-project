@@ -19,6 +19,7 @@ services:
       - /app/node_modules # Preserve container node_modules
     networks:
       - default
+      - kong_net
 
   users-db:
     container_name: users-db
@@ -64,6 +65,7 @@ services:
       retries: 10
     networks:
       - default
+      - kong_net
 
   # Logging Service Database
   logging-db:
@@ -88,6 +90,7 @@ services:
       retries: 10
     networks:
       - default
+      - kong_net
 
   # Events Service Database
   events-db:
@@ -109,6 +112,7 @@ services:
       retries: 10
     networks:
       - default
+      - kong_net
 
   # Billing Service Database
   billing-db:
@@ -133,6 +137,7 @@ services:
       retries: 10
     networks:
       - default
+      - kong_net
 
   users-db-migrations:
     image: flyway/flyway:11.3.4
@@ -248,6 +253,9 @@ services:
     depends_on:
       users-db:
         condition: service_healthy
+    networks:
+      - default
+      - kong_net
 
   ticket-management-service:
     build:
@@ -298,20 +306,18 @@ services:
     build:
       context: ./services/eventsService
       dockerfile: Dockerfile
-    ports:
-      - "8001:8001"
     env_file:
       - .env
+    ports:
+      - "8083:8001"
     environment:
-      DATABASE_URL: postgresql+asyncpg://${EVENTS_DB_USER}:${EVENTS_DB_PASSWORD}@events-db:5432/${EVENTS_DB}
-      AWS_COGNITO_REGION: ${AWS_REGION}
-      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
-      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
-      AWS_COGNITO_USER_POOL_ID: ${AWS_COGNITO_USER_POOL_ID}
-      AWS_COGNITO_APP_CLIENT_ID: ${AWS_COGNITO_APP_CLIENT_ID}
+      DATABASE_URL: "postgresql+asyncpg://${EVENTS_DB_USER}:${EVENTS_DB_PASSWORD}@events-db:5432/${EVENTS_DB}"
     depends_on:
       events-db:
         condition: service_healthy
+    networks:
+      - default
+      - kong_net
 
   create-event-service:
     build:
@@ -362,6 +368,7 @@ services:
         condition: service_healthy
     networks:
       - default
+      - kong_net
 
   refund-composite-service:
     build:
@@ -420,6 +427,7 @@ services:
         condition: service_started
     networks:
       - default
+      - kong_net
 
   prometheus:
     image: prom/prometheus
@@ -429,7 +437,7 @@ services:
       - "9090:9090"
     networks:
       - default
-
+      - kong_net
   grafana:
     image: grafana/grafana
     ports:
@@ -449,7 +457,7 @@ services:
   #Kong Database
   kong-database:
     image: postgres:16.2
-    container_name: kong-database
+    container_name: is213-kong-database
     restart: always
     environment:
       POSTGRES_DB: kong
@@ -466,15 +474,18 @@ services:
       - kong-data:/var/lib/postgresql/data
     networks:
       - default
+      - kong_net
+      
 
   #Kong Migration
   kong-migration:
     image: kong:3.5
-    container_name: kong-migration
+    container_name: is213-kong-migration
     command: "kong migrations bootstrap"
     restart: on-failure
     networks:
       - default
+      
     environment:
       KONG_DATABASE: postgres
       KONG_PG_HOST: kong-database
@@ -487,10 +498,11 @@ services:
   #Kong Gateway
   kong:
     image: kong:3.5
-    container_name: kong-gateway
+    container_name: is213-kong-gateway
     restart: always
     networks:
       - default
+      - kong_net
     environment:
       KONG_DATABASE: postgres
       KONG_PG_HOST: kong-database
@@ -500,10 +512,9 @@ services:
       KONG_ADMIN_ACCESS_LOG: /dev/stdout
       KONG_PROXY_ERROR_LOG: /dev/stderr
       KONG_ADMIN_ERROR_LOG: /dev/stderr
-      KONG_ADMIN_LISTEN: 0.0.0.0:8001 # This is important - internal port
+      KONG_ADMIN_LISTEN: 0.0.0.0:8001
       KONG_ADMIN_GUI_URL: http://localhost:8102
-      # Add these lines to ensure Admin API is accessible
-      KONG_ADMIN_GUI_LISTEN: 0.0.0.0:8002 # Internal port
+      KONG_ADMIN_GUI_LISTEN: 0.0.0.0:8002
       KONG_ADMIN_GUI_ACCESS_LOG: /dev/stdout
       KONG_ADMIN_GUI_ERROR_LOG: /dev/stderr
       KONG_ADMIN_GUI: "on"
@@ -515,7 +526,7 @@ services:
       KONG_ADMIN_CORS_EXPOSED_HEADERS: "X-Kong-Admin-Request-ID"
       KONG_ADMIN_CORS_CREDENTIALS: "true"
       KONG_ADMIN_CORS_MAX_AGE: "3600"
-
+      KONG_DECLARATIVE_CONFIG: /etc/kong/kong.yml
     depends_on:
       kong-migration:
         condition: service_completed_successfully
@@ -526,18 +537,12 @@ services:
       - "8443:8443" # Kong proxy SSL port
       - "8444:8444" # Kong admin SSL port
     volumes:
-      - ./restore-kong.sh:/restore-kong.sh
-      - ./kong:/kong
+      - ./kong/declarative/kong.yml:/etc/kong/kong.yml
     healthcheck:
       test: ["CMD", "kong", "health"]
       interval: 10s
       timeout: 10s
       retries: 5
-    command: >
-      bash -c 'kong start && 
-      chmod +x /restore-kong.sh && 
-      sleep 30 && 
-      /restore-kong.sh'
 
 volumes:
   users-db-data:
@@ -550,3 +555,6 @@ volumes:
 networks:
   default:
     name: IS213-project-default
+  kong_net:
+    external: true
+    name: kong_default
