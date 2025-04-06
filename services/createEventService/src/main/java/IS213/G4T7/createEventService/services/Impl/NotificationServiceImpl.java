@@ -29,10 +29,12 @@ public class NotificationServiceImpl implements NotificationService {
 
     public void sendSingleEmailNotification(EmailData emailData) throws NotificationsServiceException {
         log.info("Attempting to send single email notification: {}", emailData);
-        String url = notificationsMicroserviceUrl;
+        String url = notificationsMicroserviceUrl + "/others";
         try {
-            ResponseEntity<NotificationsServiceResponse> response = restTemplate.postForEntity(url, emailData, NotificationsServiceResponse.class);
-            log.info("Received response from notifications service. Status: {} | Body: {}", response.getStatusCode(), response.getBody());
+            ResponseEntity<NotificationsServiceResponse> response = restTemplate.postForEntity(url, emailData,
+                    NotificationsServiceResponse.class);
+            log.info("Received response from notifications service. Status: {} | Body: {}", response.getStatusCode(),
+                    response.getBody());
             log.info("Email notification sent successfully to: {}", emailData.getEmail());
         } catch (Exception ex) {
             log.error("Exception occurred while sending email notification: {}", ex.getMessage(), ex);
