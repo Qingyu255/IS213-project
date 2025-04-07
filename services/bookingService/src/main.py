@@ -49,8 +49,8 @@ class PrometheusMiddleware(BaseHTTPMiddleware):
 
 # Create FastAPI app
 app = FastAPI(
-    title="Ticket Management Service",
-    description="Service for managing event bookings and tickets",
+    title="Booking Service",
+    description="Composite Service for managing event bookings and tickets",
     version="1.0.0"
 )
 
@@ -73,7 +73,7 @@ app.add_middleware(
 )
 
 # Include router
-app.include_router(booking_router, prefix="/api/v1")  # Bookings endpoints
+# app.include_router(booking_router, prefix="/api/v1")  # Bookings endpoints
 
 @app.get("/")
 async def root():

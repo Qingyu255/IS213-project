@@ -1,16 +1,12 @@
 package IS213.G4T7.createEventService.dto;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 @Data
 public class BasicUserData {
-    @JsonProperty("Id")
-    public String id;
+    private String id;
 
-    @JsonProperty("Username")
-    public String username;
+    private String username;
 
-    @JsonProperty("Email")
-    public String email;
+    private String email;
 }

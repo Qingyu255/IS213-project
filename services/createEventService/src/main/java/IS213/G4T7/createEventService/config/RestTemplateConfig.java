@@ -3,6 +3,7 @@ package IS213.G4T7.createEventService.config;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.beans.factory.annotation.Qualifier;
 
 import IS213.G4T7.createEventService.security.AuthTokenHolder;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +29,15 @@ public class RestTemplateConfig {
             }
             return execution.execute(request, body);
         });
+        return restTemplate;
+    }
+
+
+    @Bean
+    @Qualifier("notificationRestTemplate")
+    public RestTemplate notificationRestTemplate() {
+        RestTemplate restTemplate = new RestTemplate();
+        log.info("Created notification-specific RestTemplate without auth token");
         return restTemplate;
     }
 }

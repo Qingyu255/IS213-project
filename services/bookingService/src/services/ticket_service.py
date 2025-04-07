@@ -9,8 +9,10 @@ from ..core.logging import logger
 from fastapi import HTTPException
 from .rabbitmq_service import RabbitMQService
 from .logging_service import LoggingService
+import logging
 
 settings = get_settings()
+logger = logging.getLogger(__name__)
 
 class TicketServiceException(Exception):
     """Custom exception for ticket service errors"""
@@ -27,7 +29,7 @@ class BookingStatus(str, Enum):
         """Validate status transitions based on atomic service rules"""
         transitions = {
             cls.PENDING: [cls.CONFIRMED, cls.CANCELED],
-            cls.CONFIRMED: [cls.REFUNDED],
+            cls.CONFIRMED: [cls.REFUNDED, cls.CANCELED],
             cls.CANCELED: [],
             cls.REFUNDED: []
         }
@@ -47,7 +49,7 @@ class TicketService:
         # Define routing keys
         self.routing_keys = {
             "CONFIRMED": "booking.confirmed",
-            "CANCELLED": "booking.cancelled",
+            "CANCELED": "booking.canceled",
             "REFUNDED": "booking.refunded"
         }
 
@@ -115,9 +117,9 @@ class TicketService:
         try:
             # Map the endpoint based on the status
             status_endpoints = {
-                BookingStatus.CONFIRMED.value: "confirm",
-                BookingStatus.CANCELED.value: "cancel",
-                BookingStatus.REFUNDED.value: "refund"
+                "CONFIRMED": "confirm",
+                "CANCELED": "cancel",
+                "REFUNDED": "refund"
             }
             
             endpoint = status_endpoints.get(status)
@@ -127,7 +129,7 @@ class TicketService:
             logger.debug(f"Updating booking {booking_id} to status {status} using endpoint {endpoint}")
             
             return self._make_request_with_retry(
-                "post",  # Changed from put to post as the endpoints use POST
+                "post",
                 f"api/v1/bookings/{booking_id}/{endpoint}",
                 auth_token=auth_token
             )
@@ -207,3 +209,28 @@ class TicketService:
         except Exception as e:
             logger.error(f"Unexpected error creating booking: {str(e)}")
             raise HTTPException(status_code=500, detail=str(e))
+
+    def get_available_tickets(self, event_id: str, auth_token: str) -> dict:
+        """Check ticket availability for an event"""
+        try:
+            response = self._make_request_with_retry(
+                "get",
+                f"api/v1/tickets/event/{event_id}/available",
+                auth_token=auth_token
+            )
+            logger.debug(f"Raw ticket service response: {response}")
+            logger.debug(f"Response type: {type(response)}")
+            logger.debug(f"available_tickets value: {response['available_tickets']}")
+            logger.debug(f"available_tickets type: {type(response['available_tickets'])}")
+            # Response now includes total_capacity and booked_tickets
+            return {
+                "available_tickets": response["available_tickets"],
+                "total_capacity": response["total_capacity"],
+                "booked_tickets": response["booked_tickets"]
+            }
+        except Exception as e:
+            logger.error(f"Error checking ticket availability: {str(e)}")
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to check ticket availability"
+            )

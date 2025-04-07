@@ -26,10 +26,15 @@ public class BroadcastingServiceImpl implements BroadcastingService {
 
     private final RestTemplate restTemplate;
     private final NotificationServiceImpl notificationServiceImpl;
+    private final EmailTemplateEnricher emailTemplateEnricher;
 
-    public BroadcastingServiceImpl(NotificationServiceImpl notificationServiceImpl, RestTemplate restTemplate) {
+    public BroadcastingServiceImpl(
+            NotificationServiceImpl notificationServiceImpl,
+            RestTemplate restTemplate,
+            EmailTemplateEnricher emailTemplateEnricher) {
         this.notificationServiceImpl = notificationServiceImpl;
         this.restTemplate = restTemplate;
+        this.emailTemplateEnricher = emailTemplateEnricher;
     }
 
     public void broadcastEventToUsersInterestedInCategory(String eventCategory, String eventId) throws BroadcastingServiceException {
@@ -47,7 +52,7 @@ public class BroadcastingServiceImpl implements BroadcastingService {
         // 2. For each user, enrich the email template with their details
         List<EmailData> emailsToSend = new ArrayList<>();
         for (BasicUserData user : usersInterestedInCategory) {
-            EmailData emailData = EmailTemplateEnricher.enrichEmailData(user, eventCategory, eventId);
+            EmailData emailData = emailTemplateEnricher.enrichEmailData(user, eventCategory, eventId);
             emailsToSend.add(emailData);
         }
         log.info("Prepared {} email notifications for broadcasting", emailsToSend.size());
@@ -60,7 +65,7 @@ public class BroadcastingServiceImpl implements BroadcastingService {
         }
     }
 
-    private List<BasicUserData> getUsersInterestedInCategory (String eventCategory) throws BroadcastingServiceException {
+    private List<BasicUserData> getUsersInterestedInCategory(String eventCategory) throws BroadcastingServiceException {
         String url = userManagementMicroserviceUrl + "/api/userinterests/getusers/" + eventCategory;
         log.info("Fetching users interested in category: {} from URL: {}", eventCategory, url);
 
@@ -69,7 +74,8 @@ public class BroadcastingServiceImpl implements BroadcastingService {
                     url,
                     HttpMethod.GET,
                     null,
-                    new ParameterizedTypeReference<List<BasicUserData>>() {}
+                    new ParameterizedTypeReference<List<BasicUserData>>() {
+                    }
             );
 
             log.info("Received response with status: {}", response.getStatusCode());

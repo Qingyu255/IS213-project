@@ -35,14 +35,13 @@ services:
     routes:
       - name: booking-route
         paths:
-          - /api/v1/booking
+          - /api/v1/bookings
         methods:
           - GET
           - POST
           - PUT
           - DELETE
         strip_path: true
-    plugins:
       - name: cors
         config:
           origins: ["http://localhost:3000"]
@@ -69,7 +68,7 @@ services:
           - POST
           - PUT
           - DELETE
-        strip_path: false
+        strip_path: true
     plugins:
       - name: cors
         config:
@@ -125,7 +124,7 @@ services:
           - POST
           - PUT
           - DELETE
-        strip_path: false
+        strip_path: true
     plugins:
       - name: cors
         config:
@@ -153,7 +152,7 @@ services:
           - POST
           - PUT
           - DELETE
-        strip_path: false
+        strip_path: true
     plugins:
       - name: cors
         config:

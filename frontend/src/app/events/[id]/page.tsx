@@ -2,7 +2,15 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { Calendar, Clock, MapPin, Users, Globe, Share2 } from "lucide-react";
+import {
+  Calendar,
+  Clock,
+  MapPin,
+  Users,
+  Globe,
+  Share2,
+  Ticket,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -15,6 +23,7 @@ import { ErrorMessageCallout } from "@/components/error-message-callout";
 import { Spinner } from "@/components/ui/spinner";
 import { useParams, useRouter } from "next/navigation";
 import useAuthUser from "@/hooks/use-auth-user";
+import { getAvailableTickets } from "@/lib/api/tickets";
 
 export default function EventPage() {
   const { id } = useParams();
@@ -25,6 +34,9 @@ export default function EventPage() {
   const { getUserId } = useAuthUser();
   const userId = getUserId();
   const [loading, setLoading] = useState(false);
+  const [ticketInfo, setTicketInfo] = useState<{
+    availableTickets: number | "Unlimited"
+  } | null>(null);
 
   const handleRefundClick = () => {
     router.push(`/events/${id}/refund`);
@@ -34,38 +46,78 @@ export default function EventPage() {
     if (!userId) {
       router.push("/auth/signin");
       return;
+      router.push("/auth/login");
+      return;
     }
     router.push(`/book/${id}`);
   };
+
+  // Fetch ticket availability
+  useEffect(() => {
+    async function fetchTicketAvailability() {
+      if (!userId) {
+        setTicketInfo(null); // Set to null to show "Sign in to view"
+        return;
+      }
+
+      try {
+        const ticketData = await getAvailableTickets(id as string);
+        setTicketInfo({
+          availableTickets:
+            event?.capacity === 0 ? "Unlimited" : ticketData.available_tickets,
+        });
+      } catch (err) {
+        console.error("Failed to fetch ticket availability:", err);
+        setTicketInfo(null); // Set to null on error too
+      }
+    }
+
+    fetchTicketAvailability();
+  }, [id, userId, event?.capacity]);
 
   // Fetch event details on component mount
   useEffect(() => {
     async function fetchEvent() {
       try {
         const res = await fetch(
-          `${BACKEND_ROUTES.eventsService}/api/v1/events/${id}`,
-          {
-            headers: {
-              Accept: "application/json",
-              Authorization: await getBearerIdToken(),
-            },
-          }
+          `${BACKEND_ROUTES.eventsService}/api/v1/events/${id}`
         );
-        if (!res.ok) {
+        if (!res.ok)
           throw new Error(`Failed to fetch event details: ${res.statusText}`);
-        }
         const data: EventDetails = await res.json();
-        console.log(data);
+        console.log("Event data:", data);
+
+        // Only fetch ticket info if user is logged in
+        if (userId) {
+          try {
+            const ticketData = await getAvailableTickets(id as string);
+            console.log("Ticket data:", ticketData);
+            setTicketInfo({
+              availableTickets:
+                data.capacity === 0
+                  ? "Unlimited"
+                  : ticketData.available_tickets,
+            });
+          } catch (err) {
+            console.log("Not logged in or error fetching tickets:", err);
+            // Just leave ticketInfo as null when not logged in
+            setTicketInfo(null);
+          }
+        } else {
+          // Just leave ticketInfo as null when not logged in
+          setTicketInfo(null);
+        }
+
         setEvent(data);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (err: any) {
+        console.error("Error fetching data:", err);
         setError(err.message || "An error occurred");
       } finally {
         setIsLoading(false);
       }
     }
     fetchEvent();
-  }, [id]);
+  }, [id, userId]);
 
   if (isLoading) {
     return (
@@ -133,9 +185,10 @@ export default function EventPage() {
                 </div>
                 <div className="flex items-center">
                   <Clock className="w-5 h-5 mr-2" />
+                  End Date:{" "}
                   {event.endDateTime
                     ? new Date(event.endDateTime).toLocaleTimeString()
-                    : "Ongoing"}
+                    : "No end date"}
                 </div>
                 <div className="flex items-center">
                   <MapPin className="w-5 h-5 mr-2" />
@@ -187,21 +240,44 @@ export default function EventPage() {
                 </div>
                 <Button
                   onClick={handleBooking}
-                  disabled={loading}
+                  disabled={
+                    isLoading ||
+                    (ticketInfo?.availableTickets !== "Unlimited" &&
+                      typeof ticketInfo?.availableTickets === "number" &&
+                      ticketInfo.availableTickets <= 0)
+                  }
                   className="w-full md:w-auto"
                 >
-                  {loading ? "Processing..." : "Book Now"}
+                  {isLoading
+                    ? "Processing..."
+                    : !userId
+                    ? "Sign in to Book"
+                    : ticketInfo?.availableTickets === 0
+                    ? "Sold Out"
+                    : "Book Now"}
                 </Button>
               </div>
               <Separator className="my-4" />
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center text-muted-foreground">
-                    <Users className="w-5 h-5 mr-2" />
-                    <span>Tickets Remaining</span>
+                    <Ticket className="w-5 h-5 mr-2" />
+                    <span>Available Tickets</span>
                   </div>
                   <span>
-                    {event.capacity == 0 ? "No Capacity" : event.capacity}
+                    {ticketInfo === null
+                      ? "Sign in to view"
+                      : ticketInfo.availableTickets}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center text-muted-foreground">
+                    <Users className="w-5 h-5 mr-2" />
+                    <span>Total Capacity</span>
+                  </div>
+                  <span>
+                    {event.capacity === 0 ? "Unlimited" : event.capacity}
                   </span>
                 </div>
               </div>
@@ -217,10 +293,8 @@ export default function EventPage() {
                   </Button>
                 </div>
               </div>
-            </div>
-
-            {/* Organizer Card */}
-            <div className="bg-card rounded-lg p-6 shadow-lg">
+              <Separator className="my-4" />
+              {/* Organizer Details */}
               <h3 className="font-bold mb-4">Organized by</h3>
               <div className="flex items-center gap-4">
                 <Avatar className="w-12 h-12">

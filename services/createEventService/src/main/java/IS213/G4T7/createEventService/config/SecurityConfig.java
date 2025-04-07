@@ -47,6 +47,7 @@ public class SecurityConfig {
             )
             .authorizeHttpRequests(authorize ->{
                     authorize.requestMatchers("/actuator/prometheus").permitAll();
+                    authorize.requestMatchers("/swagger/**", "/swagger-ui/**", "/swagger-ui.html", "/api-docs/**", "/v3/api-docs/**", "/webjars/**").permitAll();
                     authorize.anyRequest().authenticated();
             })
             .oauth2ResourceServer(oauth2 -> oauth2

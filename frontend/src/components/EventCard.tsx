@@ -1,16 +1,16 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Calendar, Clock, MapPin, Users } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { EventDetails } from "@/types/event";
+import { EventDetails, EventWithTickets } from "@/types/event";
 
 type EventCardProps = {
-  event: EventDetails;
-  variant?: "default" | "featured";
-  showCapacity?: boolean;
-  showTime?: boolean;
+  event: EventWithTickets
+  variant?: "default" | "featured" | "compact"
+  showCapacity?: boolean
+  showTime?: boolean
 }
 
 export function EventCard({
@@ -53,11 +53,10 @@ export function EventCard({
         )}
 
         {/* Category Badge */}
-        <Badge
-          className="absolute top-4 left-4 bg-purple-500 hover:bg-purple-500 border-0"
-        >
+        <Badge className="absolute top-4 left-4 bg-purple-500 hover:bg-purple-500 border-0">
           {event.categories && event.categories.length > 0
-            ? event.categories[0].charAt(0).toUpperCase() + event.categories[0].substring(1)
+            ? event.categories[0].charAt(0).toUpperCase() +
+              event.categories[0].substring(1)
             : "Event"}
         </Badge>
 
@@ -132,6 +131,34 @@ export function EventCard({
               </div>
             )}
           </div>
+
+          {/* Add ticket information */}
+          <CardFooter className="flex justify-between pt-4">
+            <div className="text-sm text-muted-foreground">
+              {event.ticketInfo
+                ? event.ticketInfo.availableTickets === null
+                  ? "Sign in to View Availability"
+                  : event.ticketInfo.availableTickets === "Unlimited"
+                  ? "No Capacity Limit"
+                  : `${event.ticketInfo.availableTickets}/${event.ticketInfo.totalCapacity} Available`
+                : "Tickets loading..."}
+            </div>
+            <div className="text-sm">
+              {event.ticketInfo?.availableTickets != null &&
+                (event.ticketInfo.availableTickets === 0 &&
+                event.ticketInfo.totalCapacity !== "Unlimited" ? (
+                  <Badge variant="destructive">Sold Out</Badge>
+                ) : typeof event.ticketInfo.availableTickets === "number" &&
+                  event.ticketInfo.availableTickets <= 5 ? (
+                  <Badge
+                    variant="secondary"
+                    className="bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20"
+                  >
+                    Few Left
+                  </Badge>
+                ) : null)}
+            </div>
+          </CardFooter>
 
           {/* Action Button */}
           <div

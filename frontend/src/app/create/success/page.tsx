@@ -51,13 +51,15 @@ export default function Success({ searchParams }: SuccessProps) {
     async function processSuccess() {
       // Prevent duplicate processing
       if (isProcessing.current) {
-        console.log("Already processing event creation, skipping duplicate call");
+        console.log(
+          "Already processing event creation, skipping duplicate call"
+        );
         return;
       }
-      
+
       // Set processing flag to prevent duplicate calls
       isProcessing.current = true;
-      
+
       try {
         if (!sessionId) {
           throw new Error("Missing session_id parameter");
@@ -65,58 +67,76 @@ export default function Success({ searchParams }: SuccessProps) {
 
         // 1. Check context data first (primary source)
         let eventToCreate = eventData;
-        
+
         if (eventToCreate) {
           console.log("Found event data in context, ID:", eventToCreate.id);
         } else {
           // 2. Fall back to localStorage if context data is not available
           console.log("Context data not found, checking localStorage fallback");
-          const storedEventDataString = localStorage.getItem('pending_event_data');
-          
+          const storedEventDataString =
+            localStorage.getItem("pending_event_data");
+
           if (!storedEventDataString) {
-            console.error("No event data found in either context or localStorage!");
-            throw new Error("Event data not found. Please try creating your event again.");
+            console.error(
+              "No event data found in either context or localStorage!"
+            );
+            throw new Error(
+              "Event data not found. Please try creating your event again."
+            );
           }
-          
+
           try {
             eventToCreate = JSON.parse(storedEventDataString) as EventDetails;
-            console.log("Retrieved event from localStorage, ID:", eventToCreate.id);
+            console.log(
+              "Retrieved event from localStorage, ID:",
+              eventToCreate.id
+            );
           } catch (error) {
             console.error("Error parsing localStorage event data:", error);
-            throw new Error("Could not retrieve valid event data. Please try again.");
+            throw new Error(
+              "Could not retrieve valid event data. Please try again."
+            );
           }
         }
-        
+
         // 3. Verify payment with Stripe
         const sessionResult = await getCheckoutSession(sessionId);
-        
+
         if (!sessionResult.success) {
           console.error("Session verification failed:", sessionResult.error);
-          throw new Error(`Payment verification failed: ${sessionResult.error}`);
+          throw new Error(
+            `Payment verification failed: ${sessionResult.error}`
+          );
         }
-        
+
         const checkoutSession = sessionResult.session;
-        
-        if (!checkoutSession || checkoutSession.status !== 'complete') {
-          throw new Error(`Payment not completed. Status: ${checkoutSession?.status || 'unknown'}`);
+
+        if (!checkoutSession || checkoutSession.status !== "complete") {
+          throw new Error(
+            `Payment not completed. Status: ${
+              checkoutSession?.status || "unknown"
+            }`
+          );
         }
-        
+
         console.log("Payment verification successful");
-        setStatus('verifying');
+        setStatus("verifying");
         setProgress(50);
-        
+
         // 4. Make sure we have valid event data to proceed
         if (!eventToCreate || !eventToCreate.id) {
-          throw new Error("Invalid event data. Please try creating your event again.");
+          throw new Error(
+            "Invalid event data. Please try creating your event again."
+          );
         }
-        
+
         // At this point we've verified eventToCreate is not null
         const validEventData = eventToCreate; // Non-null assertion via new variable
-        
+
         setEventId(validEventData.id);
         setEventTitle(validEventData.title);
         console.log("Creating event with ID:", validEventData.id);
-        
+
         // 5. Create the event with the service
         setStatus("creating");
         setProgress(70);
@@ -128,7 +148,7 @@ export default function Success({ searchParams }: SuccessProps) {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              Authorization: await getBearerIdToken()
+              Authorization: await getBearerIdToken(),
             },
             body: JSON.stringify(validEventData),
           }
@@ -238,17 +258,6 @@ export default function Success({ searchParams }: SuccessProps) {
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </div>
-              <div className="w-full animate-in fade-in slide-in-from-bottom-5 duration-500 delay-700">
-                <Button
-                  variant="outline"
-                  onClick={() => router.push("/dashboard")}
-                  className="w-full"
-                  size="lg"
-                >
-                  <Calendar className="mr-2 h-4 w-4" />
-                  Go to Dashboard
-                </Button>
-              </div>
             </CardFooter>
           </>
         ) : (
@@ -307,4 +316,3 @@ export default function Success({ searchParams }: SuccessProps) {
     </div>
   );
 }
-

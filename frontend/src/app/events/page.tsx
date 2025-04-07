@@ -11,10 +11,20 @@ import { Separator } from "@/components/ui/separator";
 import { BACKEND_ROUTES } from "@/constants/backend-routes";
 import { EventDetails } from "@/types/event";
 import EventsLoading from "./components/EventsLoading";
+import { getAvailableTickets } from "@/lib/api/tickets";
+
+// Add ticket info to event type
+type EventWithTickets = EventDetails & {
+  ticketInfo?: {
+    availableTickets: number
+    totalCapacity: number
+    bookedTickets: number
+  }
+}
 
 type EventsData = {
-  events: EventDetails[];
-};
+  events: EventWithTickets[]
+}
 
 async function getEvents(page = 1, limit = 9): Promise<EventsData> {
   const skip = (page - 1) * limit;
@@ -58,8 +68,40 @@ export default function EventsPage() {
     async function fetchEvents() {
       try {
         const data = await getEvents(page, limit);
-        setEventsData(data);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
+        // Fetch ticket info for each event
+        const eventsWithTickets = await Promise.all(
+          data.events.map(async (event) => {
+            try {
+              const ticketInfo = await getAvailableTickets(event.id);
+              return {
+                ...event,
+                ticketInfo: {
+                  availableTickets:
+                    (event.capacity ?? 0) === 0
+                      ? "Unlimited"
+                      : ticketInfo.available_tickets,
+                  totalCapacity:
+                    (event.capacity ?? 0) === 0
+                      ? "Unlimited"
+                      : event.capacity ?? 0,
+                  bookedTickets:
+                    (event.capacity ?? 0) === 0
+                      ? 0
+                      : (event.capacity ?? 0) - ticketInfo.available_tickets,
+                },
+              } as EventWithTickets;
+            } catch (error) {
+              console.error(
+                `Failed to fetch tickets for event ${event.id}:`,
+                error
+              );
+              return event as EventWithTickets;
+            }
+          })
+        );
+
+        setEventsData({ events: eventsWithTickets });
       } catch (err: any) {
         setError(err.message || "An unknown error occurred");
       } finally {

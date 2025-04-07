@@ -404,7 +404,7 @@ export default function CreateEventPage() {
                   id="event-id"
                   type="text"
                   className="hidden"
-                  value={eventUuid}
+                  defaultValue={eventUuid}
                 />
               </div>
             </div>

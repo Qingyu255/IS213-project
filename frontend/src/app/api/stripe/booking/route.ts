@@ -42,7 +42,7 @@ export async function POST(request: Request) {
       },
       mode: 'payment',
       success_url: successUrl || `${origin}/book/${bookingId}/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${origin}/book/${bookingId}/cancel`,
+      cancel_url: `${origin}/my-events`,
     });
 
     if (!session.url) {

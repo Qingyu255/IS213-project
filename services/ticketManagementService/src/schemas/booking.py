@@ -17,7 +17,7 @@ class BookingStatus(str, Enum):
         """Validate status transitions based on atomic service rules"""
         transitions = {
             cls.PENDING: [cls.CONFIRMED, cls.CANCELED],
-            cls.CONFIRMED: [cls.REFUNDED],
+            cls.CONFIRMED: [cls.REFUNDED, cls.CANCELED],
             cls.CANCELED: [],
             cls.REFUNDED: []
         }

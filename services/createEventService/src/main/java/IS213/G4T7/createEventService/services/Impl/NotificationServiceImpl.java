@@ -2,6 +2,7 @@ package IS213.G4T7.createEventService.services.Impl;
 
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -22,16 +23,30 @@ public class NotificationServiceImpl implements NotificationService {
 
     private final RestTemplate restTemplate;
 
-    public NotificationServiceImpl(RestTemplate restTemplate) {
+    public NotificationServiceImpl(@Qualifier("notificationRestTemplate") RestTemplate restTemplate) {
         this.restTemplate = restTemplate;
     }
 
     public void sendSingleEmailNotification(EmailData emailData) throws NotificationsServiceException {
         log.info("Attempting to send single email notification: {}", emailData);
-        String url = notificationsMicroserviceUrl;
+        // Validate email address is present
+        if (emailData.getEmail() == null || emailData.getEmail().trim().isEmpty()) {
+            String errorMsg = "Cannot send email: email address is null or empty";
+            log.error(errorMsg);
+            return;
+        }
+
+        String url = notificationsMicroserviceUrl + "/others";
         try {
-            ResponseEntity<NotificationsServiceResponse> response = restTemplate.postForEntity(url, emailData, NotificationsServiceResponse.class);
-            log.info("Received response from notifications service. Status: {} | Body: {}", response.getStatusCode(), response.getBody());
+            ResponseEntity<NotificationsServiceResponse> response = restTemplate.postForEntity(url, emailData,
+                    NotificationsServiceResponse.class);
+            log.info("Received response from notifications service. Status: {} | Body: {}", response.getStatusCode(),
+                    response.getBody());
+
+            if (!response.getBody().isSuccess()) {
+                throw new NotificationsServiceException(response.getBody().getMessage());
+            }
+
             log.info("Email notification sent successfully to: {}", emailData.getEmail());
         } catch (Exception ex) {
             log.error("Exception occurred while sending email notification: {}", ex.getMessage(), ex);
@@ -41,9 +56,23 @@ public class NotificationServiceImpl implements NotificationService {
 
     public void sendBatchEmailNotification(List<EmailData> emailDataList) throws NotificationsServiceException {
         log.info("Starting batch email notifications for {} emails", emailDataList.size());
-        for (EmailData emailData : emailDataList) {
-            sendSingleEmailNotification(emailData);
+
+        if (emailDataList == null || emailDataList.isEmpty()) {
+            log.warn("Email data list is null or empty, no emails to send");
+            return;
         }
-        log.info("Batch email notifications sent successfully for {} emails", emailDataList.size());
+
+        int successCount = 0;
+        for (EmailData emailData : emailDataList) {
+            try {
+                sendSingleEmailNotification(emailData);
+                successCount++;
+            } catch (NotificationsServiceException e) {
+                log.error("Failed to send email to {}: {}", emailData.getEmail(), e.getMessage());
+            }
+        }
+
+        log.info("Batch email notifications completed. Successfully sent {}/{} emails",
+                successCount, emailDataList.size());
     }
 }

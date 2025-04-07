@@ -217,6 +217,7 @@ services:
   rabbitmq:
     image: rabbitmq:3-management
     container_name: logging_rabbitmq
+    mem_limit: 512m
     restart: always
     ports:
       - "5672:5672"
@@ -400,8 +401,6 @@ services:
       dockerfile: Dockerfile
     container_name: booking-service
     restart: always
-    ports:
-      - "8002:8002"
     env_file:
       - .env
     environment:
@@ -454,60 +453,61 @@ services:
     networks:
       - default
 
-  #Kong Database
-  kong-database:
-    image: postgres:16.2
-    container_name: is213-kong-database
-    restart: always
-    environment:
-      POSTGRES_DB: kong
-      POSTGRES_USER: kong
-      POSTGRES_PASSWORD: kongpass
-    ports:
-      - "5438:5432"
-    healthcheck:
-      test: ["CMD", "pg_isready", "-U", "kong"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    volumes:
-      - kong-data:/var/lib/postgresql/data
-    networks:
-      - default
-      - kong_net
+  # #Kong Database
+  # kong-database:
+  #   image: postgres:16.2
+  #   container_name: is213-kong-database
+  #   restart: always
+  #   environment:
+  #     POSTGRES_DB: kong
+  #     POSTGRES_USER: kong
+  #     POSTGRES_PASSWORD: kongpass
+  #   ports:
+  #     - "5438:5432"
+  #   healthcheck:
+  #     test: ["CMD", "pg_isready", "-U", "kong"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #   volumes:
+  #     - kong-data:/var/lib/postgresql/data
+  #   networks:
+  #     - default
+  #     - kong_net
       
 
-  #Kong Migration
-  kong-migration:
-    image: kong:3.5
-    container_name: is213-kong-migration
-    command: "kong migrations bootstrap"
-    restart: on-failure
-    networks:
-      - default
+  # #Kong Migration
+  # kong-migration:
+  #   image: kong:3.5
+  #   container_name: is213-kong-migration
+  #   command: "kong migrations bootstrap"
+  #   restart: on-failure
+  #   networks:
+  #     - default
       
-    environment:
-      KONG_DATABASE: postgres
-      KONG_PG_HOST: kong-database
-      KONG_PG_USER: kong
-      KONG_PG_PASSWORD: kongpass
-    depends_on:
-      kong-database:
-        condition: service_healthy
+  #   environment:
+  #     KONG_DATABASE: postgres
+  #     KONG_PG_HOST: kong-database
+  #     KONG_PG_USER: kong
+  #     KONG_PG_PASSWORD: kongpass
+  #   depends_on:
+  #     kong-database:
+  #       condition: service_healthy
 
   #Kong Gateway
   kong:
     image: kong:3.5
-    container_name: is213-kong-gateway
+    container_name: kong-gateway
     restart: always
     networks:
       - default
       - kong_net
     environment:
-      KONG_DATABASE: postgres
-      KONG_PG_HOST: kong-database
-      KONG_PG_USER: kong
-      KONG_PG_PASSWORD: kongpass
+      KONG_DATABASE: "off"
+      # KONG_DATABASE: postgres
+      # KONG_PG_HOST: kong-database
+      # KONG_PG_USER: kong
+      # KONG_PG_PASSWORD: kongpass
       KONG_PROXY_ACCESS_LOG: /dev/stdout
       KONG_ADMIN_ACCESS_LOG: /dev/stdout
       KONG_PROXY_ERROR_LOG: /dev/stderr
@@ -527,9 +527,6 @@ services:
       KONG_ADMIN_CORS_CREDENTIALS: "true"
       KONG_ADMIN_CORS_MAX_AGE: "3600"
       KONG_DECLARATIVE_CONFIG: /etc/kong/kong.yml
-    depends_on:
-      kong-migration:
-        condition: service_completed_successfully
     ports:
       - "8100:8000" # Kong proxy port
       - "8101:8001" # Kong admin API

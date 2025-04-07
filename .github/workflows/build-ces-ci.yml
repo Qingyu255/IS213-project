@@ -1,11 +1,11 @@
-name: Build and Push createEventsService Docker Image to AWS ECR
+name: Build and Push createEventService Docker Image to AWS ECR
 
 on:
   push:
     branches:
       - main
     paths:
-      - 'services/createEventsService/**'
+      - 'services/createEventService/**'
 
   workflow_dispatch: # This enables the manual run button 
 
@@ -36,11 +36,11 @@ jobs:
 
       - name: Build and Tag Docker Image
         run: |
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:createEventsService-latest ./services/createEventsService
-          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:createEventsService-latest $ECR_REGISTRY/$ECR_REPOSITORY:createEventsService-${{ github.sha }}
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:createEventService-latest ./services/createEventService
+          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:createEventService-latest $ECR_REGISTRY/$ECR_REPOSITORY:createEventService-${{ github.sha }}
 
       - name: Push Images to AWS ECR
         run: |
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:createEventsService-latest
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:createEventsService-${{ github.sha }}
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:createEventService-latest
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:createEventService-${{ github.sha }}
 

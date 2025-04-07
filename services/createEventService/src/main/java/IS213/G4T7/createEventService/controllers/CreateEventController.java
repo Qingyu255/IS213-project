@@ -1,5 +1,7 @@
 package IS213.G4T7.createEventService.controllers;
 
+import java.util.Map;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -99,7 +101,27 @@ public class CreateEventController {
 
             // 6. Send success email to the organizer.
             Jwt jwt = (Jwt) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+            Map<String, Object> claims = jwt.getClaims();
+            log.info("All JWT claims: {}", claims); // Log all claims to find differences
+            
             String organizerEmail = jwt.getClaimAsString("email");
+            log.info("Extracted email: '{}' (length: {})", 
+                    organizerEmail, 
+                    organizerEmail != null ? organizerEmail.length() : 0);
+
+            // Try checking for alternative email claims
+            if (claims.containsKey("mail")) {
+                log.info("Found 'mail' claim instead of 'email'");
+                organizerEmail = jwt.getClaimAsString("mail");
+            }
+
+            // Try extracting email from other standard fields
+            if (organizerEmail == null || organizerEmail.isEmpty()) {
+                if (claims.containsKey("preferred_username")) {
+                    log.info("Trying preferred_username claim");
+                    organizerEmail = jwt.getClaimAsString("preferred_username");
+                }
+            }
             if (organizerEmail != null) {
                 EmailData eventCreationOutcomeEmailData = new EmailData();
                 eventCreationOutcomeEmailData.setEmail(organizerEmail);
@@ -110,9 +132,7 @@ public class CreateEventController {
                     "- Title: %s\n" +
                     "- Start Date: %s\n" +
                     "- Categories: %s\n\n" +
-                    "You can view and manage your event in your dashboard.\n\n" +
-                    "Best regards,\n" +
-                    "Mulan Event Team",
+                    "You can view and manage your event in your dashboard.\n",
                     eventDetails.getOrganizer().getUsername(),
                     eventDetails.getTitle(),
                     eventDetails.getTitle(),

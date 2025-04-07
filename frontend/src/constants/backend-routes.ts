@@ -4,7 +4,7 @@ export const BACKEND_ROUTES = {
     eventsService: process.env.NEXT_PUBLIC_EVENTS_SERVICE_API_BASE_URL ?? "http://localhost:8001",
     billingService: process.env.NEXT_PUBLIC_BILLING_SERVICE_API_BASE_URL ?? "http://localhost:5001",
     ticketManagementService: process.env.NEXT_PUBLIC_TICKET_MANAGEMENT_SERVICE_API_BASE_URL ?? "http://localhost:8000",
-    bookingService: process.env.NEXT_PUBLIC_BOOKING_SERVICE_API_BASE_URL ?? "http://localhost:8002",
+    bookingService: process.env.NEXT_PUBLIC_BOOKING_SERVICE_API_BASE_URL ?? "http://localhost:8100",
     refundService: process.env.NEXT_PUBLIC_REFUND_SERVICE_API_BASE_URL ?? "http://localhost:8880",
     kong: process.env.NEXT_PUBLIC_KONG_API_BASE_URL ?? "http://localhost:8100"
 };

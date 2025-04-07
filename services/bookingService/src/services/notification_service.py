@@ -13,7 +13,7 @@ class NotificationService:
     def __init__(self):
         # Base URL for the notification service
         self.base_url = settings.NOTIFICATIONS_MICROSERVICE_URL
-        self.booking_endpoint = f"{self.base_url}/rest/confirmation/booking"  # For booking confirmations
+        self.booking_endpoint = f"{self.base_url}/booking"  # For booking confirmations
 
     def send_booking_confirmation(
         self,
@@ -22,31 +22,37 @@ class NotificationService:
         event_name: str,
         ticket_quantity: int,
         total_amount: float,
-        user_id: str,
-        event_datetime: str,
-        additional_info: Optional[Dict[str, Any]] = None
+        event_start_datetime: str,
+        event_end_datetime: str
     ) -> None:
         """Send booking confirmation email"""
         try:
             # Prepare request payload in OutSystems format
             payload = {
-                "user_id": user_id,
                 "email": customer_email,
                 "event_name": event_name,
-                "event_datetime": event_datetime,
+                "event_start_datetime": event_start_datetime,
+                "event_end_datetime": event_end_datetime,
                 "booking_id": booking_id,
-                "ticket_quantity": str(ticket_quantity),
-                "total_amount": float(total_amount)
+                "ticket_quantity": ticket_quantity,
+                "total_amount": total_amount
             }
 
             logger.info(f"Attempting to send booking confirmation to: {customer_email}")
-            logger.debug(f"Notification payload: {payload}")
+            logger.info(f"Using endpoint URL: {self.booking_endpoint}")
+            logger.info(f"Full notification payload: {payload}")
 
             # Make request to OutSystems notification service
             response = requests.post(
                 self.booking_endpoint,
-                json=payload
+                json=payload,
+                headers={'Content-Type': 'application/json'}  # Explicitly set content type
             )
+            
+            logger.info(f"Response status code: {response.status_code}")
+            logger.info(f"Response headers: {dict(response.headers)}")
+            logger.info(f"Response content: {response.text}")
+            
             response.raise_for_status()
             
             response_data = response.json()
