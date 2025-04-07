@@ -1,6 +1,36 @@
 _format_version: "3.0"
 _transform: true
 
+plugins:
+  - name: jwt
+    config:
+      claims_to_verify:
+        - exp
+      key_claim_name: kid
+      secret_is_base64: false
+      run_on_preflight: true
+      header_names:
+        - Authorization
+      cookie_names: []
+      maximum_expiration: 0
+      algorithm: RS256
+      rsa_public_key: null
+      uri_param_names:
+        - jwt
+      consumer_claim: []
+      consumer_by:
+        - username
+        - custom_id
+      anonymous: null
+      run_on_preflight: true
+
+consumers:
+  - username: cognito-app
+    jwt_secrets:
+      - algorithm: RS256
+        key: https://cognito-idp.${AWS_REGION}.amazonaws.com/${AWS_COGNITO_USER_POOL_ID}/.well-known/jwks.json
+        rsa_public_key: null
+
 services:
   - name: ai-test-service
     url: http://ai-test-service:8000
@@ -42,6 +72,7 @@ services:
           - PUT
           - DELETE
         strip_path: true
+    plugins:
       - name: cors
         config:
           origins: ["http://localhost:3000"]
@@ -56,6 +87,27 @@ services:
           policy: local
       - name: prometheus
         enabled: true
+      - name: jwt
+        config:
+          claims_to_verify:
+            - exp
+          key_claim_name: kid
+          secret_is_base64: false
+          run_on_preflight: true
+          header_names:
+            - Authorization
+          cookie_names: []
+          maximum_expiration: 0
+          algorithm: RS256
+          rsa_public_key: null
+          uri_param_names:
+            - jwt
+          consumer_claim: []
+          consumer_by:
+            - username
+            - custom_id
+          anonymous: null
+          run_on_preflight: true
 
   - name: user-management-service
     url: http://user-management-service:8080
