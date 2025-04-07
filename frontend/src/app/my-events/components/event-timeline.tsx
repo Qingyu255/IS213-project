@@ -602,7 +602,10 @@ export function EventTimeline({ events, type }: EventTimelineProps) {
                                           <>
                                             <Button
                                               size="sm"
-                                              className="bg-[hsl(var(--status-pending))] hover:bg-[hsl(var(--status-pending))] text-[hsl(var(--background))]"
+                                              className={cn(
+                                                "bg-[hsl(var(--status-pending))] hover:bg-[hsl(var(--status-pending))] text-[hsl(var(--background))]",
+                                                "min-w-[120px] justify-center"
+                                              )}
                                               onClick={() =>
                                                 handleAction(
                                                   booking,
@@ -622,7 +625,10 @@ export function EventTimeline({ events, type }: EventTimelineProps) {
                                             </Button>
                                             <Button
                                               size="sm"
-                                              className="bg-[hsl(var(--status-cancelled))] hover:bg-[hsl(var(--status-cancelled))] text-[hsl(var(--background))]"
+                                              className={cn(
+                                                "bg-[hsl(var(--status-cancelled))] hover:bg-[hsl(var(--status-cancelled))] text-[hsl(var(--background))]",
+                                                "min-w-[120px] justify-center"
+                                              )}
                                               onClick={() =>
                                                 handleAction(booking, "cancel")
                                               }
@@ -643,12 +649,13 @@ export function EventTimeline({ events, type }: EventTimelineProps) {
                                           BookingStatus.CONFIRMED && (
                                           <Button
                                             size="sm"
-                                            className={
+                                            className={cn(
                                               event.ticketDetails?.event_details
                                                 ?.price > 0
                                                 ? "bg-[hsl(var(--status-refunded))] hover:bg-[hsl(var(--status-refunded))] text-[hsl(var(--background))]" // Blue for refund
-                                                : "bg-[hsl(var(--status-cancelled))] hover:bg-[hsl(var(--status-cancelled))] text-[hsl(var(--background))]" // Black for cancel
-                                            }
+                                                : "bg-[hsl(var(--status-cancelled))] hover:bg-[hsl(var(--status-cancelled))] text-[hsl(var(--background))]", // Black for cancel
+                                              "min-w-[120px] justify-center" // Add fixed minimum width and center justify
+                                            )}
                                             onClick={() =>
                                               handleAction(
                                                 booking,
