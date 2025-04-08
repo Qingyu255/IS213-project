@@ -2,7 +2,7 @@
 
 import requests
 import logging
-from src.config.settings import BILLING_MS_URL, TICKET_SERVICE_URL
+from src.config.settings import BILLING_MS_URL, TICKET_SERVICE_URL, BOOKING_SERVICE_URL
 
 logger = logging.getLogger(__name__)
 class BillingClient:
@@ -198,3 +198,48 @@ class BillingClient:
                 "message": f"Error communicating with Ticket Service: {str(e)}",
                 "status": None
             }
+        
+    ## get booking
+       
+    # Existing methods...
+
+    def get_booking(self, booking_id: str, authorization: str = None):
+        """
+        Fetch booking details for a given booking ID by calling the Booking Service.
+        
+        Args:
+            booking_id (str): Unique identifier for the booking
+            authorization (str): Bearer token for authentication
+        
+        Returns:
+            dict: Booking details
+        
+        Raises:
+            Exception: If the request fails or the response indicates an error
+        """
+        url = f"{BOOKING_SERVICE_URL}/api/v1/bookings/{booking_id}"
+        headers = {}
+        if authorization:
+            headers["Authorization"] = authorization
+
+        try:
+            logger.debug(f"Fetching booking details for booking_id={booking_id}")
+            response = requests.get(url, headers=headers, timeout=10)
+            response.raise_for_status()  # Raise an error for non-2xx responses
+            
+            data = response.json()
+            
+            # Log the fetched booking details
+            logger.info(f"Fetched booking details for booking_id={booking_id}: {data}")
+            
+            return data
+        
+        except requests.HTTPError as e:
+            # Log HTTP errors (e.g., 4xx or 5xx responses)
+            logger.error(f"HTTP error fetching booking details for booking_id={booking_id}: {str(e)}")
+            raise Exception(f"Failed to fetch booking details: {response.status_code} {response.reason}")
+        
+        except requests.RequestException as e:
+            # Log connection or timeout errors
+            logger.error(f"Error communicating with Booking Service for booking_id={booking_id}: {str(e)}")
+            raise Exception(f"Error communicating with Booking Service: {str(e)}")
