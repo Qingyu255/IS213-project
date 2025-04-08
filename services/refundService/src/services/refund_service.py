@@ -7,14 +7,19 @@ from src.messaging.logging_publisher import (
     publish_refund_status_log
 )
 from src.models.refund_models import EventRefundRequest, EventRefundResponse, RefundStatus, BookingRefundRequest, BookingRefundResponse
+from src.services.event_service import EventService
+from src.services.notification_service import NotificationService
+from src.core.auth import validate_token
 
 logger=logging.getLogger()
 
 class RefundService:
     def __init__(self):
         self.billing_client = BillingClient()
+        self.event_service = EventService()
+        self.notification_service = NotificationService()
         
-    def process_refund(self, refund_request: EventRefundRequest) -> EventRefundResponse:
+    def process_event_refund(self, refund_request: EventRefundRequest) -> EventRefundResponse:
         service_name = "refund_composite_service"
         
         # Step 1: Fetch payment details using event_id and organizer_id
@@ -78,7 +83,64 @@ class RefundService:
     #process refund
     def process_booking_refund(self, booking_refund_request: BookingRefundRequest, authorization: str = None) -> BookingRefundResponse:
         service_name = "refund_composite_service"
+
+        ## getting email
+        if not authorization:
+            raise HTTPException(status_code=401, detail="Authorization header is missing")
         
+        try:
+            # Extract claims from the token
+            claims = validate_token(authorization)
+            user_email = claims.get("email")
+            
+            if not user_email:
+                raise ValueError("Email claim not found in the token")
+            
+            logger.info(f"User with email={user_email} is initiating a refund request for booking_id={booking_refund_request.booking_id}")
+        except Exception as e:
+            logger.error(f"Error validating authorization token: {str(e)}")
+            raise HTTPException(status_code=401, detail="Invalid or expired authorization token")
+    
+        
+        ## get booking from booking id
+        booking_details_response = self.billing_client.get_booking(booking_refund_request.booking_id, authorization)
+        
+        # Extract event_id and ticket_quantity from the booking details
+        event_id = booking_details_response.get("event_id")
+        ticket_quantity = booking_details_response.get("ticket_quantity")     
+        
+        if not event_id or ticket_quantity is None:
+            error_message = f"Failed to fetch valid booking details for booking_id={booking_refund_request.booking_id}"
+            logger.error(error_message)
+            publish_refund_status_log(
+                service_name=service_name,
+                transaction_id=booking_refund_request.booking_id,
+                message=error_message,
+                is_error=True
+            )
+            raise HTTPException(status_code=404, detail="Invalid or incomplete booking details")
+        
+        logger.info(f"Step 2: Successfully fetched booking details for booking_id={booking_refund_request.booking_id}. "
+                    f"Event ID: {event_id}, Ticket Quantity: {ticket_quantity}")
+        
+        # get event
+        event_details = self.event_service.get_event(event_id)
+        
+        if not event_details:
+            raise ValueError("Event details not found")
+        
+        # Extract event_name, event_start_datetime, and event_end_datetime
+        event_name = event_details.get("title")
+        event_start_datetime = event_details.get("startDateTime")
+        event_end_datetime = event_details.get("endDateTime")
+        
+        if not event_name or not event_start_datetime or not event_end_datetime:
+            raise ValueError("Incomplete event details")
+        
+        logger.info(f"Successfully fetched event details for event_id={event_id}. "
+                    f"Event Name: {event_name}, Start DateTime: {event_start_datetime}, End DateTime: {event_end_datetime}")
+        
+
         # Step 1: Log the booking refund request
         logger.info(f"Step 1: Initiating booking refund request for booking_id={booking_refund_request.booking_id}")
         publish_refund_request_log(
@@ -147,6 +209,22 @@ class RefundService:
                     raise HTTPException(status_code=500, detail=update_booking_status_response["message"])
                 
                 logger.info(f"Step 5: Successfully updated booking status to 'REFUNDED' for booking_id={booking_refund_request.booking_id}")
+
+                #### ---------- step 6:  call outsystems api for notification service
+                try:
+                    self.notification_service.send_refund_confirmation(
+                        booking_id=booking_refund_request.booking_id,
+                        customer_email=user_email,
+                        event_name=event_name,
+                        ticket_quantity= ticket_quantity,
+                        total_amount=amount/100,
+                        event_start_datetime= event_start_datetime,
+                        event_end_datetime=event_end_datetime
+                    )
+                except Exception as e:
+                    logger.error(f"Error sending refund confirmation: {str(e)}")
+    
+
                 return BookingRefundResponse(
                     success=True,
                     message="Booking refund processed successfully.",
