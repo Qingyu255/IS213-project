@@ -1,6 +1,6 @@
 # Refund Composite Service
 
-A Python-based microservice that orchestrates the refund process by interacting with multiple external services (Billing MS, Logging MS) and publishing events to RabbitMQ. Built with [FastAPI](https://fastapi.tiangolo.com/), [pydantic](https://pydantic-docs.helpmanual.io/), and [pika](https://pika.readthedocs.io/en/stable/).
+A Python-based microservice that orchestrates the refund process by interacting with multiple external services (Billing MS, Logging MS, Ticket Management Service) and publishing events to RabbitMQ. Built with [FastAPI](https://fastapi.tiangolo.com/), [pydantic](https://pydantic-docs.helpmanual.io/), and [pika](https://pika.readthedocs.io/en/stable/).
 
 ---
 
@@ -9,12 +9,7 @@ A Python-based microservice that orchestrates the refund process by interacting 
 2. [Project Structure](#project-structure)
 3. [Key Components](#key-components)
 4. [Tech Stack](#tech-stack)
-5. [Getting Started](#getting-started)
-6. [Configuration](#configuration)
-7. [Running the Service](#running-the-service)
-8. [Testing](#testing)
-9. [Contributing](#contributing)
-10. [License](#license)
+
 
 ---
 
@@ -22,43 +17,52 @@ A Python-based microservice that orchestrates the refund process by interacting 
 
 This **Refund Composite Service** is responsible for:
 - **Receiving** refund requests via a RESTful API.
-- **Validating** and **processing** those requests by calling:
-  - A **Billing** microservice (to actually perform the refund).
-  - A **Logging** microservice (to log refund-related actions).
+- **Validating** and **processing** those requests by:
+  - Calling the **Billing** microservice to process refunds.
+  - Calling the **Logging** microservice to log refund-related actions.
+  - Updating the **Ticket Management Service** to reflect refund status.
 - **Publishing** events to RabbitMQ for:
   - **Ticket Management** updates.
   - **Notifications** (e.g., user notifications about the refund).
 
-The service centralizes these calls into a single, cohesive flow, reducing complexity for any upstream clients or front-end systems.
+The service centralizes these calls into a single, cohesive flow, reducing complexity for upstream clients or front-end systems.
 
 ---
 
 ## Project Structure
 
-
-
 **Folders:**
 
 - **app/controllers**  
   Contains FastAPI routers/controllers. For example, `refund_controller.py` defines endpoints like `POST /refunds`.
-  
+
 - **app/services**  
-  Houses business logic/orchestration. `refund_service.py` calls the Billing/Logging microservices and publishes to RabbitMQ.
-  
+  Houses business logic/orchestration.  
+  - `refund_service.py`: Orchestrates the refund process by interacting with external services and RabbitMQ.  
+  - `event_service.py`: Handles communication with the Event Service.  
+  - `notification_service.py`: Sends refund confirmation notifications.
+
 - **app/clients**  
-  Contains code to call external microservices. `billing_client.py` and `logging_client.py` each handle their respective endpoints.
-  
+  Contains code to call external microservices.  
+  - `billing_client.py`: Handles communication with the Billing microservice.  
+  - `logging_client.py`: Handles communication with the Logging microservice.
+
 - **app/messaging**  
   Contains RabbitMQ-related logic.  
-  - `rabbitmq_config.py` sets up connections.  
-  - `ticket_management_publisher.py` and `notification_publisher.py` define methods to publish messages to specific queues.
-  
+  - `rabbitmq_config.py`: Sets up RabbitMQ connections.  
+  - `ticket_management_publisher.py`: Publishes events to the `ticketmanagement` queue.  
+  - `notification_publisher.py`: Publishes refund notifications to the notification queue.
+
 - **app/models**  
-  Defines pydantic models for request/response data and enumerations for refund status.
-  
+  Defines pydantic models for request/response data and enumerations for refund status.  
+  - `RefundRequest`: Represents incoming refund requests.  
+  - `RefundResponse`: Represents outgoing responses.  
+  - `RefundStatus`: Enum for statuses like `APPROVED` and `FAILED`.
+
 - **app/config**  
-  Holds configuration logic (e.g., environment variables, connection settings).
-  
+  Holds configuration logic (e.g., environment variables, service URLs, RabbitMQ settings).  
+  - Uses [pydantic BaseSettings](https://pydantic-docs.helpmanual.io/usage/settings/) for clean configuration management.
+
 - **app/utils**  
   Utility classes and functions (e.g., error handlers, custom exceptions).
 
@@ -79,6 +83,7 @@ The service centralizes these calls into a single, cohesive flow, reducing compl
      - Calls `BillingClient` to process refunds.  
      - Calls `LoggingClient` to record logs.  
      - Publishes messages to RabbitMQ (ticket and notification queues).  
+     - Updates booking status in the Ticket Management Service.  
    - Returns a `RefundResponse` model to the controller.
 
 3. **BillingClient** and **LoggingClient** (`app/clients/`)  
@@ -89,14 +94,11 @@ The service centralizes these calls into a single, cohesive flow, reducing compl
    - Manage publishing messages to RabbitMQ.  
    - Example: `TicketManagementPublisher` publishes a “REFUND_INITIATED” event to the `ticketmanagement` queue.
 
-5. **Models** (`app/models/`)  
-   - `RefundRequest` (incoming request format).  
-   - `RefundResponse` (outgoing response format).  
-   - `RefundStatus` (enum for statuses like `APPROVED`, `FAILED`, etc.).
+5. **NotificationService** (`app/services/notification_service.py`)  
+   - Sends refund confirmation emails to customers using the Notification microservice.
 
-6. **Configuration** (`app/config/settings.py`)  
-   - Uses environment variables or a `.env` file to configure service URLs, RabbitMQ host/port, credentials, etc.  
-   - Typically uses [pydantic BaseSettings](https://pydantic-docs.helpmanual.io/usage/settings/) for clean loading of config.
+6. **EventService** (`app/services/event_service.py`)  
+   - Retrieves event details from the Event Service for refund processing.
 
 ---
 
@@ -111,10 +113,3 @@ The service centralizes these calls into a single, cohesive flow, reducing compl
 - **Docker** (optional) for containerization.
 
 ---
-
-## Getting Started
-
-1. **Clone the Repository**  
-   ```bash
-   git clone https://github.com/your-org/refund-composite-service.git
-   cd refund-composite-service
