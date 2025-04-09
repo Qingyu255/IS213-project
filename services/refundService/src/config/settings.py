@@ -17,3 +17,6 @@ TICKET_QUEUE = os.getenv("TICKET_QUEUE", "ticketmanagement_queue")
 
 BILLING_MS_URL = os.getenv("BILLING_MS_URL", "http://billing-service:5001")
 TICKET_SERVICE_URL = os.getenv("TICKET_SERVICE_URL", "http://ticket-management-service:8000")
+NOTIFICATIONS_MICROSERVICE_URL = os.getenv("NOTIFICATIONS_MICROSERVICE_URL", "https://personal-lqsiqj7y.outsystemscloud.com/notificationService")
+EVENT_SERVICE_URL = os.getenv("EVENT_SERVICE_URL", "http://events-service:8001")
+BOOKING_SERVICE_URL = os.getenv("BOOKING_SERVICE_URL", "http://booking-service:8002")
