@@ -42,11 +42,11 @@ RUN adduser --disabled-password --gecos "" appuser && \
 USER appuser
 
 # Expose application port and Prometheus metrics port
-EXPOSE 5001 9101
+EXPOSE 9101
 
 # Run the application with Gunicorn with improved configuration
 CMD ["gunicorn", \
-     "--bind", "0.0.0.0:5001", \
+    #  "--bind", "0.0.0.0:5001", \
      "--workers", "4", \
      "--threads", "2", \
      "--worker-class", "gthread", \

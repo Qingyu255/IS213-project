@@ -19,6 +19,7 @@ services:
       - /app/node_modules # Preserve container node_modules
     networks:
       - default
+      - kong_net
 
   users-db:
     container_name: users-db
@@ -29,8 +30,8 @@ services:
       POSTGRES_PASSWORD: ${USERS_DB_PASSWORD}
     env_file:
       - .env
-    ports:
-      - "5433:5432"
+    # ports:
+    #   - "5433:5432"
     volumes:
       - users-db-data:/var/lib/postgresql/data
     healthcheck:
@@ -52,8 +53,8 @@ services:
       POSTGRES_PASSWORD: ${TICKET_DB_PASSWORD}
     env_file:
       - .env
-    ports:
-      - "5434:5432"
+    # ports:
+    #   - "5434:5432"
     volumes:
       - ticket-db-data:/var/lib/postgresql/data
     healthcheck:
@@ -64,6 +65,7 @@ services:
       retries: 10
     networks:
       - default
+      - kong_net
 
   # Logging Service Database
   logging-db:
@@ -73,8 +75,8 @@ services:
       POSTGRES_DB: ${LOGGING_DB}
       POSTGRES_USER: ${LOGGING_DB_USER}
       POSTGRES_PASSWORD: ${LOGGING_DB_PASSWORD}
-    ports:
-      - "5435:5432"
+    # ports:
+    #   - "5435:5432"
     volumes:
       - logging-db-data:/var/lib/postgresql/data
     healthcheck:
@@ -88,6 +90,7 @@ services:
       retries: 10
     networks:
       - default
+      - kong_net
 
   # Events Service Database
   events-db:
@@ -97,8 +100,8 @@ services:
       POSTGRES_DB: ${EVENTS_DB}
       POSTGRES_USER: ${EVENTS_DB_USER}
       POSTGRES_PASSWORD: ${EVENTS_DB_PASSWORD}
-    ports:
-      - "5436:5432"
+    # ports:
+    #   - "5436:5432"
     volumes:
       - events-db-data:/var/lib/postgresql/data
     healthcheck:
@@ -109,6 +112,7 @@ services:
       retries: 10
     networks:
       - default
+      - kong_net
 
   # Billing Service Database
   billing-db:
@@ -118,8 +122,8 @@ services:
       POSTGRES_DB: ${BILLING_DB}
       POSTGRES_USER: ${BILLING_DB_USER}
       POSTGRES_PASSWORD: ${BILLING_DB_PASSWORD}
-    ports:
-      - "5437:5432"
+    # ports:
+    #   - "5437:5432"
     volumes:
       - billing-db-data:/var/lib/postgresql/data
     healthcheck:
@@ -133,6 +137,7 @@ services:
       retries: 10
     networks:
       - default
+      - kong_net
 
   users-db-migrations:
     image: flyway/flyway:11.3.4
@@ -214,9 +219,9 @@ services:
     container_name: logging_rabbitmq
     mem_limit: 512m
     restart: always
-    ports:
-      - "5672:5672"
-      - "15672:15672"
+    # ports:
+    #   - "5672:5672"
+    #   - "15672:15672"
     environment:
       RABBITMQ_ERLANG_COOKIE: "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"
     healthcheck:
@@ -236,8 +241,8 @@ services:
       dockerfile: Dockerfile
     env_file:
       - .env
-    ports:
-      - "8080:8080"
+    # ports:
+    #   - "8080:8080"
     environment:
       ConnectionStrings__PostgresDbConnectionString: "Host=users-db;Database=${USERS_DB};Username=${USERS_DB_USER};Password=${USERS_DB_PASSWORD}"
       ASPNETCORE_ENVIRONMENT: "Development"
@@ -249,14 +254,17 @@ services:
     depends_on:
       users-db:
         condition: service_healthy
+    networks:
+      - default
+      - kong_net
 
   ticket-management-service:
     build:
       context: ./services/ticketManagementService
       dockerfile: Dockerfile
     container_name: ticket-management-service
-    ports:
-      - "8000:8000"
+    # ports:
+    #   - "8000:8000"
     env_file:
       - .env
     environment:
@@ -285,8 +293,8 @@ services:
         condition: service_healthy
     env_file:
       - .env
-    ports:
-      - "9000:9000"
+    # ports:
+    #   - "9000:9000"
     environment:
       AWS_COGNITO_REGION: ${AWS_REGION}
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
@@ -299,28 +307,26 @@ services:
     build:
       context: ./services/eventsService
       dockerfile: Dockerfile
-    ports:
-      - "8001:8001"
     env_file:
       - .env
+    # ports:
+    #   - "8083:8001"
     environment:
-      DATABASE_URL: postgresql+asyncpg://${EVENTS_DB_USER}:${EVENTS_DB_PASSWORD}@events-db:5432/${EVENTS_DB}
-      AWS_COGNITO_REGION: ${AWS_REGION}
-      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
-      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
-      AWS_COGNITO_USER_POOL_ID: ${AWS_COGNITO_USER_POOL_ID}
-      AWS_COGNITO_APP_CLIENT_ID: ${AWS_COGNITO_APP_CLIENT_ID}
+      DATABASE_URL: "postgresql+asyncpg://${EVENTS_DB_USER}:${EVENTS_DB_PASSWORD}@events-db:5432/${EVENTS_DB}"
     depends_on:
       events-db:
         condition: service_healthy
+    networks:
+      - default
+      - kong_net
 
   create-event-service:
     build:
       context: ./services/createEventService
       dockerfile: Dockerfile
     container_name: create-event-service
-    ports:
-      - "8070:8070"
+    # ports:
+    #   - "8070:8070"
     env_file:
       - .env
     environment:
@@ -335,9 +341,9 @@ services:
       dockerfile: Dockerfile
     container_name: billing-service
     restart: always
-    ports:
-      - "5001:5001"
-      - "9101:9101"
+    # ports:
+    #   - "5001:5001"
+    #   - "9101:9101"
     env_file:
       - .env
     environment:
@@ -363,14 +369,15 @@ services:
         condition: service_healthy
     networks:
       - default
+      - kong_net
 
   refund-composite-service:
     build:
       context: ./services/refundService
       dockerfile: Dockerfile
     container_name: refund-composite-service
-    ports:
-      - "8880:8880"
+    # ports:
+    #   - "8880:8880"
     env_file:
       - .env
     depends_on:
@@ -394,8 +401,6 @@ services:
       dockerfile: Dockerfile
     container_name: booking-service
     restart: always
-    ports:
-      - "8002:8002"
     env_file:
       - .env
     environment:
@@ -421,16 +426,17 @@ services:
         condition: service_started
     networks:
       - default
+      - kong_net
 
   prometheus:
     image: prom/prometheus
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
-    ports:
-      - "9090:9090"
+    # ports:
+    #   - "9090:9090"
     networks:
       - default
-
+      - kong_net
   grafana:
     image: grafana/grafana
     ports:
@@ -447,43 +453,46 @@ services:
     networks:
       - default
 
-  #Kong Database
-  kong-database:
-    image: postgres:16.2
-    container_name: kong-database
-    restart: always
-    environment:
-      POSTGRES_DB: kong
-      POSTGRES_USER: kong
-      POSTGRES_PASSWORD: kongpass
-    ports:
-      - "5438:5432"
-    healthcheck:
-      test: ["CMD", "pg_isready", "-U", "kong"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    volumes:
-      - kong-data:/var/lib/postgresql/data
-    networks:
-      - default
+  # #Kong Database
+  # kong-database:
+  #   image: postgres:16.2
+  #   container_name: is213-kong-database
+  #   restart: always
+  #   environment:
+  #     POSTGRES_DB: kong
+  #     POSTGRES_USER: kong
+  #     POSTGRES_PASSWORD: kongpass
+  #   ports:
+  #     - "5438:5432"
+  #   healthcheck:
+  #     test: ["CMD", "pg_isready", "-U", "kong"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #   volumes:
+  #     - kong-data:/var/lib/postgresql/data
+  #   networks:
+  #     - default
+  #     - kong_net
+      
 
-  #Kong Migration
-  kong-migration:
-    image: kong:3.5
-    container_name: kong-migration
-    command: "kong migrations bootstrap"
-    restart: on-failure
-    networks:
-      - default
-    environment:
-      KONG_DATABASE: postgres
-      KONG_PG_HOST: kong-database
-      KONG_PG_USER: kong
-      KONG_PG_PASSWORD: kongpass
-    depends_on:
-      kong-database:
-        condition: service_healthy
+  # #Kong Migration
+  # kong-migration:
+  #   image: kong:3.5
+  #   container_name: is213-kong-migration
+  #   command: "kong migrations bootstrap"
+  #   restart: on-failure
+  #   networks:
+  #     - default
+      
+  #   environment:
+  #     KONG_DATABASE: postgres
+  #     KONG_PG_HOST: kong-database
+  #     KONG_PG_USER: kong
+  #     KONG_PG_PASSWORD: kongpass
+  #   depends_on:
+  #     kong-database:
+  #       condition: service_healthy
 
   #Kong Gateway
   kong:
@@ -492,19 +501,20 @@ services:
     restart: always
     networks:
       - default
+      - kong_net
     environment:
-      KONG_DATABASE: postgres
-      KONG_PG_HOST: kong-database
-      KONG_PG_USER: kong
-      KONG_PG_PASSWORD: kongpass
+      KONG_DATABASE: "off"
+      # KONG_DATABASE: postgres
+      # KONG_PG_HOST: kong-database
+      # KONG_PG_USER: kong
+      # KONG_PG_PASSWORD: kongpass
       KONG_PROXY_ACCESS_LOG: /dev/stdout
       KONG_ADMIN_ACCESS_LOG: /dev/stdout
       KONG_PROXY_ERROR_LOG: /dev/stderr
       KONG_ADMIN_ERROR_LOG: /dev/stderr
-      KONG_ADMIN_LISTEN: 0.0.0.0:8001 # This is important - internal port
+      KONG_ADMIN_LISTEN: 0.0.0.0:8001
       KONG_ADMIN_GUI_URL: http://localhost:8102
-      # Add these lines to ensure Admin API is accessible
-      KONG_ADMIN_GUI_LISTEN: 0.0.0.0:8002 # Internal port
+      KONG_ADMIN_GUI_LISTEN: 0.0.0.0:8002
       KONG_ADMIN_GUI_ACCESS_LOG: /dev/stdout
       KONG_ADMIN_GUI_ERROR_LOG: /dev/stderr
       KONG_ADMIN_GUI: "on"
@@ -516,10 +526,7 @@ services:
       KONG_ADMIN_CORS_EXPOSED_HEADERS: "X-Kong-Admin-Request-ID"
       KONG_ADMIN_CORS_CREDENTIALS: "true"
       KONG_ADMIN_CORS_MAX_AGE: "3600"
-
-    depends_on:
-      kong-migration:
-        condition: service_completed_successfully
+      KONG_DECLARATIVE_CONFIG: /etc/kong/kong.yml
     ports:
       - "8100:8000" # Kong proxy port
       - "8101:8001" # Kong admin API
@@ -527,18 +534,12 @@ services:
       - "8443:8443" # Kong proxy SSL port
       - "8444:8444" # Kong admin SSL port
     volumes:
-      - ./restore-kong.sh:/restore-kong.sh
-      - ./kong:/kong
+      - ./kong/declarative/kong.yml:/etc/kong/kong.yml
     healthcheck:
       test: ["CMD", "kong", "health"]
       interval: 10s
       timeout: 10s
       retries: 5
-    command: >
-      bash -c 'kong start && 
-      chmod +x /restore-kong.sh && 
-      sleep 30 && 
-      /restore-kong.sh'
 
 volumes:
   users-db-data:
@@ -551,3 +552,6 @@ volumes:
 networks:
   default:
     name: IS213-project-default
+  kong_net:
+    external: true
+    name: kong_default

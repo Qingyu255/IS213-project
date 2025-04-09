@@ -162,7 +162,7 @@ def handle_booking_payment_success(payment_intent: dict, metadata: dict):
     booking_id = metadata.get('booking_id')
     
     # Handle booking payment
-    booking_service_url = os.getenv('BOOKING_SERVICE_URL', 'http://booking-service:8002')
+    booking_service_url = os.getenv('BOOKING_SERVICE_URL', 'http://localhost:8100/api/v1/bookings')
     response = requests.post(
         f"{booking_service_url}/api/v1/bookings/{booking_id}/confirm",
         json={

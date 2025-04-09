@@ -181,7 +181,7 @@ For example, if your Spring Boot service is named example-spring-service, other 
 1. **Add Your Service**:
    - Follow the steps above to set up your service and integrate it with the project.
 2. **Test Connectivity**:
-   - If your service interacts with others, test inter-service communication using container names (e.g., `http://example-spring-service:8080`) — This is only for inter container communication. Use `http://localhost:8080` to test on your local browser.
+   - If your service interacts with others, test inter-service communication using container names (e.g., `http://example-spring-service:8080`) — This is only for inter container communication. Use `http://localhost:8100/api/v1/users` to test on your local browser.
    - **Note**: When services are part of a Docker network, you cannot use localhost to communicate between containers. Instead:
 3. **Document Your Service**:
    - Update this README or create a new one in your service's directory to document its purpose, endpoints, and configuration.

@@ -14,7 +14,7 @@
       "dotnetRunMessages": true,
       "launchBrowser": true,
       "launchUrl": "swagger",
-      "applicationUrl": "http://localhost:8080",
+      "applicationUrl": "http://localhost:8100/api/v1/users",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "",
         "AWS_COGNITO_REGION": "",

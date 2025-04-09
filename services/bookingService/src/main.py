@@ -73,7 +73,7 @@ app.add_middleware(
 )
 
 # Include router
-app.include_router(booking_router, prefix="/api/v1")  # Bookings endpoints
+# app.include_router(booking_router, prefix="/api/v1")  # Bookings endpoints
 
 @app.get("/")
 async def root():

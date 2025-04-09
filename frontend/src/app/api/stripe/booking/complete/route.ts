@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
 
 // Use container name when running in Docker, localhost when running locally
-const TICKET_SERVICE_URL = process.env.TICKET_SERVICE_URL || 'http://localhost:8000';
+const TICKET_SERVICE_URL = process.env.TICKET_SERVICE_URL || 'http://localhost:8100/api/v1/tickets';
 const EVENT_SERVICE_URL = process.env.EVENT_SERVICE_URL || 'http://localhost:8001';
 
 export async function POST(request: Request) {
