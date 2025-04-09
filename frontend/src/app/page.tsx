@@ -21,7 +21,7 @@ export default function EventPlatformPage() {
     const fetchFeaturedEvents = async () => {
       try {
         const res = await fetch(
-          `http://localhost:8100/api/v1/events/?skip=0&limit=3`,
+          `${process.env.NEXT_PUBLIC_EVENT_SERVICE_URL}/api/v1/events?skip=0&limit=3`,
           {
             headers: {
               Accept: "application/json",
