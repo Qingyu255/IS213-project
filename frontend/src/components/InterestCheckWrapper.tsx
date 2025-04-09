@@ -22,7 +22,7 @@ export default function InterestCheckWrapper({ children }: { children: React.Rea
       };
 
       try {
-        const res = await fetch(`${BACKEND_ROUTES.userManagementServiceUrl}/userinterests/user/${userId}`, {
+        const res = await fetch(`${BACKEND_ROUTES.userManagementServiceUrl}/api/userinterests/user/${userId}`, {
             method: "GET",
             headers: {
                 Authorization: await getBearerToken(),
