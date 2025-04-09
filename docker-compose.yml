@@ -30,8 +30,8 @@ services:
       POSTGRES_PASSWORD: ${USERS_DB_PASSWORD}
     env_file:
       - .env
-    ports:
-      - "5433:5432"
+    # ports:
+    #   - "5433:5432"
     volumes:
       - users-db-data:/var/lib/postgresql/data
     healthcheck:
@@ -53,8 +53,8 @@ services:
       POSTGRES_PASSWORD: ${TICKET_DB_PASSWORD}
     env_file:
       - .env
-    ports:
-      - "5434:5432"
+    # ports:
+    #   - "5434:5432"
     volumes:
       - ticket-db-data:/var/lib/postgresql/data
     healthcheck:
@@ -75,8 +75,8 @@ services:
       POSTGRES_DB: ${LOGGING_DB}
       POSTGRES_USER: ${LOGGING_DB_USER}
       POSTGRES_PASSWORD: ${LOGGING_DB_PASSWORD}
-    ports:
-      - "5435:5432"
+    # ports:
+    #   - "5435:5432"
     volumes:
       - logging-db-data:/var/lib/postgresql/data
     healthcheck:
@@ -100,8 +100,8 @@ services:
       POSTGRES_DB: ${EVENTS_DB}
       POSTGRES_USER: ${EVENTS_DB_USER}
       POSTGRES_PASSWORD: ${EVENTS_DB_PASSWORD}
-    ports:
-      - "5436:5432"
+    # ports:
+    #   - "5436:5432"
     volumes:
       - events-db-data:/var/lib/postgresql/data
     healthcheck:
@@ -122,8 +122,8 @@ services:
       POSTGRES_DB: ${BILLING_DB}
       POSTGRES_USER: ${BILLING_DB_USER}
       POSTGRES_PASSWORD: ${BILLING_DB_PASSWORD}
-    ports:
-      - "5437:5432"
+    # ports:
+    #   - "5437:5432"
     volumes:
       - billing-db-data:/var/lib/postgresql/data
     healthcheck:
@@ -219,9 +219,9 @@ services:
     container_name: logging_rabbitmq
     mem_limit: 512m
     restart: always
-    ports:
-      - "5672:5672"
-      - "15672:15672"
+    # ports:
+    #   - "5672:5672"
+    #   - "15672:15672"
     environment:
       RABBITMQ_ERLANG_COOKIE: "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"
     healthcheck:
@@ -241,8 +241,8 @@ services:
       dockerfile: Dockerfile
     env_file:
       - .env
-    ports:
-      - "8080:8080"
+    # ports:
+    #   - "8080:8080"
     environment:
       ConnectionStrings__PostgresDbConnectionString: "Host=users-db;Database=${USERS_DB};Username=${USERS_DB_USER};Password=${USERS_DB_PASSWORD}"
       ASPNETCORE_ENVIRONMENT: "Development"
@@ -263,8 +263,8 @@ services:
       context: ./services/ticketManagementService
       dockerfile: Dockerfile
     container_name: ticket-management-service
-    ports:
-      - "8000:8000"
+    # ports:
+    #   - "8000:8000"
     env_file:
       - .env
     environment:
@@ -293,8 +293,8 @@ services:
         condition: service_healthy
     env_file:
       - .env
-    ports:
-      - "9000:9000"
+    # ports:
+    #   - "9000:9000"
     environment:
       AWS_COGNITO_REGION: ${AWS_REGION}
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
@@ -309,8 +309,8 @@ services:
       dockerfile: Dockerfile
     env_file:
       - .env
-    ports:
-      - "8083:8001"
+    # ports:
+    #   - "8083:8001"
     environment:
       DATABASE_URL: "postgresql+asyncpg://${EVENTS_DB_USER}:${EVENTS_DB_PASSWORD}@events-db:5432/${EVENTS_DB}"
     depends_on:
@@ -325,8 +325,8 @@ services:
       context: ./services/createEventService
       dockerfile: Dockerfile
     container_name: create-event-service
-    ports:
-      - "8070:8070"
+    # ports:
+    #   - "8070:8070"
     env_file:
       - .env
     environment:
@@ -341,9 +341,9 @@ services:
       dockerfile: Dockerfile
     container_name: billing-service
     restart: always
-    ports:
-      - "5001:5001"
-      - "9101:9101"
+    # ports:
+    #   - "5001:5001"
+    #   - "9101:9101"
     env_file:
       - .env
     environment:
@@ -376,8 +376,8 @@ services:
       context: ./services/refundService
       dockerfile: Dockerfile
     container_name: refund-composite-service
-    ports:
-      - "8880:8880"
+    # ports:
+    #   - "8880:8880"
     env_file:
       - .env
     depends_on:
@@ -432,8 +432,8 @@ services:
     image: prom/prometheus
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
-    ports:
-      - "9090:9090"
+    # ports:
+    #   - "9090:9090"
     networks:
       - default
       - kong_net

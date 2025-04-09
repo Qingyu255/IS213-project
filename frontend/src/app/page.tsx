@@ -21,7 +21,7 @@ export default function EventPlatformPage() {
     const fetchFeaturedEvents = async () => {
       try {
         const res = await fetch(
-          `${BACKEND_ROUTES.eventsService}/api/v1/events/?skip=0&limit=3`,
+          `http://localhost:8100/api/v1/events/?skip=0&limit=3`,
           {
             headers: {
               Accept: "application/json",

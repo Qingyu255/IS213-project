@@ -83,7 +83,7 @@ async def startup():
     asyncio.create_task(init_db())
 
 # 🚀 Include Event Routes
-app.include_router(api_router, prefix="/api/v1")  # All API endpoints under /api/v1
+# app.include_router(api_router, prefix="/api/v1")  # All API endpoints under /api/v1
 
 # 🔀 Redirect Root to API Docs
 @app.get("/")

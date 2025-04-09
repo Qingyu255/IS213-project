@@ -2,7 +2,7 @@
 INSERT INTO users (id, email, username, created_at, updated_at) 
 VALUES
     -- Event organizers
-    ('a1b2c3d4-e89b-4111-a456-556642440001', 'tech.events@example.com', 'tech_events_org', NOW(), NOW()),
+    ('do', 'tech.events@example.com', 'tech_events_org', NOW(), NOW()),
     ('b2c3d4e5-e89b-4222-a456-556642440002', 'innovation@example.com', 'innovation_hub', NOW(), NOW()),
     ('c3d4e5f6-e89b-4333-a456-556642440003', 'music@example.com', 'music_promotions', NOW(), NOW()),
     ('d4e5f6a7-e89b-4444-a456-556642440004', 'art.gallery@example.com', 'art_gallery_official', NOW(), NOW()),
