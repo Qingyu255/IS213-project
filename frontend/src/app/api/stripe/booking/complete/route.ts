@@ -37,7 +37,7 @@ export async function POST(request: Request) {
       
       // Get booking details by directly calling the ticket service
       const response = await fetch(
-        `${TICKET_SERVICE_URL}/api/v1/bookings/${bookingId}`,
+        `${TICKET_SERVICE_URL}/api/v1/mgmt/bookings/${bookingId}`,
         {
           headers: {
             Authorization: authHeader,

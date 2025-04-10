@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 import requests
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
-from typing import List
+from typing import List, Dict
 from uuid import UUID
 import logging
 
@@ -11,7 +11,7 @@ from ...core.config import get_settings
 from ...core.database import get_db
 from ...models.booking import Booking
 from ...models.ticket import Ticket
-from ...schemas.ticket import TicketResponse
+from ...schemas.ticket import TicketResponse, UserEventTicketsResponse
 from ...schemas.booking import BookingStatus
 from ...core.auth import get_current_user_id
 
@@ -120,12 +120,7 @@ async def get_user_event_tickets(
     result = await db.execute(query)
     tickets = result.scalars().all()
     
-    ticket_responses = [format_ticket_response(ticket) for ticket in tickets]
-    return {
-        "tickets": ticket_responses,
-        "count": len(ticket_responses),
-        "ticket_ids": [str(ticket.ticket_id) for ticket in tickets]
-    }
+    return [format_ticket_response(ticket) for ticket in tickets]
 
 def fetch_event_data(event_id: str):
     response = requests.get(f"{settings.EVENT_SERVICE_URL}/api/v1/events/{event_id}")

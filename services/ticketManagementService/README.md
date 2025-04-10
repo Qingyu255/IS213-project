@@ -192,12 +192,12 @@ The authentication flow works as follows:
 
 ### Bookings API
 
-- `POST /api/v1/bookings`: Create a new booking with tickets
-- `GET /api/v1/bookings/{booking_id}`: Retrieve booking details
-- `GET /api/v1/bookings/user/{user_id}`: Get all bookings for a user (grouped by event)
-- `PUT /api/v1/bookings/{booking_id}/confirm`: Confirm a booking
-- `PUT /api/v1/bookings/{booking_id}/cancel`: Cancel a booking
-- `PUT /api/v1/bookings/{booking_id}/refund`: Refund a booking
+- `POST /api/v1/mgmt/bookings`: Create a new booking with tickets
+- `GET /api/v1/mgmt/bookings/{booking_id}`: Retrieve booking details
+- `GET /api/v1/mgmt/bookings/user/{user_id}`: Get all bookings for a user (grouped by event)
+- `PUT /api/v1/mgmt/bookings/{booking_id}/confirm`: Confirm a booking
+- `PUT /api/v1/mgmt/bookings/{booking_id}/cancel`: Cancel a booking
+- `PUT /api/v1/mgmt/bookings/{booking_id}/refund`: Refund a booking
 
 ### Tickets API
 

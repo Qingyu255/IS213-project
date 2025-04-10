@@ -70,7 +70,7 @@ function isValidUUID(uuid: string) {
 
 export async function createBooking(bookingData: BookingRequest): Promise<BookingResponse> {
   const headers = await getAuthHeaders();
-  const response = await fetch(`${BOOKING_SERVICE_URL}/api/v1/bookings/book`, {
+  const response = await fetch(`${TICKET_SERVICE_URL}/api/v1/mgmt/bookings/book`, {
     method: "POST",
     headers,
     body: JSON.stringify(bookingData),
@@ -87,7 +87,7 @@ export async function createBooking(bookingData: BookingRequest): Promise<Bookin
 export const getUserBookings = async (userId: string): Promise<BookingResponse[]> => {
   try {
     const response = await fetch(
-      `${BOOKING_SERVICE_URL}/api/v1/bookings/userbookings/user/${userId}`,
+      `${TICKET_SERVICE_URL}/api/v1/mgmt/bookings/user/${userId}`,
       {
         method: "GET",
         headers: await getAuthHeaders(),
@@ -115,7 +115,7 @@ export async function getBooking(bookingId: string): Promise<BookingResponse> {
   console.log("Fetching booking with ID:", bookingId); // Debug log
   
   const response = await fetch(
-    `${BOOKING_SERVICE_URL}/api/v1/bookings/${bookingId}`,
+    `${TICKET_SERVICE_URL}/api/v1/mgmt/bookings/${bookingId}`,
     {
       headers,
     }
@@ -145,11 +145,11 @@ export async function updateBookingStatus(
   const endpoint = action === "complete" ? "confirm" : action;
   const headers = await getAuthHeaders();
   
-  console.log('Making request to:', `${BOOKING_SERVICE_URL}/api/v1/bookings/${bookingId}/${endpoint}`);
+  console.log('Making request to:', `${TICKET_SERVICE_URL}/api/v1/mgmt/bookings/${bookingId}/${endpoint}`);
   
   try {
     const response = await fetch(
-      `${BOOKING_SERVICE_URL}/api/v1/bookings/${bookingId}/${endpoint}`,
+      `${TICKET_SERVICE_URL}/api/v1/mgmt/bookings/${bookingId}/${endpoint}`,
       {
         method: "POST",
         headers,
@@ -231,7 +231,7 @@ export async function getAvailableTickets(eventId: string) {
 export async function testAuth(): Promise<any> {
   const headers = await getAuthHeaders();
   const response = await fetch(
-    `${TICKET_SERVICE_URL}/api/v1/bookings/test-auth`,
+    `${TICKET_SERVICE_URL}/api/v1/mgmt/bookings/test-auth`,
     {
       headers,
     }
@@ -248,7 +248,7 @@ export const getUserEventTickets = async (
 ): Promise<UserEventTicketsResponse> => {
   try {
     const response = await fetch(
-      `${TICKET_SERVICE_URL}/api/v1/tickets/${userId}/${eventId}`,
+      `${TICKET_SERVICE_URL}/api/v1/tickets/user/${userId}/event/${eventId}`,
       {
         method: "GET",
         headers: await getAuthHeaders(),
