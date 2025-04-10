@@ -104,7 +104,7 @@ export const getUserHostedEvents = async (
 ): Promise<EventDetails[]> => {
   try {
     // First get all events
-    const response = await fetch(`${BACKEND_ROUTES.eventsService}/api/v1/events`,
+    const response = await fetch(`${BACKEND_ROUTES.eventsService}/api/v1/events/`,
       {
         method: "GET",
         headers: {
