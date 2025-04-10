@@ -1,0 +1,185 @@
+_format_version: "3.0"
+_transform: true
+
+services:
+
+  - name: booking-service
+    url: http://booking-service:8002
+    routes:
+      - name: booking-route
+        paths:
+          - "~/api/v1/bookings(/.*)?"
+        methods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - OPTIONS
+        strip_path: false
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 60
+          hour: 1000
+          policy: local
+
+  - name: user-management-service
+    url: http://user-management-service:8080
+    routes:
+      - name: user-management-route
+        paths:
+          - "~/api/users(/.*)?"
+          - "~/api/v1/users(/.*)?"
+          - "~/api/userinterests(/.*)?"
+        methods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - OPTIONS
+        strip_path: false
+        preserve_host: true
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 60
+          hour: 1000
+          policy: local
+
+  - name: ticket-management-service
+    url: http://ticket-management-service:8000
+    routes:
+      - name: ticket-management-route
+        paths:
+          - "~/api/v1/tickets(/.*)?"
+        methods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - OPTIONS
+        strip_path: false
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 60
+          hour: 1000
+          policy: local
+
+  - name: events-service
+    url: http://events-service:8001
+    routes:
+      - name: events-route
+        paths:
+          - "~/api/v1/events(/.*)?"
+        methods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - OPTIONS
+        strip_path: false
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 60
+          hour: 1000
+          policy: local
+
+  - name: create-event-service
+    url: http://create-event-service:8070
+    routes:
+      - name: create-event-route
+        paths:
+          - "~/api/v1/create-event(/.*)?"
+        methods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - OPTIONS
+        strip_path: false
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 60
+          hour: 1000
+          policy: local
+
+  - name: billing-service
+    url: http://billing-service:5001
+    routes:
+      - name: billing-route
+        paths:
+          - "~/api/v1/billing(/.*)?"
+        methods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - OPTIONS
+        strip_path: false
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 60
+          hour: 1000
+          policy: local
+
+  - name: refund-service
+    url: http://refund-composite-service:8880
+    routes:
+      - name: refund-route
+        paths:
+          - "~/api/v1/refunds(/.*)?"
+        methods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - OPTIONS
+        strip_path: false
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 60
+          hour: 1000
+          policy: local
+
+  - name: logging-service
+    url: http://logging-service:9000
+    routes:
+      - name: logging-route
+        paths:
+          - "~/api/v1/logs(/.*)?"
+        methods:
+          - GET
+          - POST
+          - OPTIONS
+        strip_path: false
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 60
+          hour: 1000
+          policy: local
+
+plugins:
+  - name: cors
+    config:
+      origins:
+        - "http://localhost:3000"
+      headers:
+        - "*"
+      exposed_headers:
+        - "*"
+      methods:
+        - GET
+        - PUT
+        - POST
+        - DELETE
+        - OPTIONS
+        - PATCH
+      credentials: false
+      preflight_continue: false
+      max_age: 86400

@@ -10,10 +10,13 @@ export const getEventById = async (eventId: string): Promise<EventDetails> => {
     const response = await fetch(
       `${BACKEND_ROUTES.eventsService}/api/v1/events/${eventId}`,
       {
+        method: "GET",
         headers: {
           Accept: "application/json",
           Authorization: await getBearerIdToken(),
         },
+        mode: "cors",
+        credentials: "omit",
       }
     );
 
@@ -45,6 +48,8 @@ export const updateEvent = async (
           Authorization: await getBearerIdToken(),
         },
         body: JSON.stringify(eventData),
+        mode: "cors",
+        credentials: "omit",
       }
     );
 
@@ -74,6 +79,8 @@ export const deleteEvent = async (eventId: string): Promise<void> => {
         headers: {
           Authorization: await getBearerIdToken(),
         },
+        mode: "cors",
+        credentials: "omit",
       }
     );
 
@@ -97,11 +104,10 @@ export const getUserHostedEvents = async (
 ): Promise<EventDetails[]> => {
   try {
     // First get all events
-    const response = await fetch(
-      `${BACKEND_ROUTES.eventsService}/api/v1/events`,
+    const response = await fetch(`${BACKEND_ROUTES.eventsService}/api/v1/events`,
       {
+        method: "GET",
         headers: {
-          Accept: "application/json",
           Authorization: await getBearerIdToken(),
         },
       }
