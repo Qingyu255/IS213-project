@@ -564,7 +564,7 @@ export function EventTimeline({ events, type }: EventTimelineProps) {
                                                     {(
                                                       event.ticketDetails
                                                         ?.event_details?.price *
-                                                      1.1
+                                                      booking.tickets.length
                                                     )?.toFixed(2) || "0.00"}
                                                   </span>
                                                 </div>
@@ -577,7 +577,7 @@ export function EventTimeline({ events, type }: EventTimelineProps) {
                                                     {(
                                                       event.ticketDetails
                                                         ?.event_details?.price *
-                                                      1.1
+                                                      booking.tickets.length
                                                     )?.toFixed(2) || "0.00"}
                                                   </span>
                                                 </div>
