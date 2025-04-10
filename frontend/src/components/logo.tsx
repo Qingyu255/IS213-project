@@ -1,6 +1,6 @@
-import { siteName } from "@/constants/common"
-import Image from "next/image"
-import React from "react"
+import { siteName } from "@/constants/common";
+import Image from "next/image";
+import React from "react";
 
 export default function Logo() {
   return (
@@ -11,10 +11,9 @@ export default function Logo() {
           alt="Bookaroo Logo"
           width={25}
           height={25}
-          className="dark:invert"
         />
       </div>
       <span className="text-xl font-bold tracking-tight">{siteName}</span>
     </div>
-  )
+  );
 }
