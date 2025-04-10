@@ -134,11 +134,12 @@ class RefundService:
         event_start_datetime = event_details.get("startDateTime")
         event_end_datetime = event_details.get("endDateTime")
         
-        if not event_name or not event_start_datetime or not event_end_datetime:
+        
+        if not event_name:
             raise ValueError("Incomplete event details")
         
         logger.info(f"Successfully fetched event details for event_id={event_id}. "
-                    f"Event Name: {event_name}, Start DateTime: {event_start_datetime}, End DateTime: {event_end_datetime}")
+                    f"Event Name: {event_name}, Start DateTime: {event_start_datetime}")
         
 
         # Step 1: Log the booking refund request
@@ -219,7 +220,7 @@ class RefundService:
                         ticket_quantity= ticket_quantity,
                         total_amount=amount/100,
                         event_start_datetime= event_start_datetime,
-                        event_end_datetime=event_end_datetime
+                        event_end_datetime=event_start_datetime if event_end_datetime is None else event_end_datetime
                     )
                 except Exception as e:
                     logger.error(f"Error sending refund confirmation: {str(e)}")
