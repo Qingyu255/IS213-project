@@ -2,9 +2,9 @@ import { NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
 import { BACKEND_ROUTES } from '@/constants/backend-routes';
 
-// Use container name when running in Docker, localhost when running locally
-const TICKET_SERVICE_URL = BACKEND_ROUTES.ticketManagementService;
-const EVENT_SERVICE_URL = BACKEND_ROUTES.eventsService;
+// Use internal Docker network URLs when running on server-side
+const TICKET_SERVICE_URL = 'http://ticket-management-service:8000';
+const EVENT_SERVICE_URL = 'http://event-service:8000';
 
 export async function POST(request: Request) {
   try {
