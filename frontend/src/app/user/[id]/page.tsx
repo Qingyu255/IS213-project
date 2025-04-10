@@ -42,8 +42,11 @@ export default function ViewEditUserPage() {
           {
             method: "GET",
             headers: {
-              Authorization: await getBearerToken(),
+              "Content-Type": "application/json",
+              "Authorization": await getBearerToken(),
             },
+            mode: "cors",
+            credentials: "omit",
           }
         );
 
@@ -88,8 +91,10 @@ export default function ViewEditUserPage() {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
-            Authorization: await getBearerToken(),
+            "Authorization": await getBearerToken(),
           },
+          mode: "cors",
+          credentials: "omit",
           body: JSON.stringify(editableFields),
         }
       );
@@ -126,8 +131,11 @@ export default function ViewEditUserPage() {
         {
           method: "DELETE",
           headers: {
-            Authorization: await getBearerToken(),
+            "Content-Type": "application/json",
+            "Authorization": await getBearerToken(),
           },
+          mode: "cors",
+          credentials: "omit",
         }
       );
 

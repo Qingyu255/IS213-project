@@ -100,7 +100,7 @@ class TicketService:
         try:
             return self._make_request_with_retry(
                 "get",
-                f"api/v1/bookings/{booking_id}",
+                f"api/v1/mgmt/bookings/{booking_id}",
                 auth_token=auth_token
             )
         except Exception as e:
@@ -130,7 +130,7 @@ class TicketService:
             
             return self._make_request_with_retry(
                 "post",
-                f"api/v1/bookings/{booking_id}/{endpoint}",
+                f"api/v1/mgmt/bookings/{booking_id}/{endpoint}",
                 auth_token=auth_token
             )
         except ValueError as e:
@@ -146,7 +146,7 @@ class TicketService:
             user_uuid = UUID(user_id)
             return self._make_request_with_retry(
                 "get",
-                f"api/v1/bookings/user/{user_uuid}"
+                f"api/v1/mgmt/bookings/user/{user_uuid}"
             )
         except Exception as e:
             logger.error(f"Error getting user bookings: {str(e)}")
@@ -199,7 +199,7 @@ class TicketService:
             # Make the request
             return self._make_request_with_retry(
                 "post",
-                "api/v1/bookings/book",
+                "api/v1/mgmt/bookings/book",
                 auth_token=auth_token,
                 json=booking_data
             )

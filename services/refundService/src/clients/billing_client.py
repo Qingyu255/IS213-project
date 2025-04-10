@@ -152,7 +152,7 @@ class BillingClient:
         Returns:
             dict: Response indicating success or failure, including the updated status
         """
-        url = f"{TICKET_SERVICE_URL}/api/v1/bookings/{booking_id}/refund"
+        url = f"{TICKET_SERVICE_URL}/api/v1/mgmt/bookings/{booking_id}/refund"
         headers = {}
         if authorization:
             headers["Authorization"] = authorization

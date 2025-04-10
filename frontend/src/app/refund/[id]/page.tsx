@@ -1,18 +1,18 @@
-"use client";
+"use client"
 
-import type React from "react";
+import type React from "react"
 
-import { useState, useEffect } from "react";
-import { useRouter, useParams } from "next/navigation";
-import { getBearerIdToken } from "@/utils/auth";
-import { Button } from "@/components/ui/button";
-import { ErrorMessageCallout } from "@/components/error-message-callout";
-import { Spinner } from "@/components/ui/spinner";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BACKEND_ROUTES } from "@/constants/backend-routes";
-import Image from "next/image";
-import { MapPin, Calendar } from "lucide-react";
-import { Separator } from "@/components/ui/separator";
+import { useState, useEffect } from "react"
+import { useRouter, useParams } from "next/navigation"
+import { getBearerIdToken } from "@/utils/auth"
+import { Button } from "@/components/ui/button"
+import { ErrorMessageCallout } from "@/components/error-message-callout"
+import { Spinner } from "@/components/ui/spinner"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { BACKEND_ROUTES } from "@/constants/backend-routes"
+import Image from "next/image"
+import { MapPin, Calendar } from "lucide-react"
+import { Separator } from "@/components/ui/separator"
 
 // Define interfaces based on your API response
 interface TicketResponse {
@@ -70,134 +70,144 @@ interface EventDetails {
 }
 
 export default function RefundPage() {
-  const router = useRouter();
-  const params = useParams();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [booking, setBooking] = useState<BookingResponse | null>(null);
-  const [event, setEvent] = useState<EventDetails | null>(null);
+  const router = useRouter()
+  const params = useParams()
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [booking, setBooking] = useState<BookingResponse | null>(null)
+  const [event, setEvent] = useState<EventDetails | null>(null)
 
   useEffect(() => {
     async function fetchBookingAndEvent() {
-      if (!params?.id) return;
+      if (!params?.id) return
 
       try {
-        setLoading(true);
-        const bearerToken = await getBearerIdToken();
+        setLoading(true)
+        const bearerToken = await getBearerIdToken()
         if (!bearerToken) {
-          throw new Error("Please sign in to view booking details");
+          throw new Error("Please sign in to view booking details")
         }
 
         // Fetch booking details
-        const bookingResponse = await fetch(`${BACKEND_ROUTES.bookingService}/api/v1/bookings/${params.id}`, {
-          headers: {
-            Accept: "application/json",
-            Authorization: bearerToken,
-          },
-        });
-
-        if (!bookingResponse.ok) {
-          throw new Error("Failed to fetch booking details");
-        }
-
-        const bookingData = await bookingResponse.json();
-        setBooking(bookingData);
-
-        // Fetch event details using the event_id from the booking
-        if (bookingData.event_id) {
-          const eventResponse = await fetch(`${BACKEND_ROUTES.eventsService}/api/v1/events/${bookingData.event_id}`, {
+        const bookingResponse = await fetch(
+          `${BACKEND_ROUTES.bookingService}/api/v1/bookings/${params.id}`,
+          {
             headers: {
               Accept: "application/json",
               Authorization: bearerToken,
             },
-          });
+          }
+        )
+
+        if (!bookingResponse.ok) {
+          throw new Error("Failed to fetch booking details")
+        }
+
+        const bookingData = await bookingResponse.json()
+        setBooking(bookingData)
+
+        // Fetch event details using the event_id from the booking
+        if (bookingData.event_id) {
+          const eventResponse = await fetch(
+            `${BACKEND_ROUTES.eventsService}/api/v1/events/${bookingData.event_id}`,
+            {
+              headers: {
+                Accept: "application/json",
+                Authorization: bearerToken,
+              },
+            }
+          )
 
           if (eventResponse.ok) {
-            const eventData = await eventResponse.json();
-            setEvent(eventData);
+            const eventData = await eventResponse.json()
+            setEvent(eventData)
           }
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load booking");
+        setError(err instanceof Error ? err.message : "Failed to load booking")
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
     }
 
-    fetchBookingAndEvent();
-  }, [params?.id]);
+    fetchBookingAndEvent()
+  }, [params?.id])
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!booking || !params?.id) return;
+    e.preventDefault()
+    if (!booking || !params?.id) return
 
-    setLoading(true);
-    setError(null);
+    setLoading(true)
+    setError(null)
 
     try {
       // Get the current user and bearer token
-      const bearerToken = await getBearerIdToken();
+      const bearerToken = await getBearerIdToken()
 
       if (!bearerToken) {
-        throw new Error("Please sign in to request a refund");
+        throw new Error("Please sign in to request a refund")
       }
 
       // Submit the refund request with hardcoded reason
-      const refundResponse = await fetch(`${BACKEND_ROUTES.refundService}/api/v1/booking-refund`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: bearerToken,
-        },
-        body: JSON.stringify({
-          booking_id: params.id,
-          reason: "requested_by_customer",
-        }),
-      });
+      const refundResponse = await fetch(
+        `${BACKEND_ROUTES.refundService}/api/v1/booking-refund`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: bearerToken,
+          },
+          body: JSON.stringify({
+            booking_id: params.id,
+            reason: "requested_by_customer",
+          }),
+        }
+      )
 
       if (!refundResponse.ok) {
-        const errorData = await refundResponse.json();
-        throw new Error(errorData.detail || "Failed to process refund request");
+        const errorData = await refundResponse.json()
+        throw new Error(errorData.detail || "Failed to process refund request")
       }
 
       // Redirect to success page
-      router.push(`/refund/${params.id}/success`);
+      router.push(`/refund/${params.id}/success`)
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
+      setError(err instanceof Error ? err.message : "An error occurred")
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   // Format date and time
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
+    const date = new Date(dateString)
     return date.toLocaleDateString("en-US", {
       weekday: "short",
       year: "numeric",
       month: "short",
       day: "numeric",
-    });
-  };
+    })
+  }
 
   const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
+    const date = new Date(dateString)
     return date.toLocaleTimeString("en-US", {
       hour: "2-digit",
       minute: "2-digit",
-    });
-  };
+    })
+  }
 
   if (loading && !booking) {
     return (
       <div className="flex justify-center items-center min-h-screen">
         <Spinner />
       </div>
-    );
+    )
   }
 
   // Calculate total amount from price and quantity
-  const totalAmount = event && booking ? event.price * booking.ticket_quantity : 0;
+  const totalAmount =
+    event && booking ? event.price * booking.ticket_quantity : 0
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -227,9 +237,12 @@ export default function RefundPage() {
                 <div className="flex items-start gap-2">
                   <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />
                   <div>
-                    <p className="font-medium">{formatDate(event.startDateTime)}</p>
+                    <p className="font-medium">
+                      {formatDate(event.startDateTime)}
+                    </p>
                     <p className="text-sm text-muted-foreground">
-                      {formatTime(event.startDateTime)} - {formatTime(event.endDateTime)}
+                      {formatTime(event.startDateTime)} -{" "}
+                      {formatTime(event.endDateTime)}
                     </p>
                   </div>
                 </div>
@@ -241,7 +254,9 @@ export default function RefundPage() {
                   <MapPin className="h-5 w-5 text-muted-foreground mt-0.5" />
                   <div>
                     <p className="font-medium">{event.venue.name}</p>
-                    <p className="text-sm text-muted-foreground">{event.venue.address}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {event.venue.address}
+                    </p>
                     <p className="text-sm text-muted-foreground">
                       {event.venue.city}
                       {event.venue.state ? `, ${event.venue.state}` : ""}
@@ -273,18 +288,28 @@ export default function RefundPage() {
               {/* Refund request section */}
               <div>
                 <p className="mb-6">
-                  We're sorry to hear you'd like a refund for this event. By clicking the button below, you confirm that
-                  you want to request a refund for this booking.
+                  We're sorry to hear you'd like a refund for this event. By
+                  clicking the button below, you confirm that you want to
+                  request a refund for this booking.
                 </p>
 
                 {error && <ErrorMessageCallout errorMessage={error} />}
                 <div className="mt-4" />
 
                 <div className="flex gap-4">
-                  <Button type="button" variant="outline" onClick={() => router.back()} className="flex-1">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => router.back()}
+                    className="flex-1"
+                  >
                     Cancel
                   </Button>
-                  <Button onClick={handleSubmit} disabled={loading} className="flex-1">
+                  <Button
+                    onClick={handleSubmit}
+                    disabled={loading}
+                    className="flex-1"
+                  >
                     {loading ? <Spinner /> : "Confirm Refund Request"}
                   </Button>
                 </div>
@@ -310,6 +335,5 @@ export default function RefundPage() {
         )}
       </div>
     </div>
-  );
+  )
 }
-

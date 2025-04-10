@@ -80,7 +80,7 @@ app.add_middleware(
 )
 
 # Include router
-app.include_router(bookings.router, prefix="/api/v1")  # Bookings endpoints
+app.include_router(bookings.router, prefix="/api/v1/mgmt")  # Bookings endpoints
 app.include_router(tickets.router, prefix="/api/v1")  # Tickets endpoints
 
 # Initialize services

@@ -474,78 +474,22 @@ services:
     networks:
       - default
 
-  # #Kong Migration
-  # kong-migration:
-  #   image: kong:3.5
-  #   container_name: kong-migration
-  #   environment:
-  #     KONG_DATABASE: postgres
-  #     KONG_PG_HOST: kong-database
-  #     KONG_PG_USER: kong
-  #     KONG_PG_PASSWORD: kongpass
-  #   command: kong migrations bootstrap
-  #   depends_on:
-  #     kong-database:
-  #       condition: service_healthy
-  #   networks:
-  #     - default
-
   #Kong Gateway
   kong:
     image: kong:3.5
     container_name: kong-gateway
-    restart: always
-    networks:
-      - default
-    environment:
-      KONG_DATABASE: postgres
-      KONG_PG_HOST: kong-database
-      KONG_PG_USER: kong
-      KONG_PG_PASSWORD: kongpass
-      KONG_PROXY_ACCESS_LOG: /dev/stdout
-      KONG_ADMIN_ACCESS_LOG: /dev/stdout
-      KONG_PROXY_ERROR_LOG: /dev/stderr
-      KONG_ADMIN_ERROR_LOG: /dev/stderr
-      KONG_ADMIN_LISTEN: 0.0.0.0:8001
-      KONG_ADMIN_GUI_URL: http://localhost:8102
-      KONG_ADMIN_GUI_LISTEN: 0.0.0.0:8002
-      KONG_ADMIN_GUI_ACCESS_LOG: /dev/stdout
-      KONG_ADMIN_GUI_ERROR_LOG: /dev/stderr
-      KONG_ADMIN_GUI: "on"
-      KONG_ADMIN_GUI_API_URL: "http://localhost:8101"
-      KONG_ADMIN_GUI_FLAGS: "null"
-      KONG_ADMIN_CORS_ORIGINS: "*"
-      KONG_ADMIN_CORS_METHODS: "GET, POST, PUT, PATCH, DELETE"
-      KONG_ADMIN_CORS_HEADERS: "Content-Type, Authorization"
-      KONG_ADMIN_CORS_EXPOSED_HEADERS: "X-Kong-Admin-Request-ID"
-      KONG_ADMIN_CORS_CREDENTIALS: "true"
-      KONG_ADMIN_CORS_MAX_AGE: "3600"
-      KONG_DECLARATIVE_CONFIG: /kong/declarative/kong.yml
-      KONG_DECLARATIVE_CONFIG_STRING: |
-        _format_version: "3.0"
-        _transform: true
-    # depends_on:
-    #   kong-migration:
-    #     condition: service_completed_successfully
     ports:
-      - "8100:8000" # Kong proxy port
-      - "8101:8001" # Kong admin API
-      - "8102:8002" # Kong admin GUI
-      - "8443:8443" # Kong proxy SSL port
-      - "8444:8444" # Kong admin SSL port
+      - "8100:8000"  # HTTP ingress
+      - "8443:8443"  # HTTPS ingress
+      - "8101:8001"  # Kong admin API (HTTP)
+      - "8444:8444"  # Kong admin API (HTTPS)
+    environment:
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /etc/kong/kong.yml
+      KONG_LOG_LEVEL: debug
     volumes:
-      - ./restore-kong.sh:/restore-kong.sh
-      - ./kong:/kong
-    healthcheck:
-      test: ["CMD", "kong", "health"]
-      interval: 10s
-      timeout: 10s
-      retries: 5
-    command: >
-      bash -c 'kong start && 
-      chmod +x /restore-kong.sh && 
-      sleep 30 && 
-      /restore-kong.sh'
+      - ./kong/declarative/kong.yml:/etc/kong/kong.yml:ro
+    restart: unless-stopped
 
 volumes:
   users-db-data:

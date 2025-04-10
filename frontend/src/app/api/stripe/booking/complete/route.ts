@@ -1,10 +1,8 @@
 import { NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
+import { BACKEND_ROUTES } from '@/constants/backend-routes';
 
-// Use container name when running in Docker, localhost when running locally
-const TICKET_SERVICE_URL = process.env.TICKET_SERVICE_URL || 'http://localhost:8000';
-const EVENT_SERVICE_URL = process.env.EVENT_SERVICE_URL || 'http://localhost:8001';
-
+// Use internal Docker network URLs when running on server-side
 export async function POST(request: Request) {
   try {
     if (!stripe) {
@@ -33,10 +31,11 @@ export async function POST(request: Request) {
 
     try {
       console.log('Fetching booking details for ID:', bookingId);
+      console.log('route.ts - BACKEND_ROUTES.ticketManagementService:', BACKEND_ROUTES.ticketManagementService);
       
       // Get booking details by directly calling the ticket service
       const response = await fetch(
-        `${TICKET_SERVICE_URL}/api/v1/bookings/${bookingId}`,
+        `${BACKEND_ROUTES.ticketManagementService}/api/v1/mgmt/bookings/${bookingId}`,
         {
           headers: {
             Authorization: authHeader,
@@ -75,7 +74,7 @@ export async function POST(request: Request) {
 
       // Fetch event details to get the price
       const eventResponse = await fetch(
-        `${EVENT_SERVICE_URL}/api/v1/events/${booking.event_id}`,
+        `${BACKEND_ROUTES.eventsService}/api/v1/events/${booking.event_id}`,
         {
           headers: {
             Authorization: authHeader,
