@@ -4,7 +4,6 @@ from typing import Dict, Any, Optional, Tuple
 from uuid import UUID
 from ..core.config import get_settings
 from ..core.logging import logger
-from .rabbitmq_service import RabbitMQService
 from .logging_service import LoggingService
 from fastapi import HTTPException
 
@@ -21,8 +20,7 @@ class BillingService:
         self.max_retries = 3
         self.initial_backoff = 1.0  # 1 second
         
-        # Initialize services
-        self.rabbitmq = RabbitMQService("billing_service")
+        # Initialize logging service
         self.logger = LoggingService("billing_service")
 
     def _make_request(self, method: str, endpoint: str, **kwargs) -> Dict[str, Any]:
@@ -33,7 +31,12 @@ class BillingService:
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException as e:
-            logger.error(f"Billing service error: {str(e)}")
+            self.logger.log_error(
+                f"Billing service request error",
+                error_type="RequestException",
+                error_details=str(e),
+                endpoint=endpoint
+            )
             raise HTTPException(status_code=500, detail=f"Billing service error: {str(e)}")
 
     def create_payment_session(self, booking_id: str, amount: float, event_title: str, quantity: int) -> Dict[str, Any]:
@@ -82,9 +85,10 @@ class BillingService:
             booking_id = payload.get("data", {}).get("object", {}).get("metadata", {}).get("booking_id")
             
             # Log webhook processing
-            self.logger.log_info(
-                message=f"Processing payment webhook for booking {booking_id}",
-                context={"event_type": event_type, "booking_id": booking_id}
+            self.logger.log_payment_verification(
+                booking_id=booking_id,
+                transaction_id=booking_id,
+                status="WEBHOOK_RECEIVED"
             )
             
             result = self._make_request(
@@ -96,7 +100,12 @@ class BillingService:
             return result
             
         except Exception as e:
-            logger.error(f"Error processing webhook: {str(e)}")
+            self.logger.log_error(
+                "Error processing webhook",
+                transaction_id=booking_id,
+                error_type="WebhookError",
+                error_details=str(e)
+            )
             raise BillingServiceException(f"Failed to process webhook: {str(e)}")
 
     def get_payment_status(self, booking_id: str) -> Optional[str]:
@@ -108,7 +117,12 @@ class BillingService:
             )
             return response.get("status")
         except BillingServiceException as e:
-            logger.error(f"Error getting payment status: {str(e)}")
+            self.logger.log_error(
+                "Error getting payment status",
+                transaction_id=booking_id,
+                error_type="PaymentStatusError",
+                error_details=str(e)
+            )
             return None
 
     def refund_payment(self, booking_id: str, amount: Optional[float] = None) -> Dict[str, Any]:
@@ -119,9 +133,10 @@ class BillingService:
                 payload["amount"] = amount
             
             # Log refund initiation
-            self.logger.log_info(
-                message=f"Initiating refund for booking {booking_id}",
-                context={"amount": amount}
+            self.logger.log_payment_verification(
+                booking_id=booking_id,
+                transaction_id=booking_id,
+                status="REFUND_INITIATED"
             )
             
             result = self._make_request(
@@ -133,7 +148,13 @@ class BillingService:
             return result
             
         except Exception as e:
-            logger.error(f"Error refunding payment: {str(e)}")
+            self.logger.log_error(
+                "Error refunding payment",
+                transaction_id=booking_id,
+                error_type="RefundError",
+                error_details=str(e),
+                amount=amount
+            )
             raise BillingServiceException(f"Failed to refund payment: {str(e)}")
 
     def verify_payment_completed(self, booking_id: str) -> Tuple[bool, Optional[str]]:
@@ -149,14 +170,26 @@ class BillingService:
             
             # Log payment verification result
             if is_paid:
-                self.logger.log_info(
-                    message=f"Payment completed for booking {booking_id}"
+                self.logger.log_payment_verification(
+                    booking_id=booking_id,
+                    transaction_id=booking_id,
+                    status="PAYMENT_COMPLETED"
                 )
             else:
-                logger.debug(f"Payment not completed for booking {booking_id}: {error}")
+                self.logger.log_error(
+                    "Payment not completed",
+                    transaction_id=booking_id,
+                    error_type="PaymentIncomplete",
+                    error_details=error
+                )
             
             return is_paid, error
             
         except Exception as e:
-            logger.error(f"Error verifying payment completion: {str(e)}")
+            self.logger.log_error(
+                "Error verifying payment completion",
+                transaction_id=booking_id,
+                error_type="PaymentVerificationError",
+                error_details=str(e)
+            )
             return False, str(e) 

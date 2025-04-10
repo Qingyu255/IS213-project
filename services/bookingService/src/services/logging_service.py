@@ -1,97 +1,112 @@
 from typing import Dict, Any, Optional
-import pika
 import json
+import pika
 from datetime import datetime
-from ..core.config import get_settings
-from ..core.logging import logger
+import os
 
-settings = get_settings()
+# RabbitMQ Configuration
+RABBITMQ_HOST = os.getenv('RABBITMQ_HOST')
+RABBITMQ_PORT = 5672
+RABBITMQ_USER = os.getenv('RABBITMQ_USER')
+RABBITMQ_PASS = os.getenv('RABBITMQ_PASS')
+LOGGING_QUEUE = os.getenv('LOGGING_QUEUE', 'logs_queue') 
 
 class LoggingService:
     def __init__(self, service_name: str):
         self.service_name = service_name
-        self.queue_name = "logs_queue"  # Use the standard logs queue
-        self.connection_params = pika.URLParameters(settings.RABBITMQ_URL)
-        self.max_retries = 3
+        self.credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASS)
+        self.parameters = pika.ConnectionParameters(
+            host=RABBITMQ_HOST,
+            port=RABBITMQ_PORT,
+            credentials=self.credentials
+        )
 
-    def _get_channel(self):
-        """Create a new connection and channel"""
-        connection = pika.BlockingConnection(self.connection_params)
-        channel = connection.channel()
-        # Ensure queue exists
-        channel.queue_declare(queue=self.queue_name, durable=True)
-        return connection, channel
+    def _send_log(self, message: str, level: str = "INFO", transaction_id: Optional[str] = None, **kwargs):
+        """Internal method to send logs to RabbitMQ"""
+        try:
+            payload = {
+                "service_name": self.service_name,
+                "timestamp": datetime.utcnow().isoformat(),
+                "level": level.upper(),
+                "message": message,
+                "transaction_id": transaction_id,
+                **kwargs
+            }
 
-    def _format_payload(
-        self,
-        level: str,
-        message: str,
-        transaction_id: Optional[str] = None,
-        context: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
-        """Format the log payload"""
-        payload = {
-            "service": self.service_name,
-            "level": level.upper(),
-            "message": message,
-            "timestamp": datetime.utcnow().isoformat()
-        }
-        
-        if transaction_id:
-            payload["transaction_id"] = transaction_id
-        if context:
-            payload["data"] = context
+            connection = pika.BlockingConnection(self.parameters)
+            channel = connection.channel()
+            channel.queue_declare(queue=LOGGING_QUEUE, durable=True)
             
-        return payload
+            channel.basic_publish(
+                exchange="",
+                routing_key=LOGGING_QUEUE,
+                body=json.dumps(payload)
+            )
+            connection.close()
+        except Exception as e:
+            print(f"Failed to send log: {str(e)}")  # Fallback logging
 
-    def send_log(
-        self,
-        level: str,
-        message: str,
-        transaction_id: Optional[str] = None,
-        context: Optional[Dict[str, Any]] = None
-    ) -> None:
-        """Send a log entry to the logging service queue"""
-        payload = self._format_payload(level, message, transaction_id, context)
-        
-        retries = 0
-        last_error = None
+    def log_booking_request(self, booking_details: Dict[str, Any], transaction_id: str):
+        """Log when a booking request is received"""
+        self._send_log(
+            message="Booking request received",
+            level="INFO",
+            transaction_id=transaction_id,
+            booking_details=booking_details
+        )
 
-        while retries < self.max_retries:
-            try:
-                connection, channel = self._get_channel()
-                
-                channel.basic_publish(
-                    exchange='',
-                    routing_key=self.queue_name,
-                    body=json.dumps(payload),
-                    properties=pika.BasicProperties(
-                        delivery_mode=2,
-                        content_type='application/json'
-                    )
-                )
+    def log_booking_creation(self, booking_id: str, transaction_id: str):
+        """Log when a booking is created"""
+        self._send_log(
+            message=f"Booking created successfully",
+            level="INFO",
+            transaction_id=transaction_id,
+            booking_id=booking_id
+        )
 
-                connection.close()
-                logger.info(f"Successfully sent log message: {message}")
-                return
+    def log_payment_verification(self, booking_id: str, transaction_id: str, status: str):
+        """Log payment verification status"""
+        self._send_log(
+            message=f"Payment verification {status}",
+            level="INFO",
+            transaction_id=transaction_id,
+            booking_id=booking_id,
+            payment_status=status
+        )
 
-            except Exception as e:
-                last_error = e
-                retries += 1
-                if retries < self.max_retries:
-                    logger.warning(f"Failed to send log (attempt {retries}/{self.max_retries}): {str(e)}")
-                continue
+    def log_booking_confirmation(self, booking_id: str, transaction_id: str):
+        """Log when a booking is confirmed"""
+        self._send_log(
+            message=f"Booking confirmed",
+            level="INFO",
+            transaction_id=transaction_id,
+            booking_id=booking_id
+        )
 
-        logger.error(f"Failed to send log after {self.max_retries} attempts. Last error: {str(last_error)}")
+    def log_booking_cancellation(self, booking_id: str, transaction_id: str):
+        """Log when a booking is cancelled"""
+        self._send_log(
+            message=f"Booking cancelled",
+            level="INFO",
+            transaction_id=transaction_id,
+            booking_id=booking_id
+        )
 
-    def log_info(self, message: str, **kwargs):
-        """Send an info level log message"""
-        self.send_log("info", message, **kwargs)
+    def log_email_sent(self, booking_id: str, transaction_id: str, email: str):
+        """Log when confirmation email is sent"""
+        self._send_log(
+            message=f"Confirmation email sent",
+            level="INFO",
+            transaction_id=transaction_id,
+            booking_id=booking_id,
+            email=email
+        )
 
-    def log_error(self, message: str, **kwargs):
-        """Send an error level log message"""
-        self.send_log("error", message, **kwargs)
-
-    def log_warning(self, message: str, **kwargs):
-        """Send a warning level log message"""
-        self.send_log("warning", message, **kwargs) 
+    def log_error(self, error_message: str, transaction_id: Optional[str] = None, **context):
+        """Log any errors that occur"""
+        self._send_log(
+            message=error_message,
+            level="ERROR",
+            transaction_id=transaction_id,
+            error_context=context
+        ) 
