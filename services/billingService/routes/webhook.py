@@ -101,7 +101,6 @@ def handle_webhook():
             # Charge events
             'charge.succeeded': handle_charge_succeeded,
             'charge.failed': handle_charge_failed,
-            'charge.refunded': handle_refund_succeeded,
             'charge.dispute.created': handle_dispute_created,
             
             # Checkout events
@@ -335,36 +334,6 @@ def handle_charge_failed(event):
     """Handle failed charge"""
     charge = event['data']['object']
     logger.info(f"Charge failed: {charge['id']}")
-    return jsonify({"success": True}), 200
-
-def handle_refund_succeeded(event):
-    """Handle successful refund"""
-    charge = event['data']['object']
-    logger.info(f"Refund succeeded for charge: {charge['id']}")
-    
-    # Notify event service about refund
-    try:
-        refund_id = None
-        refund_amount = 0
-        
-        # Extract refund information
-        if 'refunds' in charge and charge['refunds']['data']:
-            latest_refund = charge['refunds']['data'][0]
-            refund_id = latest_refund['id']
-            refund_amount = latest_refund['amount']
-        
-        requests.post(
-            f"{Config.EVENT_SERVICE_URL}/api/events/refund-processed",
-            json={
-                "charge_id": charge['id'],
-                "refund_id": refund_id,
-                "amount": refund_amount,
-                "metadata": charge.get('metadata', {})
-            }
-        )
-    except Exception as e:
-        logger.error(f"Failed to notify event service: {str(e)}")
-    
     return jsonify({"success": True}), 200
 
 def handle_dispute_created(event):
