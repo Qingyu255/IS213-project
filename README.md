@@ -61,14 +61,17 @@ We help event creators connect with the right audience through intelligent match
 <a href="https://fastapi.tiangolo.com/"><img src="https://fastapi.tiangolo.com/img/logo-margin/logo-teal.png" alt="FastAPI" height="40"/></a>&nbsp;&nbsp;
 <a href="https://flask.palletsprojects.com/"><img src="https://flask.palletsprojects.com/en/3.0.x/_static/flask-vertical.png" alt="Flask" height="40"/></a>&nbsp;&nbsp;
 <a href="https://nextjs.org/"><img src="https://assets.vercel.com/image/upload/v1662130559/nextjs/Icon_light_background.png" alt="Next.js" height="40"/></a>&nbsp;&nbsp;
+<a href="https://dotnet.microsoft.com/"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/7d/Microsoft_.NET_logo.svg/2048px-Microsoft_.NET_logo.svg.png" alt=".NET" height="40"/></a>&nbsp;&nbsp;
 <br>
-<i>Spring Boot · FastAPI · Flask · Next.js</i>
+<i>Spring Boot · FastAPI · Flask · Next.js · .NET</i>
 </p>
 <br>
 
 <p align="center"><strong>API Gateway</strong></p>
 <p align="center">
 <a href="https://konghq.com/"><img src="https://konghq.com/wp-content/uploads/2018/08/kong-combination-mark-color-256px.png" alt="Kong API Gateway" width="88"/></a>
+<br>
+<i>Kong Gateway</i>
 </p>
 <br>
 
@@ -77,24 +80,24 @@ We help event creators connect with the right audience through intelligent match
 <a href="https://grafana.com/"><img src="https://raw.githubusercontent.com/grafana/scenes/main/docusaurus/website/static/img/logo.svg" alt="Grafana" height="40"/></a>&nbsp;&nbsp;
 <a href="https://prometheus.io/"><img src="https://raw.githubusercontent.com/prometheus/docs/ca2961b495c3e2a1e4586899c26de692fa5a28e7/static/prometheus_logo_orange_circle.svg" alt="Prometheus" height="40"/></a>
 <br>
-<i>Metrics Collection · Real-time Monitoring · Custom Dashboards</i>
+<i>Grafana · Prometheus</i>
 </p>
 <br>
 
 <p align="center"><strong>Authentication & Authorization</strong></p>
 <p align="center">
-<a href="https://aws.amazon.com/cognito/"><img src="https://logodix.com/logo/5867.png" alt="AWS Cognito" height="40"/></a>
+<a href="https://aws.amazon.com/cognito/"><img src="https://miro.medium.com/v2/resize:fit:512/1*3Qv7hpvX8cyjzHjumzetLw.png" alt="AWS Cognito" height="40"/></a>
 <br>
-<i>User Authentication · JWT Token Management</i>
+<i>AWS Cognito</i>
 </p>
 <br>
 
 <p align="center"><strong>Storage Solutions</strong></p>  
 <p align="center">
 <a href="https://www.postgresql.org/"><img src="https://raw.githubusercontent.com/docker-library/docs/01c12653951b2fe592c1f93a13b4e289ada0e3a1/postgres/logo.png" alt="PostgreSQL" height="50"/></a>&nbsp;&nbsp;
-<a href="https://aws.amazon.com/s3/"><img src="https://logodix.com/logo/5867.png" alt="S3" height="40"/></a>&nbsp;&nbsp;
+<a href="https://aws.amazon.com/s3/"><img src="https://cdn.worldvectorlogo.com/logos/amazon-s3-simple-storage-service.svg" alt="S3" height="40"/></a>&nbsp;&nbsp;
 <br>
-<i>postgreSQL · S3</i>
+<i>PostgreSQL · S3</i>
 </p>
 <br>
 
@@ -102,7 +105,7 @@ We help event creators connect with the right audience through intelligent match
 <p align="center">
 <a href="https://www.rabbitmq.com/"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/71/RabbitMQ_logo.svg/2560px-RabbitMQ_logo.svg.png" alt="RabbitMQ" width="100"/></a>
 <br>
-<i>rabbitMQ</i>
+<i>RabbitMQ</i>
 </p>
 <br>
 
@@ -116,10 +119,11 @@ We help event creators connect with the right audience through intelligent match
 <a href="https://stripe.com/en-gb-sg"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/ba/Stripe_Logo%2C_revised_2016.svg/1280px-Stripe_Logo%2C_revised_2016.svg.png" alt="Stripe Payment API" height="40"/></a>&nbsp;&nbsp;
 <a href="https://www.docker.com/"><img src="https://www.docker.com/wp-content/uploads/2022/03/horizontal-logo-monochromatic-white.png" alt="Docker" height="30"/></a>&nbsp;&nbsp;
 <a href="https://www.terraform.io/"><img src="https://logodix.com/logo/1686023.png" alt="Terraform" height="50"/></a>&nbsp;&nbsp;
-<a href="https://www.terraform.io/"><img src="https://logodix.com/logo/5867.png" alt="AWS ECR" height="50"/></a>&nbsp;&nbsp;
+<a href="https://aws.amazon.com/ecr/"><img src="https://miro.medium.com/v2/resize:fit:908/1*w4N8NNxnCo-qhADUe5BsGQ.png" alt="AWS ECR" height="50"/></a>&nbsp;&nbsp;
+<a href="https://www.red-gate.com/products/flyway/"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/Flyway_logo.svg/1020px-Flyway_logo.svg.png" alt="Redgate Flyway" height="50"/></a>&nbsp;&nbsp;
 </p>
 <p align="center">
-<i>Docker Compose · Docker Hub · Terraform · AWS ECR</i>
+<i>Docker Compose · Docker Hub · Terraform · AWS ECR · Redgate Flyway</i>
 </p>
 <br>
 
