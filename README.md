@@ -40,7 +40,7 @@ We help event creators connect with the right audience through intelligent match
 
 ## Technical Overview Diagram
 
-<img width="1508" alt="Technical Overview Diagram" src="/assets/bookaroo_technical_diagram.png">
+<img width="1508" alt="Technical Overview Diagram" src="/assets/bookaroo_technical_overview_diagram.jpeg">
 
 ## Frameworks and Databases Utilised
 
