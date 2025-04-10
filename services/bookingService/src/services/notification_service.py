@@ -13,7 +13,7 @@ class NotificationService:
     def __init__(self):
         # Base URL for the notification service
         self.base_url = settings.NOTIFICATIONS_MICROSERVICE_URL
-        self.booking_endpoint = f"{self.base_url}/rest/confirmation/booking"  # For booking confirmations
+        self.booking_endpoint = f"{self.base_url}/booking"  # For booking confirmations
 
     def send_booking_confirmation(
         self,
