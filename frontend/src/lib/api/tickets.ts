@@ -152,8 +152,7 @@ export async function updateBookingStatus(
       `${TICKET_SERVICE_URL}/api/v1/mgmt/bookings/${bookingId}/${endpoint}`,
       {
         method: "POST",
-        headers,
-        credentials: 'include',
+        headers
       }
     );
 
