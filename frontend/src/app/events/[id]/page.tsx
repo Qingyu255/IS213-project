@@ -46,8 +46,7 @@ export default function EventPage() {
     if (!userId) {
       router.push("/auth/signin");
       return;
-      router.push("/auth/login");
-      return;
+
     }
     router.push(`/book/${id}`);
   };
@@ -80,7 +79,7 @@ export default function EventPage() {
     async function fetchEvent() {
       try {
         const res = await fetch(
-          `${BACKEND_ROUTES.eventsService}/api/v1/events/${id}`
+          `${BACKEND_ROUTES.eventsService}${id}`
         );
         if (!res.ok)
           throw new Error(`Failed to fetch event details: ${res.statusText}`);

@@ -8,7 +8,7 @@ import { getBearerIdToken } from "@/utils/auth";
 export const getEventById = async (eventId: string): Promise<EventDetails> => {
   try {
     const response = await fetch(
-      `${BACKEND_ROUTES.eventsService}/api/v1/events/${eventId}`,
+      `${BACKEND_ROUTES.eventsService}/${eventId}`,
       {
         headers: {
           Accept: "application/json",
@@ -37,7 +37,7 @@ export const updateEvent = async (
 ): Promise<EventDetails> => {
   try {
     const response = await fetch(
-      `${BACKEND_ROUTES.eventsService}/api/v1/events/update/${eventId}`,
+      `${BACKEND_ROUTES.eventsService}/update/${eventId}`,
       {
         method: "PUT",
         headers: {
@@ -68,7 +68,7 @@ export const updateEvent = async (
 export const deleteEvent = async (eventId: string): Promise<void> => {
   try {
     const response = await fetch(
-      `${BACKEND_ROUTES.eventsService}/api/v1/events/delete/${eventId}`,
+      `${BACKEND_ROUTES.eventsService}/delete/${eventId}`,
       {
         method: "DELETE",
         headers: {
@@ -98,7 +98,7 @@ export const getUserHostedEvents = async (
   try {
     // First get all events
     const response = await fetch(
-      `${BACKEND_ROUTES.eventsService}/api/v1/events`,
+      `${BACKEND_ROUTES.eventsService}`,
       {
         headers: {
           Accept: "application/json",

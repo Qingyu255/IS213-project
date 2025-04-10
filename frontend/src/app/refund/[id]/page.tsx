@@ -105,7 +105,7 @@ export default function RefundPage() {
 
         // Fetch event details using the event_id from the booking
         if (bookingData.event_id) {
-          const eventResponse = await fetch(`${BACKEND_ROUTES.eventsService}/api/v1/events/${bookingData.event_id}`, {
+          const eventResponse = await fetch(`${BACKEND_ROUTES.eventsService}/${bookingData.event_id}`, {
             headers: {
               Accept: "application/json",
               Authorization: bearerToken,

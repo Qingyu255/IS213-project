@@ -57,7 +57,7 @@ class EventService:
         try:
             # Convert string ID to UUID to match service expectation
             event_uuid = UUID(event_id)
-            return self._make_request_with_retry(f"api/v1/events/{event_uuid}")
+            return self._make_request_with_retry(f"/{event_uuid}")
         except ValueError as e:
             logger.error(f"Invalid event ID format: {str(e)}")
             return None

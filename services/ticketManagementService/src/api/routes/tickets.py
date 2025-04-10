@@ -128,7 +128,7 @@ async def get_user_event_tickets(
     }
 
 def fetch_event_data(event_id: str):
-    response = requests.get(f"{settings.EVENT_SERVICE_URL}/api/v1/events/{event_id}")
+    response = requests.get(f"{settings.EVENT_SERVICE_URL}/{event_id}")
     if response.status_code != 200:
         raise HTTPException(status_code=404, detail="Event not found")
     event_json = response.json()

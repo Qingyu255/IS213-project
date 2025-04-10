@@ -27,7 +27,7 @@ public class EventsServiceImpl implements EventsService {
     public AtomicServiceEventCreationResponse createEvent(AtomicServiceEventCreationDetails event) throws AtomicServiceEventCreationException {
         log.info("Attempting to create event via events atomic service. AtomicServiceEventCreationDetails: {}", event);
 
-        String url = eventsMicroserviceUrl + "/api/v1/events/create";
+        String url = eventsMicroserviceUrl + "/create";
         try {
             ResponseEntity<AtomicServiceEventCreationResponse> response = restTemplate.postForEntity(url, event, AtomicServiceEventCreationResponse.class);
             log.info("Received response from atomic service. Status code: {}", response.getStatusCode());

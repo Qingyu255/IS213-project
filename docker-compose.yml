@@ -553,5 +553,7 @@ networks:
   default:
     name: IS213-project-default
   kong_net:
-    external: true
     name: kong_default
+
+    
+

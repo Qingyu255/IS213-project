@@ -74,7 +74,7 @@ export default function BookingPage() {
         const bearerToken = await getBearerIdToken();
 
         const response = await fetch(
-          `${BACKEND_ROUTES.eventsService}/api/v1/events/${params.id}`,
+          `${BACKEND_ROUTES.eventsService}/${params.id}`,
           {
             headers: {
               Accept: "application/json",

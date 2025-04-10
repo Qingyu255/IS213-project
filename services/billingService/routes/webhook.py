@@ -190,7 +190,7 @@ def handle_event_payment_success(payment_intent: dict, metadata: dict):
     # Handle event creation payment
     event_service_url = os.getenv('EVENT_SERVICE_URL', 'http://event-service:8001')
     response = requests.post(
-        f"{event_service_url}/api/v1/events/{event_id}/confirm",
+        f"{event_service_url}/{event_id}/confirm",
         json={
             "payment_intent_id": payment_intent['id'],
             "amount": amount,
@@ -263,7 +263,7 @@ def handle_payment_failed(event):
             # Handle event creation payment failure
             event_service_url = os.getenv('EVENT_SERVICE_URL', 'http://localhost:8001')
             response = requests.post(
-                f"{event_service_url}/api/v1/events/{event_id}/cancel",
+                f"{event_service_url}/{event_id}/cancel",
                 json={
                     "payment_intent_id": payment_intent['id'],
                     "error": error_message

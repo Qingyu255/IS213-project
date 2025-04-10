@@ -75,7 +75,7 @@ export async function POST(request: Request) {
 
       // Fetch event details to get the price
       const eventResponse = await fetch(
-        `${EVENT_SERVICE_URL}/api/v1/events/${booking.event_id}`,
+        `${EVENT_SERVICE_URL}/${booking.event_id}`,
         {
           headers: {
             Authorization: authHeader,
