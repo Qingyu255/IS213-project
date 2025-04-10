@@ -36,7 +36,7 @@ public class NotificationServiceImpl implements NotificationService {
             return;
         }
 
-        String url = notificationsMicroserviceUrl + "/others";
+        String url = notificationsMicroserviceUrl + "/rest/confirmation/others";
         try {
             ResponseEntity<NotificationsServiceResponse> response = restTemplate.postForEntity(url, emailData,
                     NotificationsServiceResponse.class);
