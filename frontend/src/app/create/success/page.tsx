@@ -11,15 +11,9 @@ import {
   AlertCircle,
   ArrowRight,
   Home,
-  Calendar,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-} from "@/components/ui/card";
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { getCheckoutSession } from "../actions";
 import { useEventCreation } from "@/providers/event-creation-provider";
@@ -29,9 +23,9 @@ import React from "react";
 
 type SuccessProps = {
   searchParams: {
-    session_id: string;
-  };
-};
+    session_id: string
+  }
+}
 
 export default function Success({ searchParams }: SuccessProps) {
   const router = useRouter();
@@ -104,9 +98,7 @@ export default function Success({ searchParams }: SuccessProps) {
 
         if (!sessionResult.success) {
           console.error("Session verification failed:", sessionResult.error);
-          throw new Error(
-            `Payment verification failed: ${sessionResult.error}`
-          );
+          throw new Error(`Payment verification failed: ${sessionResult.error}`);
         }
 
         const checkoutSession = sessionResult.session;

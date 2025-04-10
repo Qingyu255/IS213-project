@@ -18,7 +18,6 @@ import { Separator } from "@/components/ui/separator";
 import { EventMap } from "./components/event-map";
 import { EventDetails } from "@/types/event";
 import { BACKEND_ROUTES } from "@/constants/backend-routes";
-import { getBearerIdToken } from "@/utils/auth";
 import { ErrorMessageCallout } from "@/components/error-message-callout";
 import { Spinner } from "@/components/ui/spinner";
 import { useParams, useRouter } from "next/navigation";
