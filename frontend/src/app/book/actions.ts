@@ -61,7 +61,7 @@ export async function confirmBooking(bookingId: string, sessionId: string, beare
     if (!sessionResponse.success || !sessionResponse.session) {
       throw new Error("Failed to get session details");
     }
-
+    console.log(`${BACKEND_ROUTES.bookingService}/api/v1/bookings/${bookingId}/confirm?session_id=${sessionId}`)
     const response = await fetch(`${BACKEND_ROUTES.bookingService}/api/v1/bookings/${bookingId}/confirm?session_id=${sessionId}`, {
       method: 'POST',
       headers: {

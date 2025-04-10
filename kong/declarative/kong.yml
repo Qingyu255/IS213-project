@@ -142,6 +142,7 @@ services:
       - name: refund-route
         paths:
           - "~/api/v1/refunds(/.*)?"
+          - "~/api/v1/booking-refund(/.*)?"
         methods:
           - GET
           - POST

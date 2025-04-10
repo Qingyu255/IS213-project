@@ -3,9 +3,6 @@ import { stripe } from '@/lib/stripe';
 import { BACKEND_ROUTES } from '@/constants/backend-routes';
 
 // Use internal Docker network URLs when running on server-side
-const TICKET_SERVICE_URL = 'http://ticket-management-service:8000';
-const EVENT_SERVICE_URL = 'http://event-service:8000';
-
 export async function POST(request: Request) {
   try {
     if (!stripe) {
@@ -34,10 +31,11 @@ export async function POST(request: Request) {
 
     try {
       console.log('Fetching booking details for ID:', bookingId);
+      console.log('route.ts - BACKEND_ROUTES.ticketManagementService:', BACKEND_ROUTES.ticketManagementService);
       
       // Get booking details by directly calling the ticket service
       const response = await fetch(
-        `${TICKET_SERVICE_URL}/api/v1/mgmt/bookings/${bookingId}`,
+        `${BACKEND_ROUTES.ticketManagementService}/api/v1/mgmt/bookings/${bookingId}`,
         {
           headers: {
             Authorization: authHeader,
@@ -76,7 +74,7 @@ export async function POST(request: Request) {
 
       // Fetch event details to get the price
       const eventResponse = await fetch(
-        `${EVENT_SERVICE_URL}/api/v1/events/${booking.event_id}`,
+        `${BACKEND_ROUTES.eventsService}/api/v1/events/${booking.event_id}`,
         {
           headers: {
             Authorization: authHeader,
