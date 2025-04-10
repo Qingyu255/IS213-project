@@ -1,3 +1,5 @@
+<img width="1508" alt="Bookaroo Banner" src="/assets/bookaroo-banner.png">
+
 # 🦘 Bookaroo
 
 Bookaroo is an advanced platform designed to enhance the event discovery and booking experience.

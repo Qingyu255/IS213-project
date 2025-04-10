@@ -1,34 +1,37 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
-import { ThemeProvider } from "next-themes";
-import { siteName } from "@/constants/common";
-import Navbar from "@/components/navbar";
-import ConfigureAmplifyClientSide from "./amplify-cognito-config";
-import { Toaster } from "@/components/ui/sonner";
-import Script from "next/script";
-import InterestCheckWrapper from "@/components/InterestCheckWrapper";
-import { EventCreationProvider } from "@/providers/event-creation-provider";
+import type { Metadata } from "next"
+import { Geist, Geist_Mono } from "next/font/google"
+import "./globals.css"
+import { ThemeProvider } from "next-themes"
+import { siteName } from "@/constants/common"
+import Navbar from "@/components/navbar"
+import ConfigureAmplifyClientSide from "./amplify-cognito-config"
+import { Toaster } from "@/components/ui/sonner"
+import Script from "next/script"
+import InterestCheckWrapper from "@/components/InterestCheckWrapper"
+import { EventCreationProvider } from "@/providers/event-creation-provider"
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
-});
+})
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
-});
+})
 
 export const metadata: Metadata = {
   title: `${siteName}`,
   description: "Events simplified",
-};
+  icons: {
+    icon: "/bookaroo-colored-icon.png",
+  },
+}
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: React.ReactNode
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
@@ -58,5 +61,5 @@ export default function RootLayout({
         </ThemeProvider>
       </body>
     </html>
-  );
+  )
 }
