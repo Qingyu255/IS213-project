@@ -14,7 +14,7 @@ class NotificationService:
     def __init__(self):
         # Base URL for the notification service
         self.base_url = NOTIFICATIONS_MICROSERVICE_URL
-        self.refund_endpoint = f"{self.base_url}/rest/confirmation/refund"  # For booking confirmations
+        self.refund_endpoint = f"{self.base_url}/refund"  # For booking confirmations
 
     def send_refund_confirmation(
         self,
