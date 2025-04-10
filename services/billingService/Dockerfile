@@ -1,5 +1,5 @@
-# Use an official Python runtime as the base image
-FROM python:3.11-slim
+# Use Alpine Linux for a smaller base image
+FROM python:3.11-alpine
 
 # Set the working directory
 WORKDIR /app
@@ -20,10 +20,11 @@ ENV STRIPE_SECRET_KEY="" \
     EVENT_SERVICE_URL="http://event-service:5000"
 
 # Install system dependencies including curl for healthcheck
-RUN apt-get update && apt-get install -y \
+RUN apk add --no-cache --update \
     curl \
     gcc \
-    && rm -rf /var/lib/apt/lists/*
+    musl-dev \
+    python3-dev
 
 # Install pip build tools to avoid bdist_wheel errors
 RUN pip install --upgrade pip wheel setuptools
