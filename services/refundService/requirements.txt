@@ -5,4 +5,3 @@ python-dotenv==1.0.0
 pika
 prometheus_client==0.14.1
 python-jose[cryptography]>=3.3.0
-typing
